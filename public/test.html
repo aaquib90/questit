@@ -1,47 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Questit Workbench Redirect</title>
-    <meta http-equiv="refresh" content="0; url=/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      :root {
-        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        background: #0f1729;
-        color: #e2e8f0;
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questit Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    #prompt {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    #output {
+      margin-top: 24px;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      min-height: 200px;
+    }
+    .error {
+      color: #dc2626;
+      background: #fef2f2;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Questit Platform Test</h1>
+  <p>Enter a prompt to generate a micro-tool:</p>
+  
+  <input type="text" id="prompt" placeholder="e.g., Create a simple calculator" value="Create a simple calculator">
+  <br>
+  <button id="generate">Generate Tool</button>
+  <button id="publish" disabled>Publish Tool</button>
+  
+  <div id="output"></div>
+  <div id="error"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "questit": "../src/index.js",
+        "questit/publish": "../src/core/publish.js"
       }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    }
+  </script>
+  <script type="module">
+    // Try to import with fallback error handling
+    let Questit, publishTool;
+    try {
+      const questitModule = await import('../src/index.js');
+      Questit = questitModule.default;
+      const publishModule = await import('../src/core/publish.js');
+      publishTool = publishModule.publishTool;
+    } catch (importError) {
+      document.getElementById('error').innerHTML = `
+        <div class="error">
+          <strong>Import Error:</strong> ${importError.message}<br>
+          <small>Make sure you're serving from the project root, not just the public folder.<br>
+          Try: <code>python3 -m http.server 8000</code> from the project root, then visit <code>http://localhost:8000/public/test.html</code></small>
+          <pre style="margin-top: 8px; font-size: 12px; overflow: auto;">${importError.stack}</pre>
+        </div>
+      `;
+      throw importError;
+    }
+
+    // Initialize Sentry if available
+    if (window.Sentry) {
+      window.Sentry.init({
+        dsn: 'YOUR_SENTRY_DSN_HERE', // Replace with actual DSN
+        environment: 'production',
+        tracesSampleRate: 1.0
+      });
+    }
+
+    // Allow endpoint override via URL parameter or default to production
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiEndpoint = urlParams.get('endpoint') || 'https://questit.cc/api/ai/proxy';
+    const apiBase = urlParams.get('apiBase') || 'https://questit.cc/api';
+
+    console.log('Using API endpoint:', apiEndpoint);
+    console.log('Using API base:', apiBase);
+
+    const questit = new Questit({
+      endpoint: apiEndpoint
+    });
+
+    const promptInput = document.getElementById('prompt');
+    const generateBtn = document.getElementById('generate');
+    const publishBtn = document.getElementById('publish');
+    const output = document.getElementById('output');
+    const errorDiv = document.getElementById('error');
+
+    let currentTool = null;
+
+    function showError(message, details = null) {
+      let errorHtml = `<div class="error"><strong>Error:</strong> ${message}`;
+      if (details) {
+        errorHtml += `<details style="margin-top: 8px;"><summary>Details</summary><pre style="margin-top: 4px; font-size: 12px; overflow: auto;">${JSON.stringify(details, null, 2)}</pre></details>`;
       }
-      .card {
-        max-width: 420px;
-        padding: 32px;
-        border-radius: 16px;
-        background: rgba(15, 23, 42, 0.8);
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        text-align: center;
+      errorHtml += '</div>';
+      errorDiv.innerHTML = errorHtml;
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      const prompt = promptInput.value.trim();
+      if (!prompt) {
+        showError('Please enter a prompt');
+        return;
       }
-      a {
-        color: #22d3ee;
+
+      generateBtn.disabled = true;
+      errorDiv.innerHTML = '';
+      output.innerHTML = '<p>Generating tool... This may take 30-60 seconds.</p>';
+
+      try {
+        console.log('Starting tool generation with prompt:', prompt);
+        const container = await questit.process(prompt, {}, 'render');
+        currentTool = questit.currentTool;
+        
+        if (!container) {
+          throw new Error('Tool generation returned null container');
+        }
+        
+        if (!currentTool) {
+          throw new Error('Tool generation completed but currentTool is null');
+        }
+
+        output.innerHTML = '';
+        output.appendChild(container);
+        publishBtn.disabled = false;
+        console.log('Tool generated successfully:', currentTool);
+        errorDiv.innerHTML = '<div style="background: #d1fae5; padding: 12px; border-radius: 8px; margin-top: 12px;">✅ Tool generated successfully!</div>';
+      } catch (error) {
+        console.error('Generation error:', error);
+        const errorDetails = {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause
+        };
+        showError(error.message, errorDetails);
+      } finally {
+        generateBtn.disabled = false;
       }
-    </style>
-    <script>
-      if (typeof window !== 'undefined') {
-        window.location.replace('/');
+    });
+
+    publishBtn.addEventListener('click', async () => {
+      if (!currentTool) {
+        showError('No tool to publish');
+        return;
       }
-    </script>
-  </head>
-  <body>
-    <main class="card">
-      <h1>Questit Workbench</h1>
-      <p>We’ve moved the interactive test harness to the new workbench.</p>
-      <p><a href="/">Open the workbench</a></p>
-      <p>If you need the legacy demo HTML, serve from a previous commit.</p>
-    </main>
-  </body>
+
+      publishBtn.disabled = true;
+      errorDiv.innerHTML = '<p>Publishing tool...</p>';
+
+      try {
+        const result = await publishTool(currentTool, apiBase);
+        const subdomain = result.name;
+        const url = `https://${subdomain}.questit.cc/`;
+        errorDiv.innerHTML = `<div style="background: #d1fae5; padding: 12px; border-radius: 8px; margin-top: 12px;">
+          ✅ Tool published! Access it at: <a href="${url}" target="_blank">${url}</a>
+        </div>`;
+        console.log('Published:', result);
+      } catch (error) {
+        console.error('Publish error:', error);
+        showError(`Publish error: ${error.message}`, { stack: error.stack });
+      } finally {
+        publishBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
 </html>

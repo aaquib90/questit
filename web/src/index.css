@@ -2,8 +2,8 @@
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  background-color: var(--slate-2);
-  color: var(--slate-12);
+  color: #0f1729;
+  background-color: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -13,56 +13,143 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: var(--slate-2);
+  background-color: #f8fafc;
 }
 
 #root {
   min-height: 100vh;
-  padding: 32px 24px 48px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 24px;
 }
 
-.app-shell {
-  margin: 0 auto;
-  max-width: 1280px;
-}
-
-.preview-panel {
-  flex: 1;
-  min-width: 0;
-}
-
-.preview-surface {
-  min-height: 420px;
+.app {
+  width: 100%;
+  max-width: 760px;
+  background: #ffffff;
   border-radius: 16px;
-  background-color: var(--slate-3);
-  border: 1px solid var(--slate-6);
-  padding: 16px;
-  transition: border-color 0.2s ease;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.1);
+  padding: 32px;
 }
 
-.preview-surface:focus-within {
-  border-color: var(--slate-8);
+header h1 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
 }
 
-.preview-surface .questit-tool-container {
-  background: transparent;
+header p {
+  margin: 0 0 24px;
+  color: #475569;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  padding: 14px;
+  font-size: 16px;
+  resize: vertical;
+  min-height: 128px;
+  background: #f8fafc;
+}
+
+textarea:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: #2563eb;
+  color: #fff;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
   box-shadow: none;
 }
 
-.preview-placeholder {
-  height: 100%;
-  text-align: center;
-  color: var(--slate-11);
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.25);
 }
 
-.log-entry {
-  border-radius: 10px;
-  background: var(--slate-3);
-  border: 1px solid var(--slate-5);
+button:nth-of-type(2) {
+  background: #0f172a;
 }
 
-@media (max-width: 960px) {
+.status,
+.success,
+.error {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.status {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.preview {
+  margin-top: 32px;
+}
+
+.preview h2 {
+  margin-bottom: 12px;
+}
+
+.preview-surface {
+  min-height: 280px;
+  border-radius: 14px;
+  border: 1px solid #d1dce8;
+  padding: 18px;
+  background: #f8fafc;
+}
+
+.placeholder {
+  color: #94a3b8;
+}
+
+@media (max-width: 640px) {
   #root {
-    padding: 24px 16px 40px;
+    padding: 24px;
+  }
+
+  .app {
+    padding: 24px;
   }
 }
