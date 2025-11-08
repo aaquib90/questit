@@ -80,8 +80,31 @@ export default {
       });
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseError) {
+      const fallbackText = await res.text().catch(() => '');
+      return new Response(fallbackText || 'Invalid response from upstream model', {
+        status: 502,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/plain'
+        }
+      });
+    }
+
     const content = data.choices?.[0]?.message?.content || '';
+    if (!content) {
+      return new Response(JSON.stringify(data), {
+        status: 502,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
     return new Response(content, { 
       headers: {
         ...corsHeaders,
@@ -90,5 +113,4 @@ export default {
     });
   }
 };
-
 
