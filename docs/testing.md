@@ -38,7 +38,7 @@ This tests:
    - Wait for tool to render (30-60 seconds)
    - Click "Publish Tool"
    - Visit the returned subdomain URL
-   - Local harness defaults to staging endpoints; override with `?apiBase=https://questit.cc/api&ciEndpoint=https://questit.cc/api/ci/proxy` to test production publishing/repairs.
+   - Local harness defaults to staging endpoints; override with `?apiBase=https://questit.cc/api` to test production publishing.
 
 ### Auto-Repair on Security Failures
 

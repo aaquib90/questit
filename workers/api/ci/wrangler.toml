@@ -1,9 +1,0 @@
-name = "questit-ci"
-main = "proxy.js"
-compatibility_date = "2025-01-01"
-
-[env.staging]
-name = "questit-ci-staging"
-
-[env.production]
-name = "questit-ci-prod"

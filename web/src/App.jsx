@@ -8,7 +8,6 @@ import {
   Button,
   Tabs,
   ScrollArea,
-  Separator,
   Badge,
   Callout
 } from '@radix-ui/themes';
@@ -26,8 +25,7 @@ function useWorkbenchConfig() {
     ? 'https://questit-publish-staging.aaquib-b71.workers.dev'
     : 'https://questit.cc/api';
   const apiBase = params.get('apiBase') || fallbackApiBase;
-  const ciEndpoint = params.get('ciEndpoint') || (isLocalhost ? 'https://questit-ci-staging.aaquib-b71.workers.dev' : undefined);
-  return { endpoint, apiBase, ciEndpoint, isLocalhost };
+  return { endpoint, apiBase, isLocalhost };
 }
 
 function LogPanel({ entries }) {
@@ -58,15 +56,14 @@ function LogPanel({ entries }) {
 }
 
 function App() {
-  const { endpoint, apiBase, ciEndpoint, isLocalhost } = useWorkbenchConfig();
+  const { endpoint, apiBase, isLocalhost } = useWorkbenchConfig();
 
   const questit = useMemo(
     () =>
       new Questit({
-        endpoint,
-        ciEndpoint
+        endpoint
       }),
-    [endpoint, ciEndpoint]
+    [endpoint]
   );
 
   const previewRef = useRef(null);
@@ -231,17 +228,6 @@ function App() {
           <Badge variant="surface" color="indigo">
             {endpoint.replace(/^https?:\/\//, '')}
           </Badge>
-          {ciEndpoint && (
-            <>
-              <Separator orientation="vertical" />
-              <Text size="2" color="gray">
-                CI fallback
-              </Text>
-              <Badge variant="surface" color="cyan">
-                {ciEndpoint.replace(/^https?:\/\//, '')}
-              </Badge>
-            </>
-          )}
         </Flex>
       </Flex>
 

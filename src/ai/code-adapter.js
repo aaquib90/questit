@@ -2,7 +2,6 @@ import { queryAIModel } from './ai-model.js';
 import { createToolError } from '../utils/helper-functions.js';
 import { getArchetypePreset } from './prompts/presets.js';
 import { staticScan } from '../core/static-scan.js';
-import { attemptCIRepair } from './ci-runner.js';
 
 const SAFE_EVALUATION_GUIDANCE = `Math / expression handling guidance:
 - When you need to evaluate arithmetic expressions, parse and compute them explicitly without using eval(), new Function(), or any dynamic code execution.
@@ -283,133 +282,93 @@ async function adaptCodeInternal(userPrompt, intent, repoCode, codeAnalysis, con
   const completion = await queryAIModel(systemPrompt, codeContext, {
     response_format: { type: 'json_object' }
   }, apiConfig);
-    // Log the raw completion for debugging
-    console.log('AI completion received:', typeof completion, completion?.substring?.(0, 200));
-    
-    // Check if response looks like HTML or error message
-    if (typeof completion === 'string' && (completion.trim().startsWith('<') || completion.length < 10)) {
-      throw new Error(`AI returned invalid response (might be HTML or error): ${completion.substring(0, 200)}`);
-    }
-    
-    let parsed;
-    try {
-      parsed = typeof completion === 'string' ? JSON.parse(completion) : completion;
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError, 'Completion:', completion?.substring?.(0, 500));
-      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}. Response preview: ${String(completion).substring(0, 200)}`);
-    }
-    
-    // Validate that we got the expected structure
-    if (!parsed || typeof parsed !== 'object') {
-      throw new Error(`AI returned invalid JSON structure: ${JSON.stringify(parsed).substring(0, 200)}`);
-    }
-    
-    // Validate required fields exist (at least one of html, css, js should be present)
-    if (!parsed.html && !parsed.css && !parsed.js) {
-      throw new Error(`AI response missing required fields. Got: ${Object.keys(parsed).join(', ')}`);
-    }
+  // Log the raw completion for debugging
+  console.log('AI completion received:', typeof completion, completion?.substring?.(0, 200));
 
-    base.html = parsed.html || '';
-    base.css = parsed.css || '';
-    base.js = parsed.js || '';
-    base.description = parsed.description || '';
-    base.instructions = parsed.instructions || '';
-    base.js = injectSafeEvaluationHelper(base.js);
-    ensureDomTargets(base);
+  if (typeof completion === 'string' && (completion.trim().startsWith('<') || completion.length < 10)) {
+    throw new Error(`AI returned invalid response (might be HTML or error): ${completion.substring(0, 200)}`);
+  }
 
-    // Static security scan with auto-repair attempts
-    let scan = staticScan(base);
-    base.scanIssues = scan.issues;
+  let parsed;
+  try {
+    parsed = typeof completion === 'string' ? JSON.parse(completion) : completion;
+  } catch (parseError) {
+    console.error('JSON parse error:', parseError, 'Completion:', completion?.substring?.(0, 500));
+    throw new Error(`Failed to parse AI response as JSON: ${parseError.message}. Response preview: ${String(completion).substring(0, 200)}`);
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`AI returned invalid JSON structure: ${JSON.stringify(parsed).substring(0, 200)}`);
+  }
+
+  if (!parsed.html && !parsed.css && !parsed.js) {
+    throw new Error(`AI response missing required fields. Got: ${Object.keys(parsed).join(', ')}`);
+  }
+
+  base.html = parsed.html || '';
+  base.css = parsed.css || '';
+  base.js = parsed.js || '';
+  base.description = parsed.description || '';
+  base.instructions = parsed.instructions || '';
+  base.js = injectSafeEvaluationHelper(base.js);
+  ensureDomTargets(base);
+
+  // Static security scan with auto-repair attempts
+  let scan = staticScan(base);
+  base.scanIssues = scan.issues;
+  if (scan.critical) {
+    console.warn('Security scan failed. Attempting auto-repair...', scan.issues);
+    const maxAttempts = 2;
+    let attempt = 0;
+    let lastIssues = scan.issues;
+    while (attempt < maxAttempts) {
+      attempt += 1;
+      const repairSystemPrompt = buildRepairPrompt(userPrompt, lastIssues, {
+        html: base.html, css: base.css, js: base.js
+      });
+      const repairInput = 'Please return corrected code as JSON (html, css, js, description, instructions).';
+      const repaired = await queryAIModel(repairSystemPrompt, repairInput, {
+        response_format: { type: 'json_object' }
+      }, apiConfig);
+      let repairedParsed;
+      try {
+        repairedParsed = typeof repaired === 'string' ? JSON.parse(repaired) : repaired;
+      } catch (parseErr) {
+        console.warn('Repair parse error', parseErr);
+        continue;
+      }
+      base.html = repairedParsed.html || '';
+      base.css = repairedParsed.css || '';
+      base.js = repairedParsed.js || '';
+      base.description = repairedParsed.description || base.description || '';
+      base.instructions = repairedParsed.instructions || base.instructions || '';
+      base.js = injectSafeEvaluationHelper(base.js);
+      ensureDomTargets(base);
+      scan = staticScan(base);
+      base.scanIssues = scan.issues;
+      if (!scan.critical) {
+        console.info(`Auto-repair succeeded on attempt ${attempt}.`);
+        break;
+      }
+      lastIssues = scan.issues;
+      console.warn(`Auto-repair attempt ${attempt} failed. Issues remain.`, lastIssues);
+    }
     if (scan.critical) {
-      // Minimal telemetry
-      console.warn('Security scan failed. Attempting auto-repair...', scan.issues);
-      const maxAttempts = 2;
-      let attempt = 0;
-      let lastIssues = scan.issues;
-      while (attempt < maxAttempts) {
-        attempt += 1;
-        const repairSystemPrompt = buildRepairPrompt(userPrompt, lastIssues, {
-          html: base.html, css: base.css, js: base.js
-        });
-        const repairInput = `Please return corrected code as JSON (html, css, js, description, instructions).`;
-        const repaired = await queryAIModel(repairSystemPrompt, repairInput, {
-          response_format: { type: 'json_object' }
-        }, apiConfig);
-        let repairedParsed;
-        try {
-          repairedParsed = typeof repaired === 'string' ? JSON.parse(repaired) : repaired;
-        } catch (parseErr) {
-          console.warn('Repair parse error', parseErr);
-          continue;
-        }
-        // Apply repaired code
-        base.html = repairedParsed.html || '';
-        base.css = repairedParsed.css || '';
-        base.js = repairedParsed.js || '';
-        base.description = repairedParsed.description || base.description || '';
-        base.instructions = repairedParsed.instructions || base.instructions || '';
-        base.js = injectSafeEvaluationHelper(base.js);
-        ensureDomTargets(base);
-        // Re-scan
-        scan = staticScan(base);
-        base.scanIssues = scan.issues;
-        if (!scan.critical) {
-          console.info(`Auto-repair succeeded on attempt ${attempt}.`);
-          break;
-        }
-        lastIssues = scan.issues;
-        console.warn(`Auto-repair attempt ${attempt} failed. Issues remain.`, lastIssues);
-      }
-      if (scan.critical) {
-        const ciEnabled = !!apiConfig?.ciEndpoint || apiConfig?.useCodeInterpreter !== false;
-        if (ciEnabled) {
-          console.info('Static scan still failing; attempting Code Interpreter repair...');
-          const repoContext = Object.entries(relevantFiles)
-            .map(([path, content]) => `/* ${path} */\n${content}`)
-            .join('\n\n');
-          const ciResult = await attemptCIRepair({
-            userPrompt,
-            intent,
-            repoContext,
-            lastIssues: scan.issues,
-            currentCode: {
-              html: base.html,
-              css: base.css,
-              js: base.js
-            }
-          }, apiConfig);
-          if (!ciResult?.error) {
-            base.html = ciResult.html || '';
-            base.css = ciResult.css || '';
-            base.js = ciResult.js || '';
-            base.description = ciResult.description || base.description || '';
-            base.instructions = ciResult.instructions || base.instructions || '';
-            base.js = injectSafeEvaluationHelper(base.js);
-            ensureDomTargets(base);
-            scan = staticScan(base);
-            base.scanIssues = scan.issues;
-          } else {
-            console.warn('Code Interpreter repair failed', ciResult.error);
-          }
-        }
-        if (scan.critical) {
-          const criticalIssues = scan.issues.filter(i => i.severity === 'critical');
-          const issueDetails = criticalIssues.map(i => `${i.file}: ${i.message} (${i.id})`).join('; ');
-          throw createToolError(`Generated code failed security scan after ${maxAttempts} repair attempts: ${issueDetails}`, { context: { issues: scan.issues, attempts: maxAttempts } });
-        }
-      }
+      const criticalIssues = scan.issues.filter(i => i.severity === 'critical');
+      const issueDetails = criticalIssues.map(i => `${i.file}: ${i.message} (${i.id})`).join('; ');
+      throw createToolError(`Generated code failed security scan after ${maxAttempts} repair attempts: ${issueDetails}`, { context: { issues: scan.issues, attempts: maxAttempts } });
     }
+  }
 
-    if (!base.js.includes('questit:tool-error')) {
-      base.js += `\n\n// Ensure errors are surfaced\nconst questitNotifyError = (message, stack = null) => {\n  window.dispatchEvent(new CustomEvent('questit:tool-error', { detail: { message, stack } }));\n};`;
-    }
-    
-    // Ensure runSelfCheck exists (fallback if AI didn't include it)
-    if (!base.js.includes('window.runSelfCheck') && !base.js.includes('runSelfCheck')) {
-      base.js += `\n\n// Fallback self-check function\nif (typeof window.runSelfCheck !== 'function') {\n  window.runSelfCheck = async () => {\n    try {\n      // Basic validation: check if main elements exist\n      const hasContent = document.body && document.body.children.length > 0;\n      return { pass: hasContent, details: { message: hasContent ? 'Basic structure validated' : 'No content found' } };\n    } catch (e) {\n      return { pass: false, details: { message: e?.message || 'Self-check failed', stack: e?.stack } };\n    }\n  };\n}`;
-    }
+  if (!base.js.includes('questit:tool-error')) {
+    base.js += `\n\n// Ensure errors are surfaced\nconst questitNotifyError = (message, stack = null) => {\n  window.dispatchEvent(new CustomEvent('questit:tool-error', { detail: { message, stack } }));\n};`;
+  }
 
-    return base;
+  if (!base.js.includes('window.runSelfCheck') && !base.js.includes('runSelfCheck')) {
+    base.js += `\n\n// Fallback self-check function\nif (typeof window.runSelfCheck !== 'function') {\n  window.runSelfCheck = async () => {\n    try {\n      // Basic validation: check if main elements exist\n      const hasContent = document.body && document.body.children.length > 0;\n      return { pass: hasContent, details: { message: hasContent ? 'Basic structure validated' : 'No content found' } };\n    } catch (e) {\n      return { pass: false, details: { message: e?.message || 'Self-check failed', stack: e?.stack } };\n    }\n  };\n}`;
+  }
+
+  return base;
 }
 
 export async function adaptCode(userPrompt, intent, repoCode, codeAnalysis, context = {}, apiConfig = {}) {

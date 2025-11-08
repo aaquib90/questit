@@ -87,8 +87,13 @@ function executeTool(tool, container) {
   clearErrorFromContainer(container);
 
   Array.from(container.querySelectorAll('script[data-tool-id]')).forEach((script) => {
-    if (script?.parentNode) {
-      script.parentNode.removeChild(script);
+    try {
+      const parent = script?.parentNode;
+      if (parent && typeof parent.removeChild === 'function' && parent.contains(script)) {
+        parent.removeChild(script);
+      }
+    } catch (removeError) {
+      console.warn('Questit preview cleanup skipped a script removal', removeError);
     }
   });
 
