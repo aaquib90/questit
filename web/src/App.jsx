@@ -31,15 +31,15 @@ function App() {
     setStatusMessage('Generating tool…');
 
     try {
-      const container = await questit.process(prompt.trim(), {}, 'render');
+      const embed = await questit.process(prompt.trim(), {}, 'embed');
       const tool = questit.currentTool;
-      if (!container || !tool) {
+      if (!embed || !tool) {
         throw new Error('Tool generation did not return a usable result.');
       }
 
       if (outputRef.current) {
         outputRef.current.innerHTML = '';
-        outputRef.current.appendChild(container);
+        outputRef.current.innerHTML = embed.iframe;
       }
 
       setCurrentTool(tool);

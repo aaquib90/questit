@@ -38,8 +38,8 @@ export async function findRelevantRepos(intent, apiConfig = {}) {
   }
 
   const list = Array.isArray(suggestions) ? suggestions : suggestions?.repos || [];
-  return sanitizeSuggestions(list);
+  const cleaned = sanitizeSuggestions(list);
+  return cleaned.slice(0, 3);
 }
 
 export default { findRelevantRepos };
-
