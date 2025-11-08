@@ -8,6 +8,7 @@ import {
   Button,
   Tabs,
   ScrollArea,
+  Separator,
   Badge,
   Callout
 } from '@radix-ui/themes';
