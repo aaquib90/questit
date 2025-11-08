@@ -6,8 +6,9 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node test/e2e-test.js",
+    "install:web": "npm --prefix web install",
     "build:web": "npm --prefix web run build",
-    "build": "npm run build:web"
+    "build": "npm run install:web && npm run build:web"
   },
   "keywords": ["cloudflare", "workers", "ai", "micro-tools"],
   "author": "",
