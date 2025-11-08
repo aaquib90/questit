@@ -1,0 +1,11 @@
+name = "questit-publish"
+main = "publish.js"
+compatibility_date = "2025-01-01"
+
+[env.staging]
+name = "questit-publish-staging"
+
+[env.production]
+name = "questit-publish-prod"
+
+

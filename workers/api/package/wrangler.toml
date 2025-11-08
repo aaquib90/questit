@@ -1,0 +1,11 @@
+name = "questit-package"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[env.staging]
+name = "questit-package-staging"
+
+[env.production]
+name = "questit-package-prod"
+
+

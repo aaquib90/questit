@@ -1,0 +1,11 @@
+name = "questit-github"
+main = "proxy.js"
+compatibility_date = "2025-01-01"
+
+[env.staging]
+name = "questit-github-staging"
+
+[env.production]
+name = "questit-github-prod"
+
+

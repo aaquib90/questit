@@ -1,0 +1,11 @@
+name = "questit-selftest"
+main = "report.js"
+compatibility_date = "2025-01-01"
+
+[env.staging]
+name = "questit-selftest-staging"
+
+[env.production]
+name = "questit-selftest-prod"
+
+

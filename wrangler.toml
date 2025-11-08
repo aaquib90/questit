@@ -1,0 +1,48 @@
+name = "questit"
+main = "workers/dispatch/worker.js"
+compatibility_date = "2025-01-01"
+
+[observability]
+enabled = true
+
+[[dispatch_namespaces]]
+binding = "DISPATCH"
+namespace = "questit-dispatch-staging"
+
+# Environment-specific config
+[env.staging]
+name = "questit-staging"
+
+[[env.staging.dispatch_namespaces]]
+binding = "DISPATCH"
+namespace = "questit-dispatch-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "RATELIMIT_KV"
+id = "4e51ee7f5d95496c95cef51697466b53"
+
+[env.production]
+name = "questit-prod"
+
+[[env.production.dispatch_namespaces]]
+binding = "DISPATCH"
+namespace = "questit-dispatch-prod"
+
+[[env.production.kv_namespaces]]
+binding = "RATELIMIT_KV"
+id = "ff162d995e59451ebe3b4187523ff4b0"
+
+# (API workers will be managed in separate wrangler projects)
+
+# Example additional workers
+#[[services]]
+#binding = "ai_proxy"
+#service = "questit-ai-proxy"
+
+#[[routes]]
+#pattern = "api.example.com/*"
+#custom_domain = true
+
+# kv namespaces will be added per-environment after creation
+
+

@@ -1,0 +1,15 @@
+{
+  "name": "questit",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cloudflare-first platform for generating micro-tools from natural language",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node test/e2e-test.js",
+    "build:web": "npm --prefix web run build",
+    "build": "npm run build:web"
+  },
+  "keywords": ["cloudflare", "workers", "ai", "micro-tools"],
+  "author": "",
+  "license": "MIT"
+}

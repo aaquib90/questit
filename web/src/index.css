@@ -1,0 +1,68 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background-color: var(--slate-2);
+  color: var(--slate-12);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--slate-2);
+}
+
+#root {
+  min-height: 100vh;
+  padding: 32px 24px 48px;
+}
+
+.app-shell {
+  margin: 0 auto;
+  max-width: 1280px;
+}
+
+.preview-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-surface {
+  min-height: 420px;
+  border-radius: 16px;
+  background-color: var(--slate-3);
+  border: 1px solid var(--slate-6);
+  padding: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.preview-surface:focus-within {
+  border-color: var(--slate-8);
+}
+
+.preview-surface .questit-tool-container {
+  background: transparent;
+  box-shadow: none;
+}
+
+.preview-placeholder {
+  height: 100%;
+  text-align: center;
+  color: var(--slate-11);
+}
+
+.log-entry {
+  border-radius: 10px;
+  background: var(--slate-3);
+  border: 1px solid var(--slate-5);
+}
+
+@media (max-width: 960px) {
+  #root {
+    padding: 24px 16px 40px;
+  }
+}
