@@ -86,14 +86,16 @@ function bindErrorListeners(tool, container) {
 function executeTool(tool, container) {
   clearErrorFromContainer(container);
 
-  while (container.firstChild) {
+  Array.from(container.querySelectorAll('script[data-tool-id]')).forEach((script) => {
     try {
-      container.removeChild(container.firstChild);
+      const parent = script?.parentNode;
+      if (parent && typeof parent.removeChild === 'function' && parent.contains(script)) {
+        parent.removeChild(script);
+      }
     } catch (removeError) {
-      console.warn('Questit preview cleanup skipped a node removal', removeError);
-      break;
+      console.warn('Questit preview cleanup skipped a script removal', removeError);
     }
-  }
+  });
 
   const script = document.createElement('script');
   script.type = 'module';
