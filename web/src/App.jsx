@@ -1,25 +1,35 @@
 import { useMemo, useRef, useState } from 'react';
-import Questit from '@questit/index.js';
-import { publishTool } from '@questit/core/publish.js';
+import { generateTool } from './generateTool.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
+function buildIframeHTML({ html = '', css = '', js = '' }) {
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>${css || ''}</style>
+</head>
+<body>
+${html || '<p>No HTML returned.</p>'}
+<script type="module">
+${js || ''}
+</script>
+</body>
+</html>`;
+}
+
 function App() {
-  const questit = useMemo(() => new Questit(), []);
   const outputRef = useRef(null);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [currentTool, setCurrentTool] = useState(null);
-  const [publishMessage, setPublishMessage] = useState('');
-  const [apiBase] = useState(() => {
+  const [toolCode, setToolCode] = useState({ html: '', css: '', js: '' });
+  const endpoint = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    const fallback = window.location.hostname.includes('localhost')
-      ? 'https://questit-publish-staging.aaquib-b71.workers.dev'
-      : 'https://questit.cc/api';
-    return params.get('apiBase') || fallback;
-  });
+    return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
+  }, []);
 
   const handleGenerate = async (event) => {
     event?.preventDefault();
@@ -27,49 +37,49 @@ function App() {
 
     setIsGenerating(true);
     setErrorMessage('');
-    setPublishMessage('');
     setStatusMessage('Generating tool…');
 
     try {
-      const embed = await questit.process(prompt.trim(), {}, 'embed');
-      const tool = questit.currentTool;
-      if (!embed || !tool) {
-        throw new Error('Tool generation did not return a usable result.');
-      }
+      const result = await generateTool(prompt.trim(), endpoint);
+      setToolCode(result);
 
       if (outputRef.current) {
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+        iframe.style.width = '100%';
+        iframe.style.minHeight = '340px';
+        iframe.style.border = '0';
+        iframe.style.borderRadius = '12px';
+        iframe.style.background = '#ffffff';
+
+        const doc = buildIframeHTML(result);
         outputRef.current.innerHTML = '';
-        outputRef.current.innerHTML = embed.iframe;
+        outputRef.current.appendChild(iframe);
+
+        iframe.addEventListener('load', () => {
+          iframe.contentDocument.open();
+          iframe.contentDocument.write(doc);
+          iframe.contentDocument.close();
+        });
+
+        if (iframe.contentDocument) {
+          iframe.contentDocument.open();
+          iframe.contentDocument.write(doc);
+          iframe.contentDocument.close();
+        }
       }
 
-      setCurrentTool(tool);
       setStatusMessage('✅ Tool generated. Review the preview below.');
     } catch (error) {
       console.error('Generation error:', error);
       setErrorMessage(error?.message || 'Failed to generate tool.');
       setStatusMessage('');
+      setToolCode({ html: '', css: '', js: '' });
+      if (outputRef.current) {
+        outputRef.current.innerHTML = '<p class="placeholder">No preview available.</p>';
+      }
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handlePublish = async () => {
-    if (!currentTool) {
-      setErrorMessage('Generate a tool before publishing.');
-      return;
-    }
-    setPublishMessage('');
-    setErrorMessage('');
-    setStatusMessage('Publishing tool…');
-    try {
-      const result = await publishTool(currentTool, apiBase);
-      const url = `https://${result.name}.questit.cc/`;
-      setPublishMessage(`✅ Tool published! Open ${url}`);
-      setStatusMessage('');
-    } catch (error) {
-      console.error('Publish error:', error);
-      setErrorMessage(error?.message || 'Publish failed.');
-      setStatusMessage('');
     }
   };
 
@@ -77,7 +87,7 @@ function App() {
     <div className="app">
       <header>
         <h1>Questit Workbench</h1>
-        <p>Enter a prompt to generate a micro-tool. Use the publish button after you are satisfied with the preview.</p>
+        <p>Describe the tool you want. We’ll ask the model to return HTML, CSS, and JS and render it below.</p>
       </header>
 
       <form onSubmit={handleGenerate} className="form">
@@ -91,14 +101,9 @@ function App() {
             rows={4}
           />
         </label>
-        <div className="buttons">
-          <button type="submit" disabled={isGenerating}>
-            {isGenerating ? 'Generating…' : 'Generate Tool'}
-          </button>
-          <button type="button" disabled={!currentTool || isGenerating} onClick={handlePublish}>
-            Publish Tool
-          </button>
-        </div>
+        <button type="submit" disabled={isGenerating}>
+          {isGenerating ? 'Generating…' : 'Generate Tool'}
+        </button>
       </form>
 
       {statusMessage && <div className="status">{statusMessage}</div>}
@@ -107,18 +112,33 @@ function App() {
           <strong>Error:</strong> {errorMessage}
         </div>
       )}
-      {publishMessage && (
-        <div className="success">
-          {publishMessage}
-        </div>
-      )}
 
       <section className="preview">
         <h2>Preview</h2>
         <div className="preview-surface" ref={outputRef}>
-          {!currentTool && <p className="placeholder">Generated tool will appear here.</p>}
+          {!toolCode.html && !toolCode.css && !toolCode.js && (
+            <p className="placeholder">Generated tool will appear here.</p>
+          )}
         </div>
       </section>
+
+      {(toolCode.html || toolCode.css || toolCode.js) && (
+        <section className="code-output">
+          <h2>Generated Code</h2>
+          <details open>
+            <summary>HTML</summary>
+            <pre>{toolCode.html || '// No HTML returned'}</pre>
+          </details>
+          <details>
+            <summary>CSS</summary>
+            <pre>{toolCode.css || '// No CSS returned'}</pre>
+          </details>
+          <details>
+            <summary>JavaScript</summary>
+            <pre>{toolCode.js || '// No JS returned'}</pre>
+          </details>
+        </section>
+      )}
     </div>
   );
 }
