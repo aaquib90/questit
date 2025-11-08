@@ -11,6 +11,13 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 - **Storage**: Supabase Postgres with RLS for tools, instances, and test results
 - **Observability**: Sentry (browser/edge) and PostHog analytics
 
+## Current Status (November 2025)
+
+- The in-browser workbench now sends prompts straight to the AI proxy and renders the returned HTML/CSS/JS inside a sandboxed iframe. GitHub repo adaptation and Code Interpreter auto-repair are temporarily disabled.
+- The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
+- Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
+- Publish/self-test flows still rely on the Worker APIs, but the UI currently focuses on generation + preview. Additional guardrails (repo selection, auto-publish) will be reintroduced iteratively.
+
 ## Quick Start
 
 ```javascript
@@ -129,4 +136,3 @@ questit/
 ## License
 
 See LICENSE file for details.
-
