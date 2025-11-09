@@ -14,6 +14,8 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 ## Current Status (November 2025)
 
 - The in-browser workbench now sends prompts straight to the AI proxy and renders the returned HTML/CSS/JS inside a sandboxed iframe. GitHub repo adaptation and Code Interpreter auto-repair are temporarily disabled.
+- The workbench UI now runs on shadcn/ui (Tailwind) with an emerald theme, giving generation and iteration flows a consistent Questit look.
+- Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
 - Publish/self-test flows still rely on the Worker APIs, but the UI currently focuses on generation + preview. Additional guardrails (repo selection, auto-publish) will be reintroduced iteratively.
@@ -116,6 +118,8 @@ questit/
 - **Static Security Scan**: Blocks dangerous patterns (eval, new Function, etc.)
 - **Self-Testing**: Auto-runs self-checks and reports results
 - **Error Handling**: Unified error system with Sentry integration
+- **Interactive Iteration**: Collects update instructions and regenerates HTML/CSS/JS with full context for the current session
+- **Shadcn Workbench**: Tailwind + shadcn/ui components in an emerald palette for the in-browser tool builder
 - **Rate Limiting**: KV-backed rate limiting on dispatch worker
 
 ## Limits

@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@': path.resolve(workspaceRoot, './src'),
       '@questit': path.resolve(workspaceRoot, '../src')
     }
   },
