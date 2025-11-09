@@ -4,6 +4,7 @@ import {
   RefreshCcw,
   AlertCircle,
   CheckCircle2,
+  Loader2,
   History as HistoryIcon,
   FileCode,
   Palette,
@@ -358,6 +359,11 @@ function App() {
   const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
   const [saveTitle, setSaveTitle] = useState('');
   const [saveStatus, setSaveStatus] = useState({ state: 'idle', message: '' });
+  const [activeView, setActiveView] = useState('workbench');
+  const [myTools, setMyTools] = useState([]);
+  const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
+  const [myToolsError, setMyToolsError] = useState('');
+  const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
   const [colorMode, setColorMode] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -431,9 +437,16 @@ function App() {
       setSaveStatus({ state: 'idle', message: '' });
       setAuthEmail('');
       setSaveTitle('');
+      setMyTools([]);
+      setMyToolsError('');
+      setIsLoadingMyTools(false);
     } catch (error) {
       console.warn('Sign out failed:', error);
     }
+  };
+
+  const handleRefreshMyTools = () => {
+    setMyToolsRefreshKey((value) => value + 1);
   };
 
   const handleSaveTool = async () => {
@@ -528,6 +541,45 @@ function App() {
     });
   }, [colorMode, resolvedMode, selectedTheme]);
 
+  useEffect(() => {
+    if (activeView !== 'my-tools') return undefined;
+    if (!hasSupabaseConfig || !user) {
+      setIsLoadingMyTools(false);
+      return undefined;
+    }
+
+    let isActive = true;
+    setIsLoadingMyTools(true);
+    setMyToolsError('');
+
+    supabase
+      .from('user_tools')
+      .select('id, title, prompt, theme, color_mode, created_at, updated_at')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!isActive) return;
+        if (error) {
+          setMyToolsError(error.message);
+          setMyTools([]);
+          return;
+        }
+        setMyTools(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        if (!isActive) return;
+        setMyToolsError(error?.message || 'Failed to load saved tools.');
+        setMyTools([]);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsLoadingMyTools(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [activeView, myToolsRefreshKey, user]);
+
   const handleGenerate = async (event) => {
     event?.preventDefault();
     if (!prompt.trim() || isGenerating) return;
@@ -604,25 +656,53 @@ function App() {
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-3">
-            {user ? (
-              <>
-                <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
-                  {userLabel}
-                </Badge>
-                <Button variant="ghost" onClick={handleSignOut}>
-                  Sign out
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" onClick={() => { setAuthDialogOpen(true); setAuthStatus({ state: 'idle', message: '' }); }}>
-                Log in
+          <div className="flex flex-col items-center gap-4 md:items-end">
+            <div className="flex rounded-full border border-primary/20 bg-background/80 p-1 shadow-sm">
+              <Button
+                variant={activeView === 'workbench' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('workbench')}
+                aria-pressed={activeView === 'workbench'}
+              >
+                Workbench
               </Button>
-            )}
+              <Button
+                variant={activeView === 'my-tools' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('my-tools')}
+                aria-pressed={activeView === 'my-tools'}
+              >
+                My Tools
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              {user ? (
+                <>
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+                    {userLabel}
+                  </Badge>
+                  <Button variant="ghost" onClick={handleSignOut}>
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAuthDialogOpen(true);
+                    setAuthStatus({ state: 'idle', message: '' });
+                  }}
+                >
+                  Log in
+                </Button>
+              )}
+            </div>
           </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {activeView === 'workbench' ? (
+          <div className="space-y-8">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <Card className="border border-primary/30 shadow-lg shadow-primary/10">
             <CardHeader className="space-y-1.5">
               <CardTitle className="flex items-center gap-2 text-xl">
@@ -893,6 +973,138 @@ function App() {
               </CardContent>
             </Card>
           </div>
+        )}
+          </div>
+        ) : (
+          <section className="space-y-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-foreground">My Tools</h2>
+                <p className="text-sm text-muted-foreground">
+                  Review the tools you have saved to Supabase.
+                </p>
+              </div>
+              {user && hasSupabaseConfig ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefreshMyTools}
+                  disabled={isLoadingMyTools}
+                >
+                  {isLoadingMyTools ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Refreshing
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCcw className="h-4 w-4" aria-hidden />
+                      Refresh
+                    </>
+                  )}
+                </Button>
+              ) : null}
+            </div>
+
+            {!hasSupabaseConfig ? (
+              <Alert variant="destructive" className="border-destructive/40">
+                <AlertDescription className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4" aria-hidden />
+                  <span>
+                    Configure Supabase environment variables to view saved tools.
+                  </span>
+                </AlertDescription>
+              </Alert>
+            ) : !user ? (
+              <Card className="border border-primary/20 bg-muted/40">
+                <CardHeader className="space-y-2">
+                  <CardTitle className="text-lg">Sign in to view your tools</CardTitle>
+                  <CardDescription>
+                    Use a magic link to access the tools stored in your Supabase project.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => {
+                      setAuthDialogOpen(true);
+                      setAuthStatus({ state: 'idle', message: '' });
+                    }}
+                  >
+                    Send magic link
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : isLoadingMyTools ? (
+              <Card className="border border-primary/20 bg-muted/40">
+                <CardContent className="flex items-center gap-3 py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+                  <span className="text-sm text-muted-foreground">Loading saved tools…</span>
+                </CardContent>
+              </Card>
+            ) : myToolsError ? (
+              <Alert variant="destructive" className="border-destructive/40">
+                <AlertDescription className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4" aria-hidden />
+                  <span>{myToolsError}</span>
+                </AlertDescription>
+              </Alert>
+            ) : myTools.length === 0 ? (
+              <Card className="border border-dashed border-primary/30 bg-background/60">
+                <CardContent className="space-y-3 py-10 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No saved tools yet. Generate a tool in the workbench and save it to Supabase.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {myTools.map((tool) => {
+                  const createdAt = tool?.created_at ? new Date(tool.created_at) : null;
+                  const isValidDate = createdAt && !Number.isNaN(createdAt.getTime());
+                  const createdDateLabel = isValidDate ? createdAt.toLocaleDateString() : '—';
+                  const createdDateTimeLabel = isValidDate
+                    ? createdAt.toLocaleString()
+                    : 'Unknown save time';
+
+                  return (
+                    <Card key={tool.id} className="border border-primary/20 bg-background/80">
+                      <CardHeader className="space-y-2">
+                        <CardTitle className="flex items-center justify-between text-lg">
+                          <span>{tool.title || 'Untitled tool'}</span>
+                          <Badge variant="outline" className="text-xs font-normal">
+                            {createdDateLabel}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription className="text-xs text-muted-foreground">
+                          Saved {createdDateTimeLabel}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {tool.prompt ? (
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Prompt
+                            </p>
+                            <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/80">
+                              {tool.prompt}
+                            </p>
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="secondary" className="px-2 py-0.5">
+                            Theme: {tool.theme || 'default'}
+                          </Badge>
+                          <Badge variant="secondary" className="px-2 py-0.5">
+                            Mode: {tool.color_mode || 'system'}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         )}
         <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
           <DialogContent>
