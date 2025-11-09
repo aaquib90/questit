@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Sparkles,
   RefreshCcw,
@@ -9,7 +9,10 @@ import {
   Palette,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  FolderKanban,
+  Loader2,
+  Trash2
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -358,6 +361,9 @@ function App() {
   const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
   const [saveTitle, setSaveTitle] = useState('');
   const [saveStatus, setSaveStatus] = useState({ state: 'idle', message: '' });
+  const [savedToolsDialogOpen, setSavedToolsDialogOpen] = useState(false);
+  const [savedTools, setSavedTools] = useState([]);
+  const [savedToolsStatus, setSavedToolsStatus] = useState({ state: 'idle', message: '' });
   const [colorMode, setColorMode] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -390,6 +396,32 @@ function App() {
   );
   const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
   const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
+  const loadSavedTools = useCallback(async () => {
+    if (!user || !hasSupabaseConfig) {
+      setSavedTools([]);
+      setSavedToolsStatus({ state: 'idle', message: '' });
+      return;
+    }
+
+    setSavedToolsStatus({ state: 'loading', message: 'Loading saved tools…' });
+
+    const { data, error } = await supabase
+      .from('user_tools')
+      .select('id,title,prompt,theme,color_mode,html,css,js,updated_at,created_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      setSavedToolsStatus({ state: 'error', message: error.message });
+      return;
+    }
+
+    setSavedTools(data ?? []);
+    setSavedToolsStatus({
+      state: data && data.length > 0 ? 'success' : 'empty',
+      message: data && data.length > 0 ? '' : 'No saved tools yet.'
+    });
+  }, [user]);
 
   const handleAuthSubmit = async (event) => {
     event.preventDefault();
@@ -474,6 +506,90 @@ function App() {
     setSaveStatus({ state: 'success', message: 'Tool saved to Supabase.' });
   };
 
+  const handleOpenSavedTools = () => {
+    setSavedToolsDialogOpen(true);
+    if (!hasSupabaseConfig) {
+      setSavedToolsStatus({
+        state: 'error',
+        message: 'Supabase is not configured. Provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+      });
+      return;
+    }
+    if (savedToolsStatus.state === 'idle') {
+      loadSavedTools();
+    }
+  };
+
+  const handleRefreshSavedTools = () => {
+    if (!hasSupabaseConfig) {
+      setSavedToolsStatus({
+        state: 'error',
+        message: 'Supabase is not configured. Provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+      });
+      return;
+    }
+    loadSavedTools();
+  };
+
+  const handleLoadSavedTool = (tool) => {
+    const themeKey =
+      tool.theme && Object.prototype.hasOwnProperty.call(THEME_PRESETS, tool.theme)
+        ? tool.theme
+        : DEFAULT_THEME_KEY;
+    const modeValue = tool.color_mode === 'dark' ? 'dark' : tool.color_mode === 'system' ? 'system' : 'light';
+
+    setSelectedTheme(themeKey);
+    setColorMode(modeValue);
+    setPrompt(tool.prompt || DEFAULT_PROMPT);
+    setToolCode({
+      html: tool.html || '',
+      css: tool.css || '',
+      js: tool.js || ''
+    });
+    setHistory([
+      {
+        type: 'initial',
+        prompt: tool.prompt || '',
+        code: {
+          html: tool.html || '',
+          css: tool.css || '',
+          js: tool.js || ''
+        }
+      }
+    ]);
+    setIterationPrompt('');
+    setSaveTitle(tool.title || '');
+    setSaveStatus({ state: 'idle', message: '' });
+    setStatusMessage('Loaded saved tool. Review the preview below.');
+    setErrorMessage('');
+    setSavedToolsDialogOpen(false);
+  };
+
+  const handleDeleteSavedTool = async (toolId) => {
+    if (!user || !hasSupabaseConfig) return;
+
+    setSavedToolsStatus({ state: 'loading', message: 'Removing tool…' });
+    const { error } = await supabase
+      .from('user_tools')
+      .delete()
+      .eq('id', toolId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      setSavedToolsStatus({ state: 'error', message: error.message });
+      return;
+    }
+
+    setSavedTools((tools) => {
+      const updated = tools.filter((tool) => tool.id !== toolId);
+      setSavedToolsStatus({
+        state: updated.length > 0 ? 'success' : 'empty',
+        message: updated.length > 0 ? 'Tool removed.' : 'No saved tools yet.'
+      });
+      return updated;
+    });
+  };
+
   useEffect(() => {
     if (!hasSupabaseConfig) return undefined;
     let isMounted = true;
@@ -497,7 +613,16 @@ function App() {
       isMounted = false;
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadSavedTools]);
+
+  useEffect(() => {
+    if (user) {
+      loadSavedTools();
+    } else {
+      setSavedTools([]);
+      setSavedToolsStatus({ state: 'idle', message: '' });
+    }
+  }, [user, loadSavedTools]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -604,12 +729,16 @@ function App() {
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             {user ? (
               <>
                 <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
                   {userLabel}
                 </Badge>
+                <Button variant="secondary" onClick={handleOpenSavedTools} className="flex items-center gap-2">
+                  <FolderKanban className="h-4 w-4" aria-hidden />
+                  My tools
+                </Button>
                 <Button variant="ghost" onClick={handleSignOut}>
                   Sign out
                 </Button>
@@ -894,6 +1023,116 @@ function App() {
             </Card>
           </div>
         )}
+        <Dialog open={savedToolsDialogOpen} onOpenChange={setSavedToolsDialogOpen}>
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>My saved tools</DialogTitle>
+              <DialogDescription>
+                Tools stored in Supabase for {userLabel || 'your account'}.
+              </DialogDescription>
+            </DialogHeader>
+            {!hasSupabaseConfig ? (
+              <p className="text-sm text-destructive">
+                Supabase is not configured. Provide VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable syncing.
+              </p>
+            ) : !user ? (
+              <p className="text-sm text-muted-foreground">
+                Sign in to view saved tools.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {savedTools.length > 0
+                      ? `You have ${savedTools.length} saved ${savedTools.length === 1 ? 'tool' : 'tools'}.`
+                      : 'No saved tools yet.'}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshSavedTools}
+                    disabled={savedToolsStatus.state === 'loading'}
+                    className="flex items-center gap-2"
+                  >
+                    {savedToolsStatus.state === 'loading' ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        Refreshing…
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCcw className="h-4 w-4" aria-hidden />
+                        Refresh
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {savedToolsStatus.state === 'loading' ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Loading saved tools…
+                  </div>
+                ) : savedTools.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {savedToolsStatus.message || 'No saved tools yet. Generate and save a tool to see it here.'}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {savedTools.map((tool) => (
+                      <div
+                        key={tool.id}
+                        className="space-y-3 rounded-lg border border-primary/20 bg-muted/30 p-4"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">
+                              {tool.title || 'Untitled tool'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Updated {tool.updated_at ? new Date(tool.updated_at).toLocaleString() : 'recently'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleLoadSavedTool(tool)}
+                            >
+                              Load
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteSavedTool(tool.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </div>
+                        </div>
+                        {tool.prompt && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {tool.prompt}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline">{tool.theme || DEFAULT_THEME_KEY}</Badge>
+                          <Badge variant="secondary">{tool.color_mode || 'light'}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {savedToolsStatus.message && savedTools.length > 0 && (
+                  <p className="text-xs text-muted-foreground">{savedToolsStatus.message}</p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
         <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
           <DialogContent>
             <DialogHeader>
