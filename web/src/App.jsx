@@ -6,7 +6,10 @@ import {
   CheckCircle2,
   History as HistoryIcon,
   FileCode,
-  Palette
+  Palette,
+  Moon,
+  Sun,
+  Monitor
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -47,10 +50,41 @@ const BASE_THEME_VARS = {
   '--font-sans': "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 };
 
+const BASE_DARK_THEME_VARS = {
+  '--background': '222.2 47.4% 11.2%',
+  '--foreground': '210 40% 98%',
+  '--card': '217.2 32.6% 17.5%',
+  '--card-foreground': '210 40% 98%',
+  '--popover': '217.2 32.6% 17.5%',
+  '--popover-foreground': '210 40% 98%',
+  '--primary': '152 90% 44%',
+  '--primary-foreground': '160 84% 12%',
+  '--secondary': '217.2 32.6% 17.5%',
+  '--secondary-foreground': '210 40% 98%',
+  '--muted': '217.2 32.6% 17.5%',
+  '--muted-foreground': '215 20.2% 65.1%',
+  '--accent': '217.2 32.6% 17.5%',
+  '--accent-foreground': '210 40% 98%',
+  '--destructive': '0 62.8% 30.6%',
+  '--destructive-foreground': '0 85.7% 97.3%',
+  '--border': '217.2 32.6% 17.5%',
+  '--input': '217.2 32.6% 17.5%',
+  '--ring': '152 90% 44%',
+  '--radius': '0.75rem',
+  '--font-sans': "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+};
+
 const THEME_PRESETS = {
   emerald: {
     label: 'Emerald',
-    overrides: {}
+    overrides: {},
+    darkOverrides: {
+      '--primary': '152 90% 44%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '152 90% 44%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '152 90% 44%'
+    }
   },
   sky: {
     label: 'Sky',
@@ -66,6 +100,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '204 16% 38%',
       '--border': '198 58% 88%',
       '--input': '198 58% 88%'
+    },
+    darkOverrides: {
+      '--primary': '199 89% 55%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '199 89% 55%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '199 89% 55%'
     }
   },
   violet: {
@@ -82,6 +123,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '265 20% 42%',
       '--border': '263 46% 88%',
       '--input': '263 46% 88%'
+    },
+    darkOverrides: {
+      '--primary': '262 84% 60%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '262 84% 60%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '262 84% 60%'
     }
   },
   amber: {
@@ -98,6 +146,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '30 15% 35%',
       '--border': '37 68% 85%',
       '--input': '37 68% 85%'
+    },
+    darkOverrides: {
+      '--primary': '37 92% 55%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '37 92% 55%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '37 92% 55%'
     }
   },
   rose: {
@@ -114,6 +169,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '343.4 79.7% 34.7%',
       '--border': '352.7 96.1% 90%',
       '--input': '352.7 96.1% 90%'
+    },
+    darkOverrides: {
+      '--primary': '349.7 89.2% 60.2%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '349.7 89.2% 60.2%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '349.7 89.2% 60.2%'
     }
   },
   cyan: {
@@ -130,6 +192,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '191.6 91.4% 36.5%',
       '--border': '186.2 93.5% 81.8%',
       '--input': '186.2 93.5% 81.8%'
+    },
+    darkOverrides: {
+      '--primary': '188.7 94.5% 42.7%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '188.7 94.5% 42.7%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '188.7 94.5% 42.7%'
     }
   },
   indigo: {
@@ -146,6 +215,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '243.4 75.4% 58.6%',
       '--border': '228 96.5% 88.8%',
       '--input': '228 96.5% 88.8%'
+    },
+    darkOverrides: {
+      '--primary': '238.7 83.5% 66.7%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '238.7 83.5% 66.7%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '238.7 83.5% 66.7%'
     }
   },
   lime: {
@@ -162,6 +238,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '87.6 61.2% 20.2%',
       '--border': '80.9 88.5% 79.6%',
       '--input': '80.9 88.5% 79.6%'
+    },
+    darkOverrides: {
+      '--primary': '83.7 80.5% 44.3%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '83.7 80.5% 44.3%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '83.7 80.5% 44.3%'
     }
   },
   slate: {
@@ -178,6 +261,13 @@ const THEME_PRESETS = {
       '--muted-foreground': '215.3 19.3% 34.5%',
       '--border': '212.7 26.8% 83.9%',
       '--input': '212.7 26.8% 83.9%'
+    },
+    darkOverrides: {
+      '--primary': '215.4 16.3% 46.9%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '215.4 16.3% 46.9%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '215.4 16.3% 46.9%'
     }
   }
 };
@@ -187,16 +277,34 @@ const THEME_OPTIONS = Object.entries(THEME_PRESETS).map(([value, config]) => ({
   value,
   label: config.label
 }));
+const COLOR_MODE_STORAGE_KEY = 'questit-color-mode';
+const COLOR_MODE_OPTIONS = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' }
+];
+
+function resolveThemeVars(themeKey = DEFAULT_THEME_KEY) {
+  const preset = THEME_PRESETS[themeKey] ?? THEME_PRESETS[DEFAULT_THEME_KEY];
+  const lightVars = { ...BASE_THEME_VARS, ...preset.overrides };
+  const darkVars = { ...BASE_DARK_THEME_VARS, ...(preset.darkOverrides ?? {}) };
+  return { lightVars, darkVars };
+}
 
 function buildThemeCss(themeKey = DEFAULT_THEME_KEY) {
-  const overrides = THEME_PRESETS[themeKey]?.overrides ?? {};
-  const mergedVars = { ...BASE_THEME_VARS, ...overrides };
-  const declarations = Object.entries(mergedVars)
-    .map(([token, value]) => `${token}: ${value};`)
-    .join('\n');
+  const { lightVars, darkVars } = resolveThemeVars(themeKey);
+  const toDeclarations = (vars) =>
+    Object.entries(vars)
+      .map(([token, value]) => `${token}: ${value};`)
+      .join('\n');
+
   return `
 :root {
-${declarations}
+${toDeclarations(lightVars)}
+}
+
+.dark {
+${toDeclarations(darkVars)}
 }
 
 *, *::before, *::after {
@@ -212,13 +320,15 @@ body {
 `;
 }
 
-function buildIframeHTML({ html = '', css = '', js = '' }, themeKey = DEFAULT_THEME_KEY) {
+function buildIframeHTML({ html = '', css = '', js = '' }, themeKey = DEFAULT_THEME_KEY, mode = 'light') {
   const themeCss = buildThemeCss(themeKey);
+  const htmlClass = mode === 'dark' ? ' class="dark"' : '';
   return `<!doctype html>
-<html>
+<html${htmlClass}>
 <head>
 <meta charset="utf-8"/>
-<style>${themeCss}${css || ''}</style>
+<style>${themeCss}
+${css || ''}</style>
 </head>
 <body>
 ${html || '<p>No HTML returned.</p>'}
@@ -239,27 +349,66 @@ function App() {
   const [history, setHistory] = useState([]);
   const [iterationPrompt, setIterationPrompt] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(DEFAULT_THEME_KEY);
+  const [colorMode, setColorMode] = useState(() => {
+    if (typeof window === 'undefined') return 'system';
+    try {
+      return localStorage.getItem(COLOR_MODE_STORAGE_KEY) || 'system';
+    } catch {
+      return 'system';
+    }
+  });
+  const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const endpoint = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
   }, []);
   const { html: currentHtml, css: currentCss, js: currentJs } = toolCode;
   const hasGenerated = Boolean(currentHtml || currentCss || currentJs);
+  const resolvedMode = colorMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : colorMode;
   const iframeDoc = useMemo(
-    () => (hasGenerated ? buildIframeHTML({ html: currentHtml, css: currentCss, js: currentJs }, selectedTheme) : ''),
-    [currentCss, currentHtml, currentJs, hasGenerated, selectedTheme]
+    () =>
+      hasGenerated
+        ? buildIframeHTML(
+            { html: currentHtml, css: currentCss, js: currentJs },
+            selectedTheme,
+            resolvedMode
+          )
+        : '',
+    [currentCss, currentHtml, currentJs, hasGenerated, resolvedMode, selectedTheme]
   );
+  const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const updatePreference = () => setSystemPrefersDark(media.matches);
+    updatePreference();
+    if (media.addEventListener) {
+      media.addEventListener('change', updatePreference);
+      return () => media.removeEventListener('change', updatePreference);
+    }
+    media.addListener(updatePreference);
+    return () => media.removeListener(updatePreference);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     const root = document.documentElement;
-    Object.entries(BASE_THEME_VARS).forEach(([token, value]) => {
+    root.classList.toggle('dark', resolvedMode === 'dark');
+    try {
+      localStorage.setItem(COLOR_MODE_STORAGE_KEY, colorMode);
+    } catch (storageError) {
+      console.warn('Failed to persist color mode preference:', storageError);
+    }
+    const { lightVars, darkVars } = resolveThemeVars(selectedTheme);
+    const activeVars = resolvedMode === 'dark' ? darkVars : lightVars;
+    Object.entries(activeVars).forEach(([token, value]) => {
       root.style.setProperty(token, value);
     });
-    const overrides = THEME_PRESETS[selectedTheme]?.overrides ?? {};
-    Object.entries(overrides).forEach(([token, value]) => {
-      root.style.setProperty(token, value);
-    });
-  }, [selectedTheme]);
+  }, [colorMode, resolvedMode, selectedTheme]);
 
   const handleGenerate = async (event) => {
     event?.preventDefault();
@@ -425,24 +574,44 @@ function App() {
                 <FileCode className="h-5 w-5 text-primary" aria-hidden />
                 Preview
               </CardTitle>
-              <div className="flex flex-col gap-2 text-left sm:flex-row sm:items-center sm:gap-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Palette className="h-4 w-4 text-primary" aria-hidden />
-                  <span>Theme</span>
+              <div className="flex flex-col gap-3 text-left sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Palette className="h-4 w-4 text-primary" aria-hidden />
+                    <span>Theme</span>
+                  </div>
+                  <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {THEME_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {THEME_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {hasGenerated ? <Badge variant="secondary">Live</Badge> : null}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ModeIndicator className="h-4 w-4 text-primary" aria-hidden />
+                    <span>Mode</span>
+                  </div>
+                  <Select value={colorMode} onValueChange={setColorMode}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COLOR_MODE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {hasGenerated ? <Badge variant="secondary" className="sm:self-center">Live</Badge> : null}
               </div>
             </div>
             <CardDescription>Rendered output from the latest AI response.</CardDescription>

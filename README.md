@@ -14,7 +14,7 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 ## Current Status (November 2025)
 
 - The in-browser workbench now sends prompts straight to the AI proxy and renders the returned HTML/CSS/JS inside a sandboxed iframe. GitHub repo adaptation and Code Interpreter auto-repair are temporarily disabled.
-- The workbench UI now runs on shadcn/ui (Tailwind) with dynamic base-color selection (emerald, sky, violet, amber, rose, cyan, indigo, lime, slate) so the preview can match the user’s preferred theme.
+- The workbench UI now runs on shadcn/ui (Tailwind) with dynamic base-color selection (emerald, sky, violet, amber, rose, cyan, indigo, lime, slate) and light/dark/system mode switching so the preview can match the user’s preferred theme.
 - Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
