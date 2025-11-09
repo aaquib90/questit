@@ -9,13 +9,54 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+function buildClient() {
+  if (hasSupabaseConfig) {
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
   }
-});
+
+  const notConfiguredError = () =>
+    new Error('Supabase environment variables are not configured.');
+
+  return {
+    auth: {
+      async signInWithOtp() {
+        return { data: null, error: notConfiguredError() };
+      },
+      async signOut() {
+        return { error: notConfiguredError() };
+      },
+      async getSession() {
+        return { data: { session: null }, error: notConfiguredError() };
+      },
+      onAuthStateChange() {
+        return {
+          data: {
+            subscription: {
+              unsubscribe() {
+                // noop
+              }
+            }
+          }
+        };
+      }
+    },
+    from() {
+      return {
+        async insert() {
+          return { data: null, error: notConfiguredError() };
+        }
+      };
+    }
+  };
+}
+
+export const supabase = buildClient();
 
 export const supabaseProjectInfo = {
   url: supabaseUrl,
