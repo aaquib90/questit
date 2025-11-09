@@ -600,6 +600,9 @@ function App() {
       const publishPayload = {
         id: toolRecord.id,
         title: toolRecord.title,
+        prompt: toolRecord.prompt || '',
+        theme: toolRecord.theme || selectedTheme || DEFAULT_THEME_KEY,
+        color_mode: toolRecord.color_mode || colorMode || resolvedMode,
         html: toolRecord.html || '',
         css: toolRecord.css || '',
         js: toolRecord.js || ''
@@ -648,7 +651,7 @@ function App() {
       title,
       prompt: sourcePrompt,
       theme: selectedTheme,
-      color_mode: resolvedMode,
+      color_mode: colorMode,
       html: currentHtml,
       css: currentCss,
       js: currentJs

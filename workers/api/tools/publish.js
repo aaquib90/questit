@@ -1,20 +1,484 @@
 // Publishes a User Worker into a dispatch namespace (Workers for Platforms)
 // Requires env: CLOUDFLARE_ACCOUNT_ID, WFP_NAMESPACE_ID, CLOUDFLARE_API_TOKEN
 
+const BASE_THEME_VARS = {
+  '--background': '0 0% 100%',
+  '--foreground': '222.2 47.4% 11.2%',
+  '--card': '0 0% 100%',
+  '--card-foreground': '222.2 47.4% 11.2%',
+  '--popover': '0 0% 100%',
+  '--popover-foreground': '222.2 47.4% 11.2%',
+  '--primary': '160 84% 39.4%',
+  '--primary-foreground': '152 81% 96%',
+  '--secondary': '151 81% 92%',
+  '--secondary-foreground': '164 86% 22%',
+  '--muted': '210 40% 96.1%',
+  '--muted-foreground': '215.4 16.3% 46.9%',
+  '--accent': '151 81% 92%',
+  '--accent-foreground': '164 86% 22%',
+  '--destructive': '0 84.2% 60.2%',
+  '--destructive-foreground': '0 0% 98%',
+  '--border': '214 31.8% 91.4%',
+  '--input': '214 31.8% 91.4%',
+  '--ring': '160 84% 39.4%',
+  '--radius': '0.75rem',
+  '--font-sans':
+    "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+};
+
+const BASE_DARK_THEME_VARS = {
+  '--background': '222.2 47.4% 11.2%',
+  '--foreground': '210 40% 98%',
+  '--card': '217.2 32.6% 17.5%',
+  '--card-foreground': '210 40% 98%',
+  '--popover': '217.2 32.6% 17.5%',
+  '--popover-foreground': '210 40% 98%',
+  '--primary': '152 90% 44%',
+  '--primary-foreground': '160 84% 12%',
+  '--secondary': '217.2 32.6% 17.5%',
+  '--secondary-foreground': '210 40% 98%',
+  '--muted': '217.2 32.6% 17.5%',
+  '--muted-foreground': '215 20.2% 65.1%',
+  '--accent': '217.2 32.6% 17.5%',
+  '--accent-foreground': '210 40% 98%',
+  '--destructive': '0 62.8% 30.6%',
+  '--destructive-foreground': '0 85.7% 97.3%',
+  '--border': '217.2 32.6% 17.5%',
+  '--input': '217.2 32.6% 17.5%',
+  '--ring': '152 90% 44%',
+  '--radius': '0.75rem',
+  '--font-sans':
+    "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+};
+
+const THEME_PRESETS = {
+  emerald: {
+    overrides: {},
+    darkOverrides: {
+      '--primary': '152 90% 44%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '152 90% 44%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '152 90% 44%'
+    }
+  },
+  sky: {
+    overrides: {
+      '--primary': '199 89% 55%',
+      '--primary-foreground': '198 100% 97%',
+      '--secondary': '199 94% 90%',
+      '--secondary-foreground': '200 84% 24%',
+      '--accent': '199 94% 90%',
+      '--accent-foreground': '200 84% 24%',
+      '--ring': '199 89% 55%',
+      '--muted': '199 85% 94%',
+      '--muted-foreground': '204 16% 38%',
+      '--border': '198 58% 88%',
+      '--input': '198 58% 88%'
+    },
+    darkOverrides: {
+      '--primary': '199 89% 55%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '199 89% 55%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '199 89% 55%'
+    }
+  },
+  violet: {
+    overrides: {
+      '--primary': '262 84% 60%',
+      '--primary-foreground': '270 100% 97%',
+      '--secondary': '261 89% 94%',
+      '--secondary-foreground': '264 70% 24%',
+      '--accent': '261 89% 94%',
+      '--accent-foreground': '264 70% 24%',
+      '--ring': '262 84% 60%',
+      '--muted': '261 89% 95%',
+      '--muted-foreground': '265 20% 42%',
+      '--border': '263 46% 88%',
+      '--input': '263 46% 88%'
+    },
+    darkOverrides: {
+      '--primary': '262 84% 60%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '262 84% 60%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '262 84% 60%'
+    }
+  },
+  amber: {
+    overrides: {
+      '--primary': '37 92% 55%',
+      '--primary-foreground': '48 96% 90%',
+      '--secondary': '37 100% 88%',
+      '--secondary-foreground': '32 75% 25%',
+      '--accent': '37 100% 88%',
+      '--accent-foreground': '32 75% 25%',
+      '--ring': '37 92% 55%',
+      '--muted': '42 100% 94%',
+      '--muted-foreground': '30 15% 35%',
+      '--border': '37 68% 85%',
+      '--input': '37 68% 85%'
+    },
+    darkOverrides: {
+      '--primary': '37 92% 55%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '37 92% 55%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '37 92% 55%'
+    }
+  },
+  rose: {
+    overrides: {
+      '--primary': '349.7 89.2% 60.2%',
+      '--primary-foreground': '355.7 100% 97.3%',
+      '--secondary': '355.6 100% 94.7%',
+      '--secondary-foreground': '345.3 82.7% 40.8%',
+      '--accent': '355.6 100% 94.7%',
+      '--accent-foreground': '345.3 82.7% 40.8%',
+      '--ring': '349.7 89.2% 60.2%',
+      '--muted': '355.7 100% 97.3%',
+      '--muted-foreground': '343.4 79.7% 34.7%',
+      '--border': '352.7 96.1% 90%',
+      '--input': '352.7 96.1% 90%'
+    },
+    darkOverrides: {
+      '--primary': '349.7 89.2% 60.2%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '349.7 89.2% 60.2%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '349.7 89.2% 60.2%'
+    }
+  },
+  cyan: {
+    overrides: {
+      '--primary': '188.7 94.5% 42.7%',
+      '--primary-foreground': '183.2 100% 96.3%',
+      '--secondary': '185.1 95.9% 90.4%',
+      '--secondary-foreground': '192.9 82.3% 31%',
+      '--accent': '185.1 95.9% 90.4%',
+      '--accent-foreground': '192.9 82.3% 31%',
+      '--ring': '188.7 94.5% 42.7%',
+      '--muted': '183.2 100% 96.3%',
+      '--muted-foreground': '191.6 91.4% 36.5%',
+      '--border': '186.2 93.5% 81.8%',
+      '--input': '186.2 93.5% 81.8%'
+    },
+    darkOverrides: {
+      '--primary': '188.7 94.5% 42.7%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '188.7 94.5% 42.7%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '188.7 94.5% 42.7%'
+    }
+  },
+  indigo: {
+    overrides: {
+      '--primary': '238.7 83.5% 66.7%',
+      '--primary-foreground': '225.9 100% 96.7%',
+      '--secondary': '226.5 100% 93.9%',
+      '--secondary-foreground': '244.5 57.9% 50.6%',
+      '--accent': '226.5 100% 93.9%',
+      '--accent-foreground': '244.5 57.9% 50.6%',
+      '--ring': '238.7 83.5% 66.7%',
+      '--muted': '225.9 100% 96.7%',
+      '--muted-foreground': '243.4 75.4% 58.6%',
+      '--border': '228 96.5% 88.8%',
+      '--input': '228 96.5% 88.8%'
+    },
+    darkOverrides: {
+      '--primary': '238.7 83.5% 66.7%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '238.7 83.5% 66.7%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '238.7 83.5% 66.7%'
+    }
+  },
+  lime: {
+    overrides: {
+      '--primary': '83.7 80.5% 44.3%',
+      '--primary-foreground': '78.3 92% 95.1%',
+      '--secondary': '79.6 89.1% 89.2%',
+      '--secondary-foreground': '85.9 78.4% 27.3%',
+      '--accent': '79.6 89.1% 89.2%',
+      '--accent-foreground': '85.9 78.4% 27.3%',
+      '--ring': '83.7 80.5% 44.3%',
+      '--muted': '78.3 92% 95.1%',
+      '--muted-foreground': '87.6 61.2% 20.2%',
+      '--border': '80.9 88.5% 79.6%',
+      '--input': '80.9 88.5% 79.6%'
+    },
+    darkOverrides: {
+      '--primary': '83.7 80.5% 44.3%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '83.7 80.5% 44.3%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '83.7 80.5% 44.3%'
+    }
+  },
+  slate: {
+    overrides: {
+      '--primary': '215.4 16.3% 46.9%',
+      '--primary-foreground': '210 40% 98%',
+      '--secondary': '214.3 31.8% 91.4%',
+      '--secondary-foreground': '217.2 32.6% 17.5%',
+      '--accent': '214.3 31.8% 91.4%',
+      '--accent-foreground': '217.2 32.6% 17.5%',
+      '--ring': '215.4 16.3% 46.9%',
+      '--muted': '210 40% 96.1%',
+      '--muted-foreground': '215.3 19.3% 34.5%',
+      '--border': '212.7 26.8% 83.9%',
+      '--input': '212.7 26.8% 83.9%'
+    },
+    darkOverrides: {
+      '--primary': '215.4 16.3% 46.9%',
+      '--primary-foreground': '210 40% 98%',
+      '--accent': '215.4 16.3% 46.9%',
+      '--accent-foreground': '210 40% 98%',
+      '--ring': '215.4 16.3% 46.9%'
+    }
+  }
+};
+
+const DEFAULT_THEME_KEY = 'emerald';
+
+function resolveThemeVars(themeKey = DEFAULT_THEME_KEY) {
+  const safeKey = (themeKey || '').toLowerCase();
+  const preset = THEME_PRESETS[safeKey] || THEME_PRESETS[DEFAULT_THEME_KEY];
+  const lightVars = { ...BASE_THEME_VARS, ...(preset.overrides || {}) };
+  const darkVars = { ...BASE_DARK_THEME_VARS, ...(preset.darkOverrides || {}) };
+  return { lightVars, darkVars };
+}
+
+function declarationsToCss(vars) {
+  return Object.entries(vars)
+    .map(([token, value]) => `${token}: ${value};`)
+    .join('\n');
+}
+
+function buildThemeCss(themeKey = DEFAULT_THEME_KEY) {
+  const { lightVars, darkVars } = resolveThemeVars(themeKey);
+  return `
+:root {
+${declarationsToCss(lightVars)}
+}
+
+.dark {
+${declarationsToCss(darkVars)}
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: background 150ms ease, color 150ms ease;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+`;
+}
+
+function buildLayoutCss() {
+  return `
+.questit-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: clamp(24px, 6vw, 72px);
+  background: radial-gradient(120% 120% at 50% 0%, hsla(var(--primary) / 0.12), transparent 65%);
+}
+
+.questit-surface {
+  width: min(960px, 100%);
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-radius: max(calc(var(--radius) * 1.35), 18px);
+  border: 1px solid hsla(var(--border), 0.7);
+  box-shadow: 0 28px 65px -40px rgba(15, 23, 42, 0.55);
+  padding: clamp(24px, 5vw, 52px);
+  backdrop-filter: saturate(120%) blur(2px);
+}
+
+.questit-surface > * {
+  max-width: 100%;
+}
+
+.questit-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: clamp(18px, 4vw, 28px);
+}
+
+.questit-meta span {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+.questit-meta h1 {
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.questit-prompt {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: clamp(0.9rem, 1vw, 1rem);
+  line-height: 1.6;
+}
+
+.questit-tool {
+  display: block;
+  border-radius: calc(var(--radius) + 4px);
+  background: hsla(var(--muted), 0.45);
+  border: 1px solid hsla(var(--border), 0.65);
+  padding: clamp(18px, 4vw, 28px);
+  box-shadow: inset 0 1px 0 hsla(var(--background), 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.questit-tool > * {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .questit-shell {
+    padding: 16px;
+  }
+
+  .questit-tool {
+    padding: 16px;
+  }
+}
+`;
+}
+
+function escapeHtmlAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeHtmlText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\r\n|\n|\r/g, '<br>');
+}
+
+function sanitizeForStyle(content) {
+  return String(content ?? '').replace(/<\/style/gi, '<\\/style');
+}
+
+function sanitizeForScript(content) {
+  return String(content ?? '').replace(/<\/script/gi, '<\\/script');
+}
+
 function buildUserWorkerScript(tool) {
-  const html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>${(tool.title || 'Questit Tool').replace(/"/g,'&quot;')}</title><style>${(tool.css || '').replace(/<\//g,'<\\/')}</style></head><body>${(tool.html || '').replace(/<\//g,'<\\/')}<script type=\"module\">${(tool.js || '').replace(/<\//g,'<\\/')}</script></body></html>`;
+  const themeKey = tool.theme || DEFAULT_THEME_KEY;
+  const themeCss = buildThemeCss(themeKey);
+  const layoutCss = buildLayoutCss();
+  const colorMode = ['dark', 'light'].includes((tool.color_mode || '').toLowerCase())
+    ? tool.color_mode.toLowerCase()
+    : tool.color_mode === 'system'
+      ? 'system'
+      : 'light';
+  const htmlClass = colorMode === 'dark' ? ' class="dark"' : '';
+  const colorModeSetup =
+    colorMode === 'system'
+      ? `
+const media = window.matchMedia('(prefers-color-scheme: dark)');
+const applyScheme = (event) => {
+  document.documentElement.classList.toggle('dark', !!(event.matches ?? event));
+};
+applyScheme(media.matches);
+if (media.addEventListener) {
+  media.addEventListener('change', (event) => applyScheme(event.matches));
+} else if (media.addListener) {
+  media.addListener((event) => applyScheme(event.matches));
+}`
+      : '';
+
+  const shellTitle = escapeHtmlAttr(tool.title || 'Questit Tool');
+  const promptHtml = tool.prompt ? `<p class="questit-prompt">${escapeHtmlText(tool.prompt)}</p>` : '';
+  const htmlSnippet = String(tool.html ?? '').trim() || '<p>No content returned.</p>';
+  const cssSnippet = sanitizeForStyle(tool.css);
+  const jsSnippet = sanitizeForScript(tool.js);
+
+  const fullHtml = `<!doctype html>
+<html${htmlClass}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${shellTitle}</title>
+<style>${themeCss}
+${layoutCss}
+${cssSnippet}</style>
+</head>
+<body>
+<div class="questit-shell">
+  <div class="questit-surface">
+    <header class="questit-meta">
+      <span>Generated with Questit</span>
+      <h1>${shellTitle}</h1>
+      ${promptHtml}
+    </header>
+    <section class="questit-tool" id="questit-tool-root">
+${htmlSnippet}
+    </section>
+  </div>
+</div>
+<script>
+${colorModeSetup}
+</script>
+<script type="module">
+${jsSnippet}
+</script>
+</body>
+</html>`;
+
   const responseInit = JSON.stringify({
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store'
     }
   });
+
   return `addEventListener('fetch', event => {
   event.respondWith(handleRequest());
 });
 
+const html = ${JSON.stringify(fullHtml)};
+
 async function handleRequest() {
-  return new Response(${JSON.stringify(html)}, ${responseInit});
+  return new Response(html, ${responseInit});
 }
 `;
 }

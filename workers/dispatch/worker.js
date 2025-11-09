@@ -17,14 +17,20 @@ export default {
     try {
       const dispatcher = env.DISPATCH;
       if (!dispatcher) return new Response('Dispatcher not configured', { status: 500 });
-      const res = await dispatcher.dispatch(sub, request);
+
+      const worker = typeof dispatcher.get === 'function' ? await dispatcher.get(sub) : null;
+      if (!worker) {
+        return new Response('Worker not found', { status: 404 });
+      }
+
+      const res = await worker.fetch(request);
       ctx.waitUntil(capturePosthogEvent(env, 'dispatch_request', { sub, path: url.pathname }));
       return res;
     } catch (error) {
+      console.error('Dispatch failure', { subdomain: sub, message: error?.message, stack: error?.stack });
       ctx.waitUntil(logErrorToSentry(env, error, { tags: { area: 'dispatch' }, extra: { sub } }));
       return new Response('Dispatch error', { status: 500 });
     }
   }
 };
-
 
