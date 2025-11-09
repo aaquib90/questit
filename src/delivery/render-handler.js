@@ -1,8 +1,9 @@
 import { clearErrorFromContainer, displayErrorInContainer, isBrowser, normalizeError } from '../utils/helper-functions.js';
 import { attachSelfTest, triggerSelfTest } from '../core/self-test/harness.js';
 import { getBrowserKit } from './browser-kit.js';
+import { QUESTIT_UI_STYLES } from './ui-kit.js';
 
-const RUNTIME_VERSION = '2025.11.07';
+const RUNTIME_VERSION = '2025.11.09';
 
 function createBaseContainer(tool) {
   const container = document.createElement('section');
@@ -55,6 +56,7 @@ function attachStyles(container, css) {
     .questit-debug-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .questit-debug-header .questit-debug-close { border: none; background: transparent; cursor: pointer; font-size: 18px; line-height: 1; }
   `;
+  style.textContent += `\n${QUESTIT_UI_STYLES}`;
   style.textContent += `\n${css}`;
   container.prepend(style);
 }

@@ -16,6 +16,9 @@ The helper kit is injected automatically before a tool executes and exposes:
 - `storage.local` / `storage.session` – JSON-safe read/write helpers backed by localStorage/sessionStorage.
 - `publish(event, payload)` – broadcast custom events and capture them in the kit history.
 - `history()` – read the most recent published event payloads (capped to 64 entries).
+- `ui` – shadcn-aligned helpers for markup generation.
+  - `ui.classes` / `ui.snippets` expose ready-made class names and HTML fragments (`questit-ui-button`, `questit-ui-card`, `questit-ui-input`, etc.).
+  - `ui.templates.button(label, options)` and friends return styled HTML strings you can inject directly when building dynamic interfaces.
 
 Always guard access with optional chaining (`window.questit?.kit`) so the tool still works when embedded outside the Questit shell.
 
@@ -43,9 +46,16 @@ The runtime also automatically assigns a non-enumerable `questitUnmount()` metho
 ## Best Practices
 
 - Assume pure browser execution; avoid Node-only APIs or server-based helpers unless explicitly provided.
+- Prefer the provided `questit-ui-*` classes or `kit.ui.templates` helpers so the tool matches the workbench’s shadcn design.
 - Wrap asynchronous work in `try/catch` and forward errors with `window.dispatchEvent(new CustomEvent('questit:tool-error', { detail }))`.
 - Keep DOM queries defensive (`document.querySelector(...) ||` fallback) so reruns after `resetTool()` do not crash.
 - Reuse the event bus for polling, cross-component coordination, or bridging to external widgets instead of global variables.
 - Use `safeFetch` when hitting external APIs to inherit timeouts and retries automatically.
 
 Refer to `src/delivery/browser-kit.js` and `src/delivery/render-handler.js` for the authoritative implementation details.
+
+## Verifying Styling
+
+- In `public/test.html`, call `window.questit.kit.ui.templates.button('Test')` to inspect the rendered button inside a generated tool.
+- Ensure custom HTML uses the `questit-ui-*` classes; mismatches will stand out immediately against the shadcn base theme.
+- When debugging, toggle the questit debug panel and confirm the tool inherits the current color theme (light/dark/base hue).

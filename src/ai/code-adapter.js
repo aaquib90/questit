@@ -14,6 +14,12 @@ const BROWSER_EXECUTION_GUIDANCE = `All functionality must run entirely in the b
 - Do NOT call Node.js APIs, server-side SDKs, or assume access to filesystem/network beyond standard fetch in the client.
 - If a task normally needs heavy compute, use client-compatible approaches (progressive rendering, chunked processing) or clearly surface limitations to the user.`;
 
+const UI_KIT_GUIDANCE = `Questit shadcn-style UI helpers:
+- Prefer the provided classes (questit-ui-button, questit-ui-card, questit-ui-input, questit-ui-label, questit-ui-badge, questit-ui-form-control, questit-ui-grid) to match the workbench design system.
+- You can programmatically create elements via window.questit?.kit?.ui.templates (e.g., window.questit?.kit?.ui.templates.button('Generate')).
+- When authoring markup directly, apply the classes from window.questit?.kit?.ui.classes or reuse snippets available via window.questit?.kit?.ui.snippets.
+- Ensure containers use semantic structure (card header/content/footer) and respect the base theme tokens (bg-background, text-foreground equivalents).`;
+
 const RUNTIME_KIT_GUIDANCE = `Questit runtime helpers:
 - Access shared utilities via window.questit?.kit (events, safeFetch with retry/timeout, local/session storage helpers).
 - Use window.questit?.runtime to trigger resets or self-tests (e.g. window.questit.runtime.resetTool(toolId)).
@@ -36,6 +42,8 @@ ${BROWSER_EXECUTION_GUIDANCE}
 
 ${RUNTIME_KIT_GUIDANCE}
 
+${UI_KIT_GUIDANCE}
+
 Self-test requirement:
 - REQUIRED: window.runSelfCheck = async () => { /* return { pass: true } or { pass: false, details } */ }
 - The self-test must validate the core functionality described by the user's prompt.
@@ -53,7 +61,7 @@ Current code (for reference):
 function buildSystemPrompt(userPrompt, codeAnalysis, intent) {
   const preset = intent?.preset ? getArchetypePreset(intent.preset?.id || intent.archetype || intent.preset) || intent.preset : getArchetypePreset(intent?.archetype);
   const presetText = preset?.systemAddendum ? `\nArchetype guidance: ${preset.systemAddendum}\n` : '';
-  return `You are an expert front-end engineer adapting an existing open-source snippet into a standalone Questit micro-tool.\n\nKey requirements:\n1. Wrap all asynchronous operations in try/catch and surface errors via window.dispatchEvent(new CustomEvent('questit:tool-error', { detail: { message, stack }})).\n2. Validate user input and provide user-friendly error messages inline.\n3. Guard against missing DOM nodes before manipulating them.\n4. Never rely on external build tooling — produce plain HTML, CSS, and JavaScript.\n5. SECURITY: NEVER use eval(), new Function(), or any dynamic code execution. These are strictly forbidden and will cause the code to be rejected.\n6. REQUIRED: Include a function called runSelfCheck that is assigned to window.runSelfCheck. This function must:\n   - Return a Promise or object with { pass: true } or { success: true } if validation succeeds\n   - Return { pass: false, details: {...} } if validation fails\n   - Test that the core functionality works (e.g., for a calculator, test that 2+2=4)\n   - Example: window.runSelfCheck = async () => { try { /* test logic */; return { pass: true }; } catch(e) { return { pass: false, details: { message: e.message } }; } };\n7. Return your response as valid JSON with keys: html, css, js, description, instructions.${presetText}\n\n${SAFE_EVALUATION_GUIDANCE}\n\n${BROWSER_EXECUTION_GUIDANCE}\n\n${RUNTIME_KIT_GUIDANCE}\n\nContext:\n- User prompt: ${userPrompt}\n- Primary language: ${codeAnalysis.language}\n- Complexity: ${codeAnalysis.complexity}\n- Entry points: ${codeAnalysis.entryPoints.join(', ') || 'not detected'}\n`;
+  return `You are an expert front-end engineer adapting an existing open-source snippet into a standalone Questit micro-tool.\n\nKey requirements:\n1. Wrap all asynchronous operations in try/catch and surface errors via window.dispatchEvent(new CustomEvent('questit:tool-error', { detail: { message, stack }})).\n2. Validate user input and provide user-friendly error messages inline.\n3. Guard against missing DOM nodes before manipulating them.\n4. Never rely on external build tooling — produce plain HTML, CSS, and JavaScript.\n5. SECURITY: NEVER use eval(), new Function(), or any dynamic code execution. These are strictly forbidden and will cause the code to be rejected.\n6. REQUIRED: Include a function called runSelfCheck that is assigned to window.runSelfCheck. This function must:\n   - Return a Promise or object with { pass: true } or { success: true } if validation succeeds\n   - Return { pass: false, details: {...} } if validation fails\n   - Test that the core functionality works (e.g., for a calculator, test that 2+2=4)\n   - Example: window.runSelfCheck = async () => { try { /* test logic */; return { pass: true }; } catch(e) { return { pass: false, details: { message: e.message } }; } };\n7. Return your response as valid JSON with keys: html, css, js, description, instructions.${presetText}\n\n${SAFE_EVALUATION_GUIDANCE}\n\n${BROWSER_EXECUTION_GUIDANCE}\n\n${UI_KIT_GUIDANCE}\n\n${RUNTIME_KIT_GUIDANCE}\n\nContext:\n- User prompt: ${userPrompt}\n- Primary language: ${codeAnalysis.language}\n- Complexity: ${codeAnalysis.complexity}\n- Entry points: ${codeAnalysis.entryPoints.join(', ') || 'not detected'}\n`;
 }
 
 function injectSafeEvaluationHelper(js) {

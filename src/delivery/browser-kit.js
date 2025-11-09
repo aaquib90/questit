@@ -1,4 +1,5 @@
 import { generateUniqueId, isBrowser, safeJsonParse } from '../utils/helper-functions.js';
+import { createUiTemplates } from './ui-kit.js';
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_RETRY_DELAY_MS = 500;
@@ -207,14 +208,16 @@ function createBrowserKit() {
     session: createStorageAdapter('session')
   };
   const queue = createPublishQueue(events);
+  const ui = createUiTemplates();
 
   return {
-    version: '2025.11.07',
+    version: '2025.11.09',
     events,
     safeFetch: questitSafeFetch,
     storage,
     publish: queue.enqueue,
-    history: queue.history
+    history: queue.history,
+    ui
   };
 }
 
