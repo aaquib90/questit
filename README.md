@@ -15,6 +15,7 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 
 - The in-browser workbench now sends prompts straight to the AI proxy and renders the returned HTML/CSS/JS inside a sandboxed iframe. GitHub repo adaptation and Code Interpreter auto-repair are temporarily disabled.
 - The workbench UI now runs on shadcn/ui (Tailwind) with dynamic base-color selection (emerald, sky, violet, amber, rose, cyan, indigo, lime, slate) and light/dark/system mode switching so the preview can match the user’s preferred theme.
+- Signed-in users can authenticate via Supabase magic link and optionally persist generated tools to their Supabase project.
 - Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
@@ -80,6 +81,7 @@ All endpoints are available at `https://questit.cc/api/*`:
    # Apply migrations
    psql $SUPABASE_DB_URL -f supabase/migrations/20251105_init.sql
    psql $SUPABASE_DB_URL -f supabase/migrations/20251105_rls.sql
+   psql $SUPABASE_DB_URL -f supabase/migrations/20251109_user_tools.sql
    ```
 
 3. **Deploy Workers**:
@@ -91,6 +93,13 @@ All endpoints are available at `https://questit.cc/api/*`:
    # Deploy API workers
    cd workers/api/ai && wrangler deploy --env staging
    # ... repeat for other API workers
+   ```
+
+4. **Configure Web Workbench**:
+   ```bash
+   # web/.env (Vite)
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
 
 ## Project Structure
@@ -120,6 +129,7 @@ questit/
 - **Error Handling**: Unified error system with Sentry integration
 - **Interactive Iteration**: Collects update instructions and regenerates HTML/CSS/JS with full context for the current session
 - **Shadcn Workbench**: Tailwind + shadcn/ui components with selectable base themes powering the in-browser tool builder
+- **Supabase Sync**: Optional login flow that stores generated tools in Supabase for logged-in users
 - **Rate Limiting**: KV-backed rate limiting on dispatch worker
 
 ## Limits

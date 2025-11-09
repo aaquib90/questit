@@ -21,7 +21,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
+import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { generateTool } from './generateTool.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
@@ -349,6 +352,12 @@ function App() {
   const [history, setHistory] = useState([]);
   const [iterationPrompt, setIterationPrompt] = useState('');
   const [selectedTheme, setSelectedTheme] = useState(DEFAULT_THEME_KEY);
+  const [user, setUser] = useState(null);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
+  const [saveTitle, setSaveTitle] = useState('');
+  const [saveStatus, setSaveStatus] = useState({ state: 'idle', message: '' });
   const [colorMode, setColorMode] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -380,6 +389,115 @@ function App() {
     [currentCss, currentHtml, currentJs, hasGenerated, resolvedMode, selectedTheme]
   );
   const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
+  const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
+
+  const handleAuthSubmit = async (event) => {
+    event.preventDefault();
+    if (!hasSupabaseConfig) {
+      setAuthStatus({
+        state: 'error',
+        message: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+      });
+      return;
+    }
+    if (!authEmail.trim()) {
+      setAuthStatus({ state: 'error', message: 'Enter an email address to continue.' });
+      return;
+    }
+
+    setAuthStatus({ state: 'loading', message: 'Sending magic link…' });
+    const { error } = await supabase.auth.signInWithOtp({
+      email: authEmail.trim(),
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
+
+    if (error) {
+      setAuthStatus({ state: 'error', message: error.message });
+      return;
+    }
+
+    setAuthStatus({
+      state: 'success',
+      message: 'Magic link sent. Check your inbox to finish signing in.'
+    });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setAuthStatus({ state: 'idle', message: '' });
+      setSaveStatus({ state: 'idle', message: '' });
+      setAuthEmail('');
+      setSaveTitle('');
+    } catch (error) {
+      console.warn('Sign out failed:', error);
+    }
+  };
+
+  const handleSaveTool = async () => {
+    if (!user) {
+      setAuthDialogOpen(true);
+      return;
+    }
+    if (!hasSupabaseConfig) {
+      setSaveStatus({
+        state: 'error',
+        message: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+      });
+      return;
+    }
+    if (!hasGenerated) return;
+
+    const title = saveTitle.trim() || `Tool ${new Date().toLocaleString()}`;
+    setSaveStatus({ state: 'loading', message: 'Saving to Supabase…' });
+
+    const sourcePrompt = history[0]?.prompt || prompt || null;
+
+    const { error } = await supabase.from('user_tools').insert({
+      user_id: user.id,
+      title,
+      prompt: sourcePrompt,
+      theme: selectedTheme,
+      color_mode: resolvedMode,
+      html: currentHtml,
+      css: currentCss,
+      js: currentJs
+    });
+
+    if (error) {
+      setSaveStatus({ state: 'error', message: error.message });
+      return;
+    }
+
+    setSaveStatus({ state: 'success', message: 'Tool saved to Supabase.' });
+  };
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) return undefined;
+    let isMounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (isMounted) {
+          setUser(data.session?.user ?? null);
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to load Supabase session:', error);
+      });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -424,6 +542,8 @@ function App() {
       setToolCode(result);
       setHistory([{ type: 'initial', prompt: prompt.trim(), code: result }]);
       setIterationPrompt('');
+      setSaveTitle(prompt.trim().slice(0, 60));
+      setSaveStatus({ state: 'idle', message: '' });
       setStatusMessage('Tool generated. Review the preview below.');
     } catch (error) {
       console.error('Generation error:', error);
@@ -431,6 +551,7 @@ function App() {
       setStatusMessage('');
       setToolCode({ html: '', css: '', js: '' });
       setHistory([]);
+      setSaveStatus({ state: 'idle', message: '' });
     } finally {
       setActiveAction(null);
       setIsGenerating(false);
@@ -454,6 +575,7 @@ function App() {
         { type: 'iteration', prompt: iterationPrompt.trim(), code: updated }
       ]);
       setIterationPrompt('');
+      setSaveStatus({ state: 'idle', message: '' });
       setStatusMessage('Iteration applied. Preview updated.');
     } catch (error) {
       console.error('Iteration error:', error);
@@ -468,17 +590,35 @@ function App() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto max-w-6xl space-y-8 py-10">
-        <header className="space-y-4 text-center md:text-left">
-          <Badge variant="secondary" className="mx-auto w-fit rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide md:mx-0">
-            Questit Workbench
-          </Badge>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Build micro-tools from natural language
-            </h1>
-            <p className="mx-auto max-w-2xl text-sm text-muted-foreground md:mx-0">
-              Provide a prompt to generate a self-contained HTML/CSS/JS bundle, then iterate with follow-up instructions. Everything runs on the Questit edge stack.
-            </p>
+        <header className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-4 text-center md:text-left">
+            <Badge variant="secondary" className="mx-auto w-fit rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide md:mx-0">
+              Questit Workbench
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Build micro-tools from natural language
+              </h1>
+              <p className="mx-auto max-w-2xl text-sm text-muted-foreground md:mx-0">
+                Provide a prompt to generate a self-contained HTML/CSS/JS bundle, then iterate with follow-up instructions. Everything runs on the Questit edge stack.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            {user ? (
+              <>
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+                  {userLabel}
+                </Badge>
+                <Button variant="ghost" onClick={handleSignOut}>
+                  Sign out
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={() => { setAuthDialogOpen(true); setAuthStatus({ state: 'idle', message: '' }); }}>
+                Log in
+              </Button>
+            )}
           </div>
         </header>
 
@@ -631,6 +771,61 @@ function App() {
                   </div>
                 )}
               </div>
+              {hasGenerated && (
+                <div className="mt-6 space-y-3 rounded-lg border border-primary/20 bg-muted/30 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Save to Supabase</p>
+                      <p className="text-xs text-muted-foreground">
+                        Persist the generated code bundle to your Supabase project.
+                      </p>
+                    </div>
+                    {user ? (
+                      <Badge variant="secondary" className="w-fit">
+                        {userLabel}
+                      </Badge>
+                    ) : (
+                      <Button variant="secondary" onClick={() => { setAuthDialogOpen(true); setAuthStatus({ state: 'idle', message: '' }); }}>
+                        Log in to save
+                      </Button>
+                    )}
+                  </div>
+
+                  {user ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="save-title">Tool name</Label>
+                        <Input
+                          id="save-title"
+                          value={saveTitle}
+                          onChange={(event) => setSaveTitle(event.target.value)}
+                          placeholder="Give this tool a descriptive name"
+                        />
+                      </div>
+                      {saveStatus.message && (
+                        <p
+                          className={`text-sm ${
+                            saveStatus.state === 'error'
+                              ? 'text-destructive'
+                              : saveStatus.state === 'success'
+                                ? 'text-emerald-500'
+                                : 'text-muted-foreground'
+                          }`}
+                        >
+                          {saveStatus.message}
+                        </p>
+                      )}
+                      <Button onClick={handleSaveTool} disabled={saveStatus.state === 'loading'}>
+                        {saveStatus.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Sign in to sync your generated tools with Supabase.
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -699,6 +894,47 @@ function App() {
             </Card>
           </div>
         )}
+        <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sign in to Questit</DialogTitle>
+              <DialogDescription>
+                We’ll email you a magic link so you can save tools to Supabase.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="auth-email">Email address</Label>
+                <Input
+                  id="auth-email"
+                  type="email"
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              {authStatus.message && (
+                <p
+                  className={`text-sm ${
+                    authStatus.state === 'error'
+                      ? 'text-destructive'
+                      : authStatus.state === 'success'
+                        ? 'text-emerald-500'
+                        : 'text-muted-foreground'
+                  }`}
+                >
+                  {authStatus.message}
+                </p>
+              )}
+              <DialogFooter>
+                <Button type="submit" disabled={authStatus.state === 'loading'}>
+                  {authStatus.state === 'loading' ? 'Sending…' : 'Send magic link'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
