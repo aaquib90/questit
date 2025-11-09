@@ -1,5 +1,3 @@
-const DEFAULT_ENDPOINT = 'https://questit.cc/api/ai/proxy';
-
 const SYSTEM_PROMPT = `You are Questit, a UI micro-tool generator.
 Return ONLY valid JSON with keys: html, css, js.
 - html must be a full snippet (no <html> wrapper needed, we'll embed it).
@@ -8,10 +6,33 @@ Return ONLY valid JSON with keys: html, css, js.
 - Keep everything self-contained (no external resources).
 - Include basic UI (inputs/buttons) and client-side logic only.`;
 
-export async function generateTool(prompt, endpoint = DEFAULT_ENDPOINT) {
+const DEFAULT_ENDPOINT = 'https://questit.cc/api/ai/proxy';
+
+function buildIterationInput(prompt, previousCode) {
+  if (!previousCode) return prompt;
+
+  const { html = '', css = '', js = '' } = previousCode;
+  return `You previously generated this tool. Update it while keeping the structure self-contained.
+
+Existing HTML:
+${html || '// no html'}
+
+Existing CSS:
+${css || '// no css'}
+
+Existing JavaScript:
+${js || '// no js'}
+
+Apply the following update instructions:
+${prompt}
+
+Return the complete updated tool (html, css, js) as JSON.`;
+}
+
+export async function generateTool(prompt, endpoint = DEFAULT_ENDPOINT, previousCode) {
   const body = {
     system: SYSTEM_PROMPT,
-    input: prompt,
+    input: buildIterationInput(prompt, previousCode),
     options: {
       response_format: { type: 'json_object' },
       temperature: 0.2,

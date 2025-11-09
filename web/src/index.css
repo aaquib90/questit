@@ -111,6 +111,25 @@ button:disabled {
   margin-bottom: 12px;
 }
 
+.iteration {
+  margin-top: 32px;
+  text-align: left;
+}
+
+.iteration p {
+  margin-bottom: 16px;
+  color: #475569;
+}
+
+.iterate-form button {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.compact {
+  min-height: 96px;
+}
+
 .code-output {
   margin-top: 32px;
 }
@@ -150,6 +169,38 @@ button:disabled {
   border-radius: 12px;
   overflow: auto;
   font-size: 14px;
+}
+
+.history {
+  margin-top: 32px;
+  text-align: left;
+}
+
+.history ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.history li {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.history-tag {
+  display: inline-block;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 6px;
+}
+
+.history li p {
+  margin: 0;
+  color: #1f2937;
 }
 
 @media (max-width: 640px) {
