@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Sparkles,
   RefreshCcw,
@@ -10,7 +10,9 @@ import {
   Palette,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  Share2,
+  ExternalLink
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
+import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
@@ -343,6 +346,35 @@ ${js || ''}
 </html>`;
 }
 
+function resolveApiBase(endpoint) {
+  if (!endpoint) return 'https://questit.cc/api';
+  try {
+    const url = new URL(endpoint);
+    const segments = url.pathname.split('/').filter(Boolean);
+    const apiIndex = segments.indexOf('api');
+    const basePath = apiIndex >= 0 ? segments.slice(0, apiIndex + 1).join('/') : 'api';
+    return `${url.origin}/${basePath}`;
+  } catch {
+    return 'https://questit.cc/api';
+  }
+}
+
+function buildShareUrl(workerName, apiBase) {
+  if (!workerName) return '';
+  try {
+    const url = new URL(apiBase);
+    const host = url.hostname;
+    if (host.includes('localhost') || host.startsWith('127.') || host.startsWith('0.')) {
+      return '';
+    }
+    const hostParts = host.split('.');
+    const apexHost = hostParts.length >= 2 ? hostParts.slice(-2).join('.') : host;
+    return `https://${workerName}.${apexHost}/`;
+  } catch {
+    return '';
+  }
+}
+
 function App() {
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -364,6 +396,7 @@ function App() {
   const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
   const [myToolsError, setMyToolsError] = useState('');
   const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
+  const [toolActionStatus, setToolActionStatus] = useState({});
   const [colorMode, setColorMode] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -380,6 +413,7 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
   }, []);
+  const apiBase = useMemo(() => resolveApiBase(endpoint), [endpoint]);
   const { html: currentHtml, css: currentCss, js: currentJs } = toolCode;
   const hasGenerated = Boolean(currentHtml || currentCss || currentJs);
   const resolvedMode = colorMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : colorMode;
@@ -396,6 +430,36 @@ function App() {
   );
   const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
   const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
+
+  const updateToolActionStatus = useCallback((toolId, updates) => {
+    setToolActionStatus((previous) => {
+      const existing = previous[toolId] || {};
+      return {
+        ...previous,
+        [toolId]: { ...existing, ...updates }
+      };
+    });
+  }, []);
+
+  const fetchToolDetails = async (toolId) => {
+    const { data, error } = await supabase
+      .from('user_tools')
+      .select('id, title, prompt, theme, color_mode, html, css, js, created_at, updated_at')
+      .eq('id', toolId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+    if (!data) {
+      throw new Error('Saved tool not found.');
+    }
+
+    setMyTools((previous) =>
+      previous.map((tool) => (tool.id === toolId ? { ...tool, ...data } : tool))
+    );
+    return data;
+  };
 
   const handleAuthSubmit = async (event) => {
     event.preventDefault();
@@ -440,6 +504,7 @@ function App() {
       setMyTools([]);
       setMyToolsError('');
       setIsLoadingMyTools(false);
+      setToolActionStatus({});
     } catch (error) {
       console.warn('Sign out failed:', error);
     }
@@ -447,6 +512,116 @@ function App() {
 
   const handleRefreshMyTools = () => {
     setMyToolsRefreshKey((value) => value + 1);
+  };
+
+  const handleLoadSavedTool = async (toolId) => {
+    if (!user) {
+      setAuthDialogOpen(true);
+      return;
+    }
+    if (!hasSupabaseConfig) {
+      setMyToolsError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      return;
+    }
+
+    updateToolActionStatus(toolId, { loading: true, error: '' });
+    try {
+      let toolRecord = myTools.find((tool) => tool.id === toolId);
+      const hasCode =
+        toolRecord &&
+        (typeof toolRecord.html === 'string' ||
+          typeof toolRecord.css === 'string' ||
+          typeof toolRecord.js === 'string');
+      if (!hasCode) {
+        toolRecord = await fetchToolDetails(toolId);
+      }
+      if (!toolRecord) {
+        throw new Error('Saved tool not found.');
+      }
+
+      const html = toolRecord.html || '';
+      const css = toolRecord.css || '';
+      const js = toolRecord.js || '';
+      setToolCode({ html, css, js });
+      setHistory([{ type: 'initial', prompt: toolRecord.prompt || '', code: { html, css, js } }]);
+      setIterationPrompt('');
+      setSelectedTheme(toolRecord.theme || DEFAULT_THEME_KEY);
+      if (toolRecord.color_mode) {
+        setColorMode(toolRecord.color_mode);
+      }
+      setPrompt(toolRecord.prompt || DEFAULT_PROMPT);
+      setSaveTitle(toolRecord.title || '');
+      setActiveView('workbench');
+      setStatusMessage('Loaded saved tool into the workbench.');
+      setErrorMessage('');
+      setSaveStatus({ state: 'idle', message: '' });
+      setAuthDialogOpen(false);
+
+      updateToolActionStatus(toolId, { loading: false, error: '' });
+    } catch (error) {
+      console.error('Failed to load saved tool:', error);
+      updateToolActionStatus(toolId, {
+        loading: false,
+        error: error?.message || 'Failed to load saved tool.'
+      });
+    }
+  };
+
+  const handlePublishSavedTool = async (toolId) => {
+    if (!user) {
+      setAuthDialogOpen(true);
+      return;
+    }
+    if (!hasSupabaseConfig) {
+      setMyToolsError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      updateToolActionStatus(toolId, { publishing: false, error: '' });
+      return;
+    }
+    updateToolActionStatus(toolId, { publishing: true, error: '' });
+
+    try {
+      let toolRecord = myTools.find((tool) => tool.id === toolId);
+      const hasCode =
+        toolRecord &&
+        (typeof toolRecord.html === 'string' ||
+          typeof toolRecord.css === 'string' ||
+          typeof toolRecord.js === 'string');
+      if (!hasCode) {
+        toolRecord = await fetchToolDetails(toolId);
+      }
+      if (!toolRecord) {
+        throw new Error('Saved tool not found.');
+      }
+
+      if (!toolRecord.html && !toolRecord.css && !toolRecord.js) {
+        throw new Error('Saved tool is missing code content.');
+      }
+
+      const publishPayload = {
+        id: toolRecord.id,
+        title: toolRecord.title,
+        html: toolRecord.html || '',
+        css: toolRecord.css || '',
+        js: toolRecord.js || ''
+      };
+
+      const result = await publishSavedTool(publishPayload, apiBase);
+      const shareUrl = buildShareUrl(result?.name, apiBase);
+
+      updateToolActionStatus(toolId, {
+        publishing: false,
+        error: '',
+        shareUrl,
+        publishedName: result?.name || '',
+        publishedNamespace: result?.namespace || ''
+      });
+    } catch (error) {
+      console.error('Failed to publish saved tool:', error);
+      updateToolActionStatus(toolId, {
+        publishing: false,
+        error: error?.message || 'Failed to publish tool.'
+      });
+    }
   };
 
   const handleSaveTool = async () => {
@@ -484,6 +659,7 @@ function App() {
       return;
     }
 
+    setMyToolsRefreshKey((value) => value + 1);
     setSaveStatus({ state: 'success', message: 'Tool saved to Supabase.' });
   };
 
@@ -1065,6 +1241,7 @@ function App() {
                   const createdDateTimeLabel = isValidDate
                     ? createdAt.toLocaleString()
                     : 'Unknown save time';
+                  const status = toolActionStatus[tool.id] || {};
 
                   return (
                     <Card key={tool.id} className="border border-primary/20 bg-background/80">
@@ -1098,6 +1275,65 @@ function App() {
                             Mode: {tool.color_mode || 'system'}
                           </Badge>
                         </div>
+                        <div className="flex flex-wrap items-center gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleLoadSavedTool(tool.id)}
+                            disabled={Boolean(status.loading) || Boolean(status.publishing)}
+                          >
+                            {status.loading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                Loading…
+                              </>
+                            ) : (
+                              <>
+                                <FileCode className="h-4 w-4" aria-hidden />
+                                Load in workbench
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handlePublishSavedTool(tool.id)}
+                            disabled={Boolean(status.publishing) || Boolean(status.loading)}
+                          >
+                            {status.publishing ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                Publishing…
+                              </>
+                            ) : (
+                              <>
+                                <Share2 className="h-4 w-4" aria-hidden />
+                                Publish share link
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {status.shareUrl ? (
+                          <p className="flex items-center gap-1 text-xs text-emerald-600">
+                            Link:{' '}
+                            <a
+                              href={status.shareUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                            >
+                              {status.shareUrl}
+                              <ExternalLink className="h-3 w-3" aria-hidden />
+                            </a>
+                          </p>
+                        ) : status.publishedName ? (
+                          <p className="text-xs text-muted-foreground">
+                            Published worker: {status.publishedName}
+                          </p>
+                        ) : null}
+                        {status.error ? (
+                          <p className="text-xs text-destructive">{status.error}</p>
+                        ) : null}
                       </CardContent>
                     </Card>
                   );
