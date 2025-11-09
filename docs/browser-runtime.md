@@ -42,6 +42,7 @@ The runtime also automatically assigns a non-enumerable `questitUnmount()` metho
 
 ## Best Practices
 
+- Assume pure browser execution; avoid Node-only APIs or server-based helpers unless explicitly provided.
 - Wrap asynchronous work in `try/catch` and forward errors with `window.dispatchEvent(new CustomEvent('questit:tool-error', { detail }))`.
 - Keep DOM queries defensive (`document.querySelector(...) ||` fallback) so reruns after `resetTool()` do not crash.
 - Reuse the event bus for polling, cross-component coordination, or bridging to external widgets instead of global variables.

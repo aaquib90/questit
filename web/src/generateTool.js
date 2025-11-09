@@ -4,7 +4,8 @@ Return ONLY valid JSON with keys: html, css, js.
 - css must be raw CSS (omit <style> tags).
 - js must be raw JavaScript (omit <script> tags).
 - Keep everything self-contained (no external resources).
-- Include basic UI (inputs/buttons) and client-side logic only.`;
+- Include basic UI (inputs/buttons) and client-side logic only.
+- Entire solution must execute in the browser; do not rely on Node.js APIs, server helpers, or remote conversion services. Prefer browser-compatible libraries (e.g. WebAssembly modules like pdf.js) when heavy processing is required.`;
 
 const DEFAULT_ENDPOINT = 'https://questit.cc/api/ai/proxy';
 

@@ -7,6 +7,9 @@ This document captures the near-term browser-first enhancements we want to pursu
 - **Richer client runtime**
   - Deliver a lightweight `questit-browser-kit` helper (event bus, `safeFetch`, local/session storage wrappers, retry utilities) that the generator can import automatically.
   - Extend prompt templates and adapter guidance so generated code scaffolds stateful behaviours (timers, async flows, error surfacing) without build tooling.
+- **Browser-only execution mandate**
+  - Keep all generated experiences strictly client-side until dedicated worker patterns are ready; leverage WebAssembly/browser libraries (e.g. pdf.js) for heavier tasks.
+  - Update internal prompts and adapters to highlight the browser constraint and surface graceful fallbacks when an operation cannot be performed locally.
 - **Expanded browser capabilities**
   - Publish an allowlist of browser APIs (Clipboard, Web Speech, Geolocation, Web Workers) and teach the static scan to permit deliberate usage while flagging unsafe patterns.
   - Update `renderTool` to expose optional hooks (debug toggles, data refresh, state reset) and surface them through `window.questit.runtime`.
