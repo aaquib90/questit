@@ -9,6 +9,12 @@ const SAFE_EVALUATION_GUIDANCE = `Math / expression handling guidance:
 - Use a deterministic algorithm (e.g. shunting-yard with two stacks) to respect operator precedence and parentheses.
 - Surface helpful errors for invalid characters, mismatched parentheses, or division by zero instead of attempting to execute the raw string.`;
 
+const RUNTIME_KIT_GUIDANCE = `Questit runtime helpers:
+- Access shared utilities via window.questit?.kit (events, safeFetch with retry/timeout, local/session storage helpers).
+- Use window.questit?.runtime to trigger resets or self-tests (e.g. window.questit.runtime.resetTool(toolId)).
+- Publish cross-component events with window.questit?.kit.publish('event-name', payload) so other listeners can react.
+- Guard all usages with optional chaining so the tool still works if embedded outside the Questit frame.`;
+
 function buildRepairPrompt(userPrompt, issues, current) {
   const issuesList = (issues || []).map(i => `- [${i.severity}] ${i.file}: ${i.message} (${i.id})`).join('\n');
   return `You previously produced code for a Questit micro-tool that FAILED a static security scan.
@@ -20,6 +26,8 @@ STRICT requirements (must follow exactly):
 - Return ONLY JSON with keys: html, css, js, description, instructions.
 
 ${SAFE_EVALUATION_GUIDANCE}
+
+${RUNTIME_KIT_GUIDANCE}
 
 Self-test requirement:
 - REQUIRED: window.runSelfCheck = async () => { /* return { pass: true } or { pass: false, details } */ }
@@ -38,7 +46,7 @@ Current code (for reference):
 function buildSystemPrompt(userPrompt, codeAnalysis, intent) {
   const preset = intent?.preset ? getArchetypePreset(intent.preset?.id || intent.archetype || intent.preset) || intent.preset : getArchetypePreset(intent?.archetype);
   const presetText = preset?.systemAddendum ? `\nArchetype guidance: ${preset.systemAddendum}\n` : '';
-  return `You are an expert front-end engineer adapting an existing open-source snippet into a standalone Questit micro-tool.\n\nKey requirements:\n1. Wrap all asynchronous operations in try/catch and surface errors via window.dispatchEvent(new CustomEvent('questit:tool-error', { detail: { message, stack }})).\n2. Validate user input and provide user-friendly error messages inline.\n3. Guard against missing DOM nodes before manipulating them.\n4. Never rely on external build tooling — produce plain HTML, CSS, and JavaScript.\n5. SECURITY: NEVER use eval(), new Function(), or any dynamic code execution. These are strictly forbidden and will cause the code to be rejected.\n6. REQUIRED: Include a function called runSelfCheck that is assigned to window.runSelfCheck. This function must:\n   - Return a Promise or object with { pass: true } or { success: true } if validation succeeds\n   - Return { pass: false, details: {...} } if validation fails\n   - Test that the core functionality works (e.g., for a calculator, test that 2+2=4)\n   - Example: window.runSelfCheck = async () => { try { /* test logic */; return { pass: true }; } catch(e) { return { pass: false, details: { message: e.message } }; } };\n7. Return your response as valid JSON with keys: html, css, js, description, instructions.${presetText}\n\n${SAFE_EVALUATION_GUIDANCE}\n\nContext:\n- User prompt: ${userPrompt}\n- Primary language: ${codeAnalysis.language}\n- Complexity: ${codeAnalysis.complexity}\n- Entry points: ${codeAnalysis.entryPoints.join(', ') || 'not detected'}\n`;
+  return `You are an expert front-end engineer adapting an existing open-source snippet into a standalone Questit micro-tool.\n\nKey requirements:\n1. Wrap all asynchronous operations in try/catch and surface errors via window.dispatchEvent(new CustomEvent('questit:tool-error', { detail: { message, stack }})).\n2. Validate user input and provide user-friendly error messages inline.\n3. Guard against missing DOM nodes before manipulating them.\n4. Never rely on external build tooling — produce plain HTML, CSS, and JavaScript.\n5. SECURITY: NEVER use eval(), new Function(), or any dynamic code execution. These are strictly forbidden and will cause the code to be rejected.\n6. REQUIRED: Include a function called runSelfCheck that is assigned to window.runSelfCheck. This function must:\n   - Return a Promise or object with { pass: true } or { success: true } if validation succeeds\n   - Return { pass: false, details: {...} } if validation fails\n   - Test that the core functionality works (e.g., for a calculator, test that 2+2=4)\n   - Example: window.runSelfCheck = async () => { try { /* test logic */; return { pass: true }; } catch(e) { return { pass: false, details: { message: e.message } }; } };\n7. Return your response as valid JSON with keys: html, css, js, description, instructions.${presetText}\n\n${SAFE_EVALUATION_GUIDANCE}\n\n${RUNTIME_KIT_GUIDANCE}\n\nContext:\n- User prompt: ${userPrompt}\n- Primary language: ${codeAnalysis.language}\n- Complexity: ${codeAnalysis.complexity}\n- Entry points: ${codeAnalysis.entryPoints.join(', ') || 'not detected'}\n`;
 }
 
 function injectSafeEvaluationHelper(js) {

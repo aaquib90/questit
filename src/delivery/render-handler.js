@@ -1,5 +1,8 @@
 import { clearErrorFromContainer, displayErrorInContainer, isBrowser, normalizeError } from '../utils/helper-functions.js';
 import { attachSelfTest, triggerSelfTest } from '../core/self-test/harness.js';
+import { getBrowserKit } from './browser-kit.js';
+
+const RUNTIME_VERSION = '2025.11.07';
 
 function createBaseContainer(tool) {
   const container = document.createElement('section');
@@ -104,6 +107,83 @@ function executeTool(tool, container) {
   container.appendChild(script);
 }
 
+function ensureRuntimeRegistration(tool, container, body, controls) {
+  if (!isBrowser) return null;
+
+  const kit = getBrowserKit();
+  const global = window.questit = window.questit || {};
+
+  if (!global.runtime) {
+    const toolRegistry = new Map();
+    const runtime = {
+      version: RUNTIME_VERSION,
+      kit,
+      listTools: () => Array.from(toolRegistry.keys()),
+      getToolState: (id) => {
+        const entry = toolRegistry.get(id);
+        if (!entry) return null;
+        const { tool: state } = entry;
+        return {
+          id,
+          title: state.title,
+          description: state.description,
+          container: entry.container,
+          errorState: state.errorState,
+          metadata: state.metadata || null,
+          createdAt: state.createdAt || null
+        };
+      },
+      runSelfTest: (id) => {
+        const entry = toolRegistry.get(id);
+        if (entry) {
+          entry.runSelfTest();
+        }
+      },
+      resetTool: (id) => {
+        const entry = toolRegistry.get(id);
+        if (entry) {
+          entry.reset();
+        }
+      },
+      disposeTool: (id) => {
+        const entry = toolRegistry.get(id);
+        if (!entry) return false;
+        entry.dispose();
+        toolRegistry.delete(id);
+        return true;
+      },
+      kitHistory: () => kit.history()
+    };
+
+    Object.defineProperty(runtime, '__register', {
+      value: (id, entry) => {
+        toolRegistry.set(id, entry);
+        return () => {
+          if (toolRegistry.get(id) === entry) {
+            toolRegistry.delete(id);
+          }
+        };
+      },
+      enumerable: false
+    });
+
+    global.runtime = runtime;
+  }
+
+  if (typeof global.runtime.__register !== 'function') {
+    return null;
+  }
+
+  return global.runtime.__register(tool.id, {
+    tool,
+    container,
+    body,
+    reset: controls.reset,
+    runSelfTest: controls.runSelfTest,
+    dispose: controls.dispose
+  });
+}
+
 export function renderTool(tool, options = {}) {
   if (!isBrowser) {
     throw new Error('renderTool can only be executed in a browser-like environment');
@@ -112,8 +192,38 @@ export function renderTool(tool, options = {}) {
   const { container, body } = createBaseContainer(tool);
   attachStyles(container, tool.css);
 
-  let cleanupListeners = bindErrorListeners(tool, container);
+  let cleanupListeners = null;
   let cleanupSelfTest = attachSelfTest(tool, container);
+
+  const runTool = ({ dispatchReset = false } = {}) => {
+    if (cleanupListeners) {
+      cleanupListeners();
+    }
+    cleanupListeners = bindErrorListeners(tool, container);
+    executeTool(tool, body);
+    if (dispatchReset) {
+      container.dispatchEvent(new CustomEvent('questit:tool-reset'));
+    }
+    triggerSelfTest(tool, body);
+  };
+
+  const runtimeDisposer = ensureRuntimeRegistration(tool, container, body, {
+    reset: () => runTool({ dispatchReset: true }),
+    runSelfTest: () => triggerSelfTest(tool, body),
+    dispose: () => {
+      if (cleanupListeners) {
+        cleanupListeners();
+        cleanupListeners = null;
+      }
+      if (cleanupSelfTest) {
+        cleanupSelfTest();
+        cleanupSelfTest = null;
+      }
+      if (container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+    }
+  });
 
   const actions = container.querySelector('.questit-tool-actions');
   if (actions) {
@@ -122,12 +232,7 @@ export function renderTool(tool, options = {}) {
     retryButton.className = 'questit-tool-retry';
     retryButton.textContent = 'Retry';
     retryButton.addEventListener('click', () => {
-      if (cleanupListeners) {
-        cleanupListeners();
-      }
-      cleanupListeners = bindErrorListeners(tool, container);
-      executeTool(tool, body);
-      container.dispatchEvent(new CustomEvent('questit:tool-reset'));
+      runTool({ dispatchReset: true });
     });
     actions.appendChild(retryButton);
 
@@ -146,9 +251,7 @@ export function renderTool(tool, options = {}) {
   }
 
   try {
-    executeTool(tool, body);
-    // Auto-run a self-test on first render (non-blocking)
-    triggerSelfTest(tool, body);
+    runTool();
   } catch (error) {
     displayErrorInContainer(container, error);
   }
@@ -162,6 +265,23 @@ export function renderTool(tool, options = {}) {
   }
 
   // Return container; caller may choose to unmount; ensure cleanup when needed
+  Object.defineProperty(container, 'questitUnmount', {
+    value: () => {
+      if (runtimeDisposer) {
+        runtimeDisposer();
+      }
+      if (cleanupListeners) {
+        cleanupListeners();
+        cleanupListeners = null;
+      }
+      if (cleanupSelfTest) {
+        cleanupSelfTest();
+        cleanupSelfTest = null;
+      }
+    },
+    enumerable: false
+  });
+
   return container;
 }
 

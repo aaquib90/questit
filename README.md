@@ -16,6 +16,7 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 - The in-browser workbench now sends prompts straight to the AI proxy and renders the returned HTML/CSS/JS inside a sandboxed iframe. GitHub repo adaptation and Code Interpreter auto-repair are temporarily disabled.
 - The workbench UI now runs on shadcn/ui (Tailwind) with dynamic base-color selection (emerald, sky, violet, amber, rose, cyan, indigo, lime, slate) and light/dark/system mode switching so the preview can match the user’s preferred theme.
 - Signed-in users can authenticate via Supabase magic link and optionally persist generated tools to their Supabase project.
+- Saved tools appear in a dedicated **My Tools** view where users can reload a bundle into the workbench or publish a shareable Worker URL.
 - Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
@@ -130,7 +131,19 @@ questit/
 - **Interactive Iteration**: Collects update instructions and regenerates HTML/CSS/JS with full context for the current session
 - **Shadcn Workbench**: Tailwind + shadcn/ui components with selectable base themes powering the in-browser tool builder
 - **Supabase Sync**: Optional login flow that stores generated tools in Supabase for logged-in users
+- **My Tools Dashboard**: Browse saved bundles, reload them into the workbench, or publish a Worker without leaving the app
+- **Shareable Edge Shell**: Published Workers render inside a Questit-branded layout that mirrors the saved theme and color-mode preference
 - **Rate Limiting**: KV-backed rate limiting on dispatch worker
+
+## Recent Enhancements (Q4 2025)
+
+- **Workbench Iteration Flow** – Users can send follow-up instructions; responses are re-rendered in the preview with history tracking.
+- **shadcn/ui Redesign** – The interface now uses shadcn components, Tailwind utility layers, and an emerald-inspired palette by default.
+- **Theme Picker & Color Modes** – Added support for multiple shadcn base themes (emerald, sky, violet, amber, rose, cyan, indigo, lime, slate) plus light/dark/system toggles that affect both the frame and generated output.
+- **Supabase Auth + Persistence** – Magic-link login lets users opt-in to saving generated bundles to the `user_tools` table (requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` during build/deploy).
+- **My Tools + Publish Flow** – Signed-in users can manage Supabase-backed tools, load them into the workbench, and publish Cloudflare Worker links in one place.
+- **Shadcn Wrapper for User Workers** – Published tools inherit the Questit theme tokens and respect saved light/dark/system preferences.
+- **Production Safeguards** – The Supabase client now degrades gracefully when credentials are absent, preventing blank screens in non-configured environments.
 
 ## Limits
 
