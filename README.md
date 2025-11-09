@@ -18,6 +18,7 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 - Signed-in users can authenticate via Supabase magic link and optionally persist generated tools to their Supabase project.
 - Saved tools appear in a dedicated **My Tools** view where users can reload a bundle into the workbench or publish a shareable Worker URL.
 - Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
+- Generated tools are scoped to **browser-only execution** for now; prompts and adapters enforce client-friendly libraries (e.g., pdf.js) and surface graceful fallbacks when a task needs heavier compute.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
 - Publish/self-test flows still rely on the Worker APIs, but the UI currently focuses on generation + preview. Additional guardrails (repo selection, auto-publish) will be reintroduced iteratively.
@@ -133,6 +134,8 @@ questit/
 - **Supabase Sync**: Optional login flow that stores generated tools in Supabase for logged-in users
 - **My Tools Dashboard**: Browse saved bundles, reload them into the workbench, or publish a Worker without leaving the app
 - **Shareable Edge Shell**: Published Workers render inside a Questit-branded layout that mirrors the saved theme and color-mode preference
+- **Browser Runtime Kit**: `window.questit.kit` exposes an event bus, `safeFetch`, persistent storage helpers, and shadcn-aligned UI templates so generated tools can stay dynamic without extra build tooling
+- **Questit UI Classes**: Generated HTML can reuse the bundled `questit-ui-*` classes/snippets to match the workbench styling out of the box
 - **Rate Limiting**: KV-backed rate limiting on dispatch worker
 
 ## Recent Enhancements (Q4 2025)
@@ -144,6 +147,8 @@ questit/
 - **My Tools + Publish Flow** – Signed-in users can manage Supabase-backed tools, load them into the workbench, and publish Cloudflare Worker links in one place.
 - **Shadcn Wrapper for User Workers** – Published tools inherit the Questit theme tokens and respect saved light/dark/system preferences.
 - **Production Safeguards** – The Supabase client now degrades gracefully when credentials are absent, preventing blank screens in non-configured environments.
+- **Browser Runtime & UI Kit** – Introduced a shared helper layer (`window.questit.kit` / `window.questit.runtime`) plus shadcn-themed HTML snippets so generated tools can wire up dynamic behaviour and consistent visuals.
+- **Browser-First Guidance** – Updated prompts and adapters to prefer browser-compatible libraries, ensuring all generated experiences run locally until the worker-backed roadmap is ready.
 
 ## Limits
 
@@ -159,6 +164,8 @@ questit/
 - [Limits & Quotas](docs/limits.md)
 - [Archetypes & Self-Test Specs](docs/archetypes.md)
 - [Secrets Configuration](docs/secrets.md)
+- [Browser Runtime Helpers](docs/browser-runtime.md)
+- [Dynamic Tool Roadmap](docs/dynamic-tool-roadmap.md)
 
 ## License
 
