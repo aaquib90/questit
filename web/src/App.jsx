@@ -99,6 +99,86 @@ const THEME_PRESETS = {
       '--border': '37 68% 85%',
       '--input': '37 68% 85%'
     }
+  },
+  rose: {
+    label: 'Rose',
+    overrides: {
+      '--primary': '349.7 89.2% 60.2%',
+      '--primary-foreground': '355.7 100% 97.3%',
+      '--secondary': '355.6 100% 94.7%',
+      '--secondary-foreground': '345.3 82.7% 40.8%',
+      '--accent': '355.6 100% 94.7%',
+      '--accent-foreground': '345.3 82.7% 40.8%',
+      '--ring': '349.7 89.2% 60.2%',
+      '--muted': '355.7 100% 97.3%',
+      '--muted-foreground': '343.4 79.7% 34.7%',
+      '--border': '352.7 96.1% 90%',
+      '--input': '352.7 96.1% 90%'
+    }
+  },
+  cyan: {
+    label: 'Cyan',
+    overrides: {
+      '--primary': '188.7 94.5% 42.7%',
+      '--primary-foreground': '183.2 100% 96.3%',
+      '--secondary': '185.1 95.9% 90.4%',
+      '--secondary-foreground': '192.9 82.3% 31%',
+      '--accent': '185.1 95.9% 90.4%',
+      '--accent-foreground': '192.9 82.3% 31%',
+      '--ring': '188.7 94.5% 42.7%',
+      '--muted': '183.2 100% 96.3%',
+      '--muted-foreground': '191.6 91.4% 36.5%',
+      '--border': '186.2 93.5% 81.8%',
+      '--input': '186.2 93.5% 81.8%'
+    }
+  },
+  indigo: {
+    label: 'Indigo',
+    overrides: {
+      '--primary': '238.7 83.5% 66.7%',
+      '--primary-foreground': '225.9 100% 96.7%',
+      '--secondary': '226.5 100% 93.9%',
+      '--secondary-foreground': '244.5 57.9% 50.6%',
+      '--accent': '226.5 100% 93.9%',
+      '--accent-foreground': '244.5 57.9% 50.6%',
+      '--ring': '238.7 83.5% 66.7%',
+      '--muted': '225.9 100% 96.7%',
+      '--muted-foreground': '243.4 75.4% 58.6%',
+      '--border': '228 96.5% 88.8%',
+      '--input': '228 96.5% 88.8%'
+    }
+  },
+  lime: {
+    label: 'Lime',
+    overrides: {
+      '--primary': '83.7 80.5% 44.3%',
+      '--primary-foreground': '78.3 92% 95.1%',
+      '--secondary': '79.6 89.1% 89.2%',
+      '--secondary-foreground': '85.9 78.4% 27.3%',
+      '--accent': '79.6 89.1% 89.2%',
+      '--accent-foreground': '85.9 78.4% 27.3%',
+      '--ring': '83.7 80.5% 44.3%',
+      '--muted': '78.3 92% 95.1%',
+      '--muted-foreground': '87.6 61.2% 20.2%',
+      '--border': '80.9 88.5% 79.6%',
+      '--input': '80.9 88.5% 79.6%'
+    }
+  },
+  slate: {
+    label: 'Slate',
+    overrides: {
+      '--primary': '215.4 16.3% 46.9%',
+      '--primary-foreground': '210 40% 98%',
+      '--secondary': '214.3 31.8% 91.4%',
+      '--secondary-foreground': '217.2 32.6% 17.5%',
+      '--accent': '214.3 31.8% 91.4%',
+      '--accent-foreground': '217.2 32.6% 17.5%',
+      '--ring': '215.4 16.3% 46.9%',
+      '--muted': '210 40% 96.1%',
+      '--muted-foreground': '215.3 19.3% 34.5%',
+      '--border': '212.7 26.8% 83.9%',
+      '--input': '212.7 26.8% 83.9%'
+    }
   }
 };
 
