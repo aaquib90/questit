@@ -331,7 +331,7 @@ function buildLayoutCss() {
 }
 
 .questit-meta span {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
@@ -344,11 +344,86 @@ function buildLayoutCss() {
   font-weight: 600;
 }
 
-.questit-prompt {
+.questit-summary {
   margin: 0;
   color: hsl(var(--muted-foreground));
   font-size: clamp(0.9rem, 1vw, 1rem);
   line-height: 1.6;
+}
+
+.questit-summary--empty {
+  font-style: italic;
+  color: hsl(var(--muted-foreground) / 0.9);
+}
+
+.questit-meta-grid {
+  display: grid;
+  gap: clamp(10px, 2vw, 16px);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-top: clamp(12px, 2vw, 20px);
+}
+
+.questit-meta-chip {
+  border-radius: calc(var(--radius) - 4px);
+  background: hsla(var(--muted), 0.55);
+  border: 1px solid hsla(var(--border), 0.75);
+  padding: clamp(12px, 2vw, 16px);
+  box-shadow: inset 0 1px 0 hsla(var(--background), 0.6);
+}
+
+.questit-meta-chip span {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 6px;
+}
+
+.questit-meta-chip strong {
+  display: block;
+  font-size: 0.95rem;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.questit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: clamp(14px, 2vw, 28px);
+}
+
+.questit-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.7rem 1.35rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.questit-action:hover {
+  transform: translateY(-1px);
+}
+
+.questit-action--primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 20px 40px -22px hsl(var(--primary));
+}
+
+.questit-action--primary:hover {
+  box-shadow: 0 26px 55px -30px hsl(var(--primary));
+}
+
+.questit-action--ghost {
+  background: hsla(var(--muted), 0.45);
+  color: hsl(var(--foreground));
+  border: 1px solid hsla(var(--border), 0.7);
 }
 
 .questit-tool {
@@ -363,6 +438,12 @@ function buildLayoutCss() {
 
 .questit-tool > * {
   max-width: 100%;
+}
+
+.questit-footer {
+  margin-top: clamp(20px, 4vw, 32px);
+  font-size: 0.75rem;
+  color: hsla(var(--muted-foreground), 0.85);
 }
 
 @media (max-width: 640px) {
@@ -405,11 +486,15 @@ function buildUserWorkerScript(tool) {
   const themeKey = tool.theme || DEFAULT_THEME_KEY;
   const themeCss = buildThemeCss(themeKey);
   const layoutCss = buildLayoutCss();
-  const colorMode = ['dark', 'light'].includes((tool.color_mode || '').toLowerCase())
-    ? tool.color_mode.toLowerCase()
-    : tool.color_mode === 'system'
+  const rawColorMode = (tool.color_mode || '').toLowerCase();
+  const colorMode =
+    rawColorMode === 'system'
       ? 'system'
-      : 'light';
+      : rawColorMode === 'dark'
+        ? 'dark'
+        : rawColorMode === 'light'
+          ? 'light'
+          : 'light';
   const htmlClass = colorMode === 'dark' ? ' class="dark"' : '';
   const colorModeSetup =
     colorMode === 'system'
@@ -426,8 +511,25 @@ if (media.addEventListener) {
 }`
       : '';
 
+  const formatModelLabel = (provider, model) => {
+    if (!provider && !model) return 'Not specified';
+    const providerLabel = provider
+      ? provider.toLowerCase() === 'openai'
+        ? 'OpenAI'
+        : provider.toLowerCase() === 'gemini'
+          ? 'Google Gemini'
+          : provider.charAt(0).toUpperCase() + provider.slice(1)
+      : 'Model';
+    return model ? `${providerLabel} · ${model}` : providerLabel;
+  };
+
   const shellTitle = escapeHtmlAttr(tool.title || 'Questit Tool');
-  const promptHtml = tool.prompt ? `<p class="questit-prompt">${escapeHtmlText(tool.prompt)}</p>` : '';
+  const summaryHtml = tool.public_summary
+    ? `<p class="questit-summary">${escapeHtmlText(tool.public_summary)}</p>`
+    : `<p class="questit-summary questit-summary--empty">Creator hasn't added a public summary yet.</p>`;
+  const modelDisplay = formatModelLabel(tool.model_provider, tool.model_name);
+  const themeLabel = themeKey.charAt(0).toUpperCase() + themeKey.slice(1);
+  const modeLabel = colorMode === 'system' ? 'System (auto)' : colorMode === 'dark' ? 'Dark' : 'Light';
   const htmlSnippet = String(tool.html ?? '').trim() || '<p>No content returned.</p>';
   const cssSnippet = sanitizeForStyle(tool.css);
   const jsSnippet = sanitizeForScript(tool.js);
@@ -448,21 +550,73 @@ ${cssSnippet}</style>
     <header class="questit-meta">
       <span>Generated with Questit</span>
       <h1>${shellTitle}</h1>
-      ${promptHtml}
+      ${summaryHtml}
+      <div class="questit-meta-grid">
+        <div class="questit-meta-chip">
+          <span>Model</span>
+          <strong>${escapeHtmlText(modelDisplay)}</strong>
+        </div>
+        <div class="questit-meta-chip">
+          <span>Theme</span>
+          <strong>${escapeHtmlText(themeLabel)}</strong>
+        </div>
+        <div class="questit-meta-chip">
+          <span>Mode</span>
+          <strong>${escapeHtmlText(modeLabel)}</strong>
+        </div>
+      </div>
+      <div class="questit-actions">
+        <a class="questit-action questit-action--primary" data-questit-action="remix" href="https://questit.cc">
+          Remix in Workbench
+        </a>
+        <a class="questit-action questit-action--ghost" href="https://questit.cc/support" target="_blank" rel="noopener noreferrer">
+          Report issue
+        </a>
+      </div>
     </header>
     <section class="questit-tool" id="questit-tool-root">
 ${htmlSnippet}
     </section>
+    <footer class="questit-footer">
+      This tool runs entirely in the browser. Remix it in the Questit workbench to customize and publish your own copy.
+    </footer>
   </div>
 </div>
 <script>
 ${colorModeSetup}
+(() => {
+  try {
+    const anchor = document.querySelector('[data-questit-action="remix"]');
+    if (anchor) {
+      const host = window.location.hostname || '';
+      const slug = host.split('.').filter(Boolean)[0] || '';
+      if (slug) {
+        anchor.href = 'https://questit.cc/?remix=' + encodeURIComponent(slug);
+      }
+    }
+  } catch (error) {
+    console.warn('Questit remix link generation failed', error);
+  }
+})();
 </script>
 <script type="module">
 ${jsSnippet}
 </script>
 </body>
 </html>`;
+
+  const metadataPayload = {
+    id: tool.id || null,
+    title: tool.title || '',
+    public_summary: tool.public_summary || '',
+    theme: themeKey,
+    color_mode: colorMode,
+    model_provider: tool.model_provider || null,
+    model_name: tool.model_name || null,
+    html: tool.html || '',
+    css: tool.css || '',
+    js: tool.js || ''
+  };
 
   const responseInit = JSON.stringify({
     headers: {
@@ -472,12 +626,23 @@ ${jsSnippet}
   });
 
   return `addEventListener('fetch', event => {
-  event.respondWith(handleRequest());
+  event.respondWith(handleRequest(event.request));
 });
 
 const html = ${JSON.stringify(fullHtml)};
+const metadata = ${JSON.stringify(metadataPayload)};
 
-async function handleRequest() {
+async function handleRequest(request) {
+  const url = new URL(request.url);
+  if (url.pathname === '/metadata') {
+    return new Response(JSON.stringify(metadata), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
   return new Response(html, ${responseInit});
 }
 `;

@@ -144,6 +144,7 @@ questit/
 - **Browser Runtime Kit**: `window.questit.kit` exposes an event bus, `safeFetch`, persistent storage helpers, and shadcn-aligned UI templates so generated tools can stay dynamic without extra build tooling
 - **Questit UI Classes**: Generated HTML can reuse the bundled `questit-ui-*` classes/snippets to match the workbench styling out of the box
 - **Model Selection**: Edge proxy drives OpenAI and Google Gemini models; the workbench UI exposes a simple switcher while keeping API keys server-side
+- **Remixable Share Links**: Published Workers surface safe metadata, a remix link, and keep the original prompt private
 - **Rate Limiting**: KV-backed rate limiting on dispatch worker
 
 ## Recent Enhancements (Q4 2025)
@@ -158,6 +159,7 @@ questit/
 - **Browser Runtime & UI Kit** – Introduced a shared helper layer (`window.questit.kit` / `window.questit.runtime`) plus shadcn-themed HTML snippets so generated tools can wire up dynamic behaviour and consistent visuals.
 - **Browser-First Guidance** – Updated prompts and adapters to prefer browser-compatible libraries, ensuring all generated experiences run locally until the worker-backed roadmap is ready.
 - **Multi-Model Support** – Questit’s AI proxy can now call OpenAI GPT-4o mini and Google Gemini 2.5 Flash (plus a legacy 1.5 option); the workbench exposes a model picker and `GEMINI_API_KEY` enables Gemini routing.
+- **Share + Remix UX** – Published links now show safe metadata, a Questit shell, and a one-click remix button that keeps prompts private while duplicating code for new users.
 
 ## Limits
 

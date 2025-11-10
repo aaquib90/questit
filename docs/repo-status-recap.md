@@ -99,6 +99,7 @@ Key references:
   - `web/src/lib/supabaseClient.js` graceful degradation if missing Vite env vars.
 - Supabase:
   - New `public.user_tools` table with RLS by user; core tables enabled for RLS with placeholder policies.
+  - Latest migration adds `public_summary`, `model_provider`, and `model_name` columns so published/remixed experiences can show safe metadata while keeping prompts private.
 - Publishing:
   - `workers/api/tools/publish.js` now emits a full HTML shell reflecting theme & color-mode; uploads to dispatch namespace for shareable links.
 - Dispatch & Telemetry:

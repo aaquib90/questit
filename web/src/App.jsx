@@ -412,6 +412,7 @@ function App() {
   const [authEmail, setAuthEmail] = useState('');
   const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
   const [saveTitle, setSaveTitle] = useState('');
+  const [saveSummary, setSaveSummary] = useState('');
   const [saveStatus, setSaveStatus] = useState({ state: 'idle', message: '' });
   const [activeView, setActiveView] = useState('workbench');
   const [myTools, setMyTools] = useState([]);
@@ -473,6 +474,69 @@ function App() {
   const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
   const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const params = new URLSearchParams(window.location.search);
+    const remixSlug = params.get('remix');
+    if (!remixSlug) return undefined;
+
+    const sanitizedSlug = remixSlug.trim().toLowerCase();
+    if (!sanitizedSlug) return undefined;
+
+    const loadRemix = async () => {
+      try {
+        setStatusMessage('Loading shared tool for remix…');
+        const response = await fetch(`https://${sanitizedSlug}.questit.cc/metadata`, {
+          headers: { Accept: 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`Unable to fetch shared tool (status ${response.status})`);
+        }
+        const data = await response.json();
+        const html = data.html || '';
+        const css = data.css || '';
+        const js = data.js || '';
+        setToolCode({ html, css, js });
+        setHistory([{ type: 'remix', prompt: '', code: { html, css, js } }]);
+        setIterationPrompt('');
+        if (data.theme) {
+          setSelectedTheme(data.theme);
+        }
+        if (data.color_mode) {
+          setColorMode(data.color_mode);
+        }
+        if (data.model_provider && data.model_name) {
+          const match = MODEL_OPTIONS.find(
+            (option) =>
+              option.provider === data.model_provider &&
+              option.model === data.model_name
+          );
+          if (match) {
+            setModelId(match.id);
+          }
+        }
+        setPrompt(''); // Prompt intentionally left blank for privacy
+        setSaveTitle(data.title ? `${data.title} (Remix)` : 'Remixed Questit tool');
+        setSaveSummary(data.public_summary || '');
+        setActiveView('workbench');
+        setStatusMessage('Loaded shared tool. Remix and save your own version.');
+        setErrorMessage('');
+        setSaveStatus({ state: 'idle', message: '' });
+      } catch (error) {
+        console.error('Failed to load remix tool:', error);
+        setErrorMessage(error?.message || 'Unable to load shared tool for remix.');
+      } finally {
+        params.delete('remix');
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+        window.history.replaceState(null, '', nextUrl);
+      }
+    };
+
+    loadRemix();
+    return undefined;
+  }, []);
+
   const updateToolActionStatus = useCallback((toolId, updates) => {
     setToolActionStatus((previous) => {
       const existing = previous[toolId] || {};
@@ -486,7 +550,7 @@ function App() {
   const fetchToolDetails = async (toolId) => {
     const { data, error } = await supabase
       .from('user_tools')
-      .select('id, title, prompt, theme, color_mode, html, css, js, created_at, updated_at')
+      .select('id, title, prompt, public_summary, model_provider, model_name, theme, color_mode, html, css, js, created_at, updated_at')
       .eq('id', toolId)
       .maybeSingle();
 
@@ -543,6 +607,7 @@ function App() {
       setSaveStatus({ state: 'idle', message: '' });
       setAuthEmail('');
       setSaveTitle('');
+      setSaveSummary('');
       setMyTools([]);
       setMyToolsError('');
       setIsLoadingMyTools(false);
@@ -593,6 +658,17 @@ function App() {
       }
       setPrompt(toolRecord.prompt || DEFAULT_PROMPT);
       setSaveTitle(toolRecord.title || '');
+      setSaveSummary(toolRecord.public_summary || '');
+      if (toolRecord.model_provider && toolRecord.model_name) {
+        const match = MODEL_OPTIONS.find(
+          (option) =>
+            option.provider === toolRecord.model_provider &&
+            option.model === toolRecord.model_name
+        );
+        if (match) {
+          setModelId(match.id);
+        }
+      }
       setActiveView('workbench');
       setStatusMessage('Loaded saved tool into the workbench.');
       setErrorMessage('');
@@ -642,9 +718,11 @@ function App() {
       const publishPayload = {
         id: toolRecord.id,
         title: toolRecord.title,
-        prompt: toolRecord.prompt || '',
+        public_summary: toolRecord.public_summary || saveSummary || '',
         theme: toolRecord.theme || selectedTheme || DEFAULT_THEME_KEY,
         color_mode: toolRecord.color_mode || colorMode || resolvedMode,
+        model_provider: toolRecord.model_provider || selectedModelOption.provider,
+        model_name: toolRecord.model_name || selectedModelOption.model,
         html: toolRecord.html || '',
         css: toolRecord.css || '',
         js: toolRecord.js || ''
@@ -684,6 +762,7 @@ function App() {
     if (!hasGenerated) return;
 
     const title = saveTitle.trim() || `Tool ${new Date().toLocaleString()}`;
+    const summary = saveSummary.trim();
     setSaveStatus({ state: 'loading', message: 'Saving to Supabase…' });
 
     const sourcePrompt = history[0]?.prompt || prompt || null;
@@ -694,6 +773,9 @@ function App() {
       prompt: sourcePrompt,
       theme: selectedTheme,
       color_mode: colorMode,
+      public_summary: summary || null,
+      model_provider: selectedModelOption.provider,
+      model_name: selectedModelOption.model,
       html: currentHtml,
       css: currentCss,
       js: currentJs
@@ -775,7 +857,7 @@ function App() {
 
     supabase
       .from('user_tools')
-      .select('id, title, prompt, theme, color_mode, created_at, updated_at')
+      .select('id, title, prompt, public_summary, model_provider, model_name, theme, color_mode, created_at, updated_at')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (!isActive) return;
@@ -820,6 +902,7 @@ function App() {
       setHistory([{ type: 'initial', prompt: prompt.trim(), code: result }]);
       setIterationPrompt('');
       setSaveTitle(prompt.trim().slice(0, 60));
+      setSaveSummary('');
       setSaveStatus({ state: 'idle', message: '' });
       setStatusMessage('Tool generated. Review the preview below.');
     } catch (error) {
@@ -1121,6 +1204,16 @@ function App() {
                           value={saveTitle}
                           onChange={(event) => setSaveTitle(event.target.value)}
                           placeholder="Give this tool a descriptive name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="save-summary">Public summary (optional)</Label>
+                        <Textarea
+                          id="save-summary"
+                          value={saveSummary}
+                          onChange={(event) => setSaveSummary(event.target.value)}
+                          placeholder="Short description shown on shared pages (prompt stays private)"
+                          className="min-h-[90px] resize-y"
                         />
                       </div>
                       {saveStatus.message && (
