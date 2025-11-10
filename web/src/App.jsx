@@ -31,6 +31,7 @@ import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
 import WorkbenchHero from '@/components/workbench/WorkbenchHero.jsx';
+import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -473,6 +474,10 @@ function App() {
   );
   const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
   const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
+  const handleRequestLogin = useCallback(() => {
+    setAuthDialogOpen(true);
+    setAuthStatus({ state: 'idle', message: '' });
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -623,7 +628,7 @@ function App() {
 
   const handleLoadSavedTool = async (toolId) => {
     if (!user) {
-      setAuthDialogOpen(true);
+      handleRequestLogin();
       return;
     }
     if (!hasSupabaseConfig) {
@@ -687,7 +692,7 @@ function App() {
 
   const handlePublishSavedTool = async (toolId) => {
     if (!user) {
-      setAuthDialogOpen(true);
+      handleRequestLogin();
       return;
     }
     if (!hasSupabaseConfig) {
@@ -749,7 +754,7 @@ function App() {
 
   const handleSaveTool = async () => {
     if (!user) {
-      setAuthDialogOpen(true);
+      handleRequestLogin();
       return;
     }
     if (!hasSupabaseConfig) {
@@ -955,59 +960,14 @@ function App() {
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="questit-aurora" />
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6 lg:px-10">
-        <section className="questit-glass flex flex-col gap-6 rounded-3xl border border-border/60 p-6 shadow-xl">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">Workspace</p>
-              <h2 className="text-lg font-semibold text-foreground">Workbench control center</h2>
-            </div>
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-              <div className="flex rounded-full border border-primary/20 bg-primary/10 p-1 shadow-sm">
-                <Button
-                  variant={activeView === 'workbench' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveView('workbench')}
-                  aria-pressed={activeView === 'workbench'}
-                  className="rounded-full px-5"
-                >
-                  Workbench
-                </Button>
-                <Button
-                  variant={activeView === 'my-tools' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveView('my-tools')}
-                  aria-pressed={activeView === 'my-tools'}
-                  className="rounded-full px-5"
-                >
-                  My Tools
-                </Button>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                {user ? (
-                  <>
-                    <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
-                      {userLabel}
-                    </Badge>
-                    <Button variant="ghost" className="text-sm" onClick={handleSignOut}>
-                      Sign out
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-full px-5"
-                    onClick={() => {
-                      setAuthDialogOpen(true);
-                      setAuthStatus({ state: 'idle', message: '' });
-                    }}
-                  >
-                    Log in
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+        <WorkbenchHeader
+          activeView={activeView}
+          onSelectView={setActiveView}
+          user={user}
+          userLabel={userLabel}
+          onLogin={handleRequestLogin}
+          onSignOut={handleSignOut}
+        />
 
         {activeView === 'workbench' ? (
           <div className="space-y-8">
@@ -1189,7 +1149,7 @@ function App() {
                         {userLabel}
                       </Badge>
                     ) : (
-                      <Button variant="secondary" onClick={() => { setAuthDialogOpen(true); setAuthStatus({ state: 'idle', message: '' }); }}>
+                      <Button variant="secondary" onClick={handleRequestLogin}>
                         Log in to save
                       </Button>
                     )}
@@ -1358,12 +1318,7 @@ function App() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button
-                    onClick={() => {
-                      setAuthDialogOpen(true);
-                      setAuthStatus({ state: 'idle', message: '' });
-                    }}
-                  >
+                  <Button onClick={handleRequestLogin}>
                     Send magic link
                   </Button>
                 </CardContent>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik+80s+Fade&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -75,6 +77,11 @@
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
   }
+}
+
+.questit-logo {
+  font-family: 'Rubik 80s Fade', cursive;
+  letter-spacing: 0.04em;
 }
 
 .questit-aurora {
