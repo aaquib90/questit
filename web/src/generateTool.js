@@ -38,7 +38,7 @@ export async function generateTool(
   modelConfig = {}
 ) {
   const provider = (modelConfig.provider || 'openai').toLowerCase();
-  const defaultModel = provider === 'gemini' ? 'gemini-1.5-flash-latest' : 'gpt-4o-mini';
+  const defaultModel = provider === 'gemini' ? 'gemini-1.5-flash' : 'gpt-4o-mini';
   const model = modelConfig.model || defaultModel;
 
   const body = {

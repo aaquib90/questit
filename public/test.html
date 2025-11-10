@@ -120,7 +120,7 @@
     const apiBase = urlParams.get('apiBase') || 'https://questit.cc/api';
     const modelMap = {
       'openai:gpt-4o-mini': { provider: 'openai', model: 'gpt-4o-mini' },
-      'gemini:1.5-flash': { provider: 'gemini', model: 'gemini-1.5-flash-latest' }
+      'gemini:1.5-flash': { provider: 'gemini', model: 'gemini-1.5-flash' }
     };
     const defaultModelId = urlParams.get('model') || 'openai:gpt-4o-mini';
     const resolveModelConfig = (id) => modelMap[id] || modelMap['openai:gpt-4o-mini'];

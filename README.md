@@ -34,7 +34,7 @@ const questit = new Questit({
   endpoint: 'https://questit.cc/api/ai/proxy',
   // Optional: override provider/model (defaults to OpenAI GPT-4o mini)
   // provider: 'gemini',
-  // model: 'gemini-1.5-flash-latest'
+  // model: 'gemini-1.5-flash'
 });
 
 // Process a user prompt

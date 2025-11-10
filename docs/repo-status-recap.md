@@ -91,7 +91,7 @@ Key references:
 
 ### Notable Recent Changes
 - AI integration:
-  - `web/src/generateTool.js` adds iteration input construction and strict JSON parsing; defaults to `gpt-4o-mini` or `gemini-1.5-flash-latest`.
+- `web/src/generateTool.js` adds iteration input construction and strict JSON parsing; defaults to `gpt-4o-mini` or `gemini-1.5-flash`.
   - `workers/api/ai/proxy.js` implements provider switching with clean pass-through of JSON content and CORS.
   - `src/ai/ai-model.js` remains a thin client wrapper used by core paths.
 - Web workbench:
@@ -114,5 +114,4 @@ Key references:
 - **Docs**: keep `README.md` and `docs/` in lockstep with feature flags (what’s enabled vs. staged).
 
 This recap reflects the current code in `web/`, `workers/`, and `supabase/`, aligned with the project’s README and docs. It captures the browser-first generation, iteration, save, and publish flow while outlining security and platform steps to harden for broader use.
-
 

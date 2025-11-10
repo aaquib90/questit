@@ -302,7 +302,7 @@ const MODEL_OPTIONS = [
     id: 'gemini:1.5-flash',
     label: 'Google · Gemini 1.5 Flash',
     provider: 'gemini',
-    model: 'gemini-1.5-flash-latest'
+    model: 'gemini-1.5-flash'
   }
 ];
 
