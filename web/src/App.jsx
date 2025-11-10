@@ -291,6 +291,21 @@ const COLOR_MODE_OPTIONS = [
   { value: 'system', label: 'System' }
 ];
 
+const MODEL_OPTIONS = [
+  {
+    id: 'openai:gpt-4o-mini',
+    label: 'OpenAI · GPT-4o mini',
+    provider: 'openai',
+    model: 'gpt-4o-mini'
+  },
+  {
+    id: 'gemini:1.5-flash',
+    label: 'Google · Gemini 1.5 Flash',
+    provider: 'gemini',
+    model: 'gemini-1.5-flash-latest'
+  }
+];
+
 function resolveThemeVars(themeKey = DEFAULT_THEME_KEY) {
   const preset = THEME_PRESETS[themeKey] ?? THEME_PRESETS[DEFAULT_THEME_KEY];
   const lightVars = { ...BASE_THEME_VARS, ...preset.overrides };
@@ -409,11 +424,28 @@ function App() {
     if (typeof window === 'undefined') return false;
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+  const [modelId, setModelId] = useState(() => {
+    if (typeof window === 'undefined') return MODEL_OPTIONS[0].id;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const paramModel = params.get('model');
+      if (paramModel && MODEL_OPTIONS.some((option) => option.id === paramModel)) {
+        return paramModel;
+      }
+    } catch {
+      // ignore
+    }
+    return MODEL_OPTIONS[0].id;
+  });
   const endpoint = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
   }, []);
   const apiBase = useMemo(() => resolveApiBase(endpoint), [endpoint]);
+  const selectedModelOption = useMemo(
+    () => MODEL_OPTIONS.find((option) => option.id === modelId) || MODEL_OPTIONS[0],
+    [modelId]
+  );
   const { html: currentHtml, css: currentCss, js: currentJs } = toolCode;
   const hasGenerated = Boolean(currentHtml || currentCss || currentJs);
   const resolvedMode = colorMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : colorMode;
@@ -769,7 +801,11 @@ function App() {
     setStatusMessage('');
 
     try {
-      const result = await generateTool(prompt.trim(), endpoint);
+      const modelConfig = {
+        provider: selectedModelOption.provider,
+        model: selectedModelOption.model
+      };
+      const result = await generateTool(prompt.trim(), endpoint, undefined, modelConfig);
       setToolCode(result);
       setHistory([{ type: 'initial', prompt: prompt.trim(), code: result }]);
       setIterationPrompt('');
@@ -799,7 +835,11 @@ function App() {
     setStatusMessage('');
 
     try {
-      const updated = await generateTool(iterationPrompt.trim(), endpoint, toolCode);
+      const modelConfig = {
+        provider: selectedModelOption.provider,
+        model: selectedModelOption.model
+      };
+      const updated = await generateTool(iterationPrompt.trim(), endpoint, toolCode, modelConfig);
       setToolCode(updated);
       setHistory((previous) => [
         ...previous,
@@ -894,6 +934,21 @@ function App() {
             </CardHeader>
             <CardContent className="space-y-6">
               <form onSubmit={handleGenerate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="model-select">Model</Label>
+                  <Select value={modelId} onValueChange={setModelId}>
+                    <SelectTrigger id="model-select" className="w-full">
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MODEL_OPTIONS.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="prompt">Prompt</Label>
                   <Textarea

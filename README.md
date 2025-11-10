@@ -19,6 +19,7 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 - Saved tools appear in a dedicated **My Tools** view where users can reload a bundle into the workbench or publish a shareable Worker URL.
 - Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
 - Generated tools are scoped to **browser-only execution** for now; prompts and adapters enforce client-friendly libraries (e.g., pdf.js) and surface graceful fallbacks when a task needs heavier compute.
+- The workbench now offers **model selection** between OpenAI GPT-4o mini and Google Gemini 1.5 Flash, with automatic routing through the edge proxy.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
 - Publish/self-test flows still rely on the Worker APIs, but the UI currently focuses on generation + preview. Additional guardrails (repo selection, auto-publish) will be reintroduced iteratively.
@@ -29,7 +30,12 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 import Questit from './src/index.js';
 
 // Initialize with default endpoints (questit.cc)
-const questit = new Questit();
+const questit = new Questit({
+  endpoint: 'https://questit.cc/api/ai/proxy',
+  // Optional: override provider/model (defaults to OpenAI GPT-4o mini)
+  // provider: 'gemini',
+  // model: 'gemini-1.5-flash-latest'
+});
 
 // Process a user prompt
 const toolContainer = await questit.process(
@@ -72,6 +78,7 @@ All endpoints are available at `https://questit.cc/api/*`:
    ```bash
    # Set secrets for staging
    wrangler secret put OPENAI_API_KEY --env staging
+   wrangler secret put GEMINI_API_KEY --env staging
    wrangler secret put GITHUB_TOKEN --env staging
    wrangler secret put SUPABASE_URL --env staging
    wrangler secret put SUPABASE_SERVICE_ROLE --env staging
@@ -136,6 +143,7 @@ questit/
 - **Shareable Edge Shell**: Published Workers render inside a Questit-branded layout that mirrors the saved theme and color-mode preference
 - **Browser Runtime Kit**: `window.questit.kit` exposes an event bus, `safeFetch`, persistent storage helpers, and shadcn-aligned UI templates so generated tools can stay dynamic without extra build tooling
 - **Questit UI Classes**: Generated HTML can reuse the bundled `questit-ui-*` classes/snippets to match the workbench styling out of the box
+- **Model Selection**: Edge proxy drives OpenAI and Google Gemini models; the workbench UI exposes a simple switcher while keeping API keys server-side
 - **Rate Limiting**: KV-backed rate limiting on dispatch worker
 
 ## Recent Enhancements (Q4 2025)
@@ -149,6 +157,7 @@ questit/
 - **Production Safeguards** – The Supabase client now degrades gracefully when credentials are absent, preventing blank screens in non-configured environments.
 - **Browser Runtime & UI Kit** – Introduced a shared helper layer (`window.questit.kit` / `window.questit.runtime`) plus shadcn-themed HTML snippets so generated tools can wire up dynamic behaviour and consistent visuals.
 - **Browser-First Guidance** – Updated prompts and adapters to prefer browser-compatible libraries, ensuring all generated experiences run locally until the worker-backed roadmap is ready.
+- **Multi-Model Support** – Questit’s AI proxy can now call OpenAI GPT-4o mini and Google Gemini 1.5 Flash; the workbench exposes a model picker and `GEMINI_API_KEY` enables Gemini routing.
 
 ## Limits
 

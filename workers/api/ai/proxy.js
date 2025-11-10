@@ -35,82 +35,201 @@ export default {
       });
     }
     
-    const { system, input, options } = await request.json();
-
-    // Example: forward to OpenAI; ensure OPENAI_API_KEY in env
-    const apiKey = env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return new Response('AI key not configured', { 
-        status: 500,
+    let parsedBody;
+    try {
+      parsedBody = await request.json();
+    } catch {
+      return new Response('Invalid JSON payload', {
+        status: 400,
         headers: corsHeaders
       });
     }
 
-    const payload = {
-      model: options?.model || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: system || '' },
-        { role: 'user', content: input || '' }
-      ],
-      temperature: options?.temperature ?? 0.2
-    };
-    
-    // Forward response_format if provided (needed for JSON mode)
-    if (options?.response_format) {
-      payload.response_format = options.response_format;
-    }
+    const { system, input, options = {}, provider: requestedProvider, model: requestedModel } = parsedBody;
+    const provider = (requestedProvider || options.provider || 'openai').toLowerCase();
+    const model = requestedModel || options.model;
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
+    switch (provider) {
+      case 'openai':
+        return handleOpenAI({ system, input, options, corsHeaders, env, model });
+      case 'gemini':
+      case 'google':
+      case 'google-gemini':
+        return handleGemini({ system, input, options, corsHeaders, env, model });
+      default:
+        return new Response(`Unsupported provider: ${provider}`, {
+          status: 400,
+          headers: corsHeaders
+        });
+    }
+  }
+};
+
+async function handleOpenAI({ system, input, options, corsHeaders, env, model }) {
+  const apiKey = env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return new Response('OPENAI_API_KEY not configured', {
+      status: 500,
+      headers: corsHeaders
     });
+  }
 
-    if (!res.ok) {
-      const text = await res.text();
-      return new Response(text, { 
-        status: res.status,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/plain'
-        }
-      });
-    }
+  const payload = {
+    model: model || options?.model || 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: system || '' },
+      { role: 'user', content: input || '' }
+    ],
+    temperature: options?.temperature ?? 0.2
+  };
 
-    let data;
-    try {
-      data = await res.json();
-    } catch (parseError) {
-      const fallbackText = await res.text().catch(() => '');
-      return new Response(fallbackText || 'Invalid response from upstream model', {
-        status: 502,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/plain'
-        }
-      });
-    }
+  if (options?.response_format) {
+    payload.response_format = options.response_format;
+  }
 
-    const content = data.choices?.[0]?.message?.content || '';
-    if (!content) {
-      return new Response(JSON.stringify(data), {
-        status: 502,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
 
-    return new Response(content, { 
+  if (!res.ok) {
+    const text = await res.text();
+    return new Response(text, {
+      status: res.status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (parseError) {
+    const fallbackText = await res.text().catch(() => '');
+    return new Response(fallbackText || 'Invalid response from upstream model', {
+      status: 502,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+
+  const content = data.choices?.[0]?.message?.content || '';
+  if (!content) {
+    return new Response(JSON.stringify(data), {
+      status: 502,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
       }
     });
   }
-};
 
+  return new Response(content, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json'
+    }
+  });
+}
+
+async function handleGemini({ system, input, options, corsHeaders, env, model }) {
+  const apiKey = env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return new Response('GEMINI_API_KEY not configured', {
+      status: 500,
+      headers: corsHeaders
+    });
+  }
+
+  const selectedModel = model || options?.model || 'gemini-1.5-flash-latest';
+  const promptText = [system ? `System: ${system}` : null, input || '']
+    .filter(Boolean)
+    .join('\n\n');
+
+  const generationConfig = {};
+  if (typeof options?.temperature === 'number') {
+    generationConfig.temperature = options.temperature;
+  }
+  if (options?.response_format?.type === 'json_object') {
+    generationConfig.responseMimeType = 'application/json';
+  }
+
+  const payload = {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: promptText }]
+      }
+    ]
+  };
+
+  if (Object.keys(generationConfig).length > 0) {
+    payload.generationConfig = generationConfig;
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return new Response(text, {
+      status: res.status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (error) {
+    const fallbackText = await res.text().catch(() => '');
+    return new Response(fallbackText || 'Invalid response from Gemini', {
+      status: 502,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+
+  const textParts = data.candidates?.[0]?.content?.parts || [];
+  const content = textParts
+    .map((part) => part?.text || '')
+    .join('')
+    .trim();
+
+  if (!content) {
+    return new Response(JSON.stringify(data), {
+      status: 502,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  return new Response(content, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json'
+    }
+  });
+}

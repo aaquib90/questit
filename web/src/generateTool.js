@@ -31,14 +31,25 @@ ${prompt}
 Return the complete updated tool (html, css, js) as JSON.`;
 }
 
-export async function generateTool(prompt, endpoint = DEFAULT_ENDPOINT, previousCode) {
+export async function generateTool(
+  prompt,
+  endpoint = DEFAULT_ENDPOINT,
+  previousCode,
+  modelConfig = {}
+) {
+  const provider = (modelConfig.provider || 'openai').toLowerCase();
+  const defaultModel = provider === 'gemini' ? 'gemini-1.5-flash-latest' : 'gpt-4o-mini';
+  const model = modelConfig.model || defaultModel;
+
   const body = {
     system: SYSTEM_PROMPT,
     input: buildIterationInput(prompt, previousCode),
+    provider,
+    model,
     options: {
       response_format: { type: 'json_object' },
       temperature: 0.2,
-      model: 'gpt-4o-mini'
+      model
     }
   };
 

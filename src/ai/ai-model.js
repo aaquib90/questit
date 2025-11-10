@@ -5,11 +5,25 @@
 
 export async function queryAIModel(systemPrompt, userContent, options = {}, apiConfig = {}) {
   const endpoint = apiConfig.endpoint || 'https://questit.cc/api/ai/proxy';
+  const provider = (options?.provider || apiConfig.provider || 'openai').toLowerCase();
+  const mergedOptions = { ...options };
+  delete mergedOptions.provider;
+
+  const selectedModel = mergedOptions.model || apiConfig.model;
+  if (selectedModel && !mergedOptions.model) {
+    mergedOptions.model = selectedModel;
+  }
+
   const body = {
     system: systemPrompt,
     input: userContent,
-    options
+    provider,
+    options: mergedOptions
   };
+
+  if (selectedModel) {
+    body.model = selectedModel;
+  }
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -28,5 +42,4 @@ export async function queryAIModel(systemPrompt, userContent, options = {}, apiC
 }
 
 export default { queryAIModel };
-
 

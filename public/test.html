@@ -35,6 +35,14 @@
       background: #9ca3af;
       cursor: not-allowed;
     }
+    select {
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
     #output {
       margin-top: 24px;
       padding: 20px;
@@ -54,7 +62,13 @@
 <body>
   <h1>Questit Platform Test</h1>
   <p>Enter a prompt to generate a micro-tool:</p>
-  
+
+  <label for="model-select" style="display:block;font-weight:600;margin-bottom:6px;">Model</label>
+  <select id="model-select">
+    <option value="openai:gpt-4o-mini">OpenAI · GPT-4o mini</option>
+    <option value="gemini:1.5-flash">Google · Gemini 1.5 Flash</option>
+  </select>
+
   <input type="text" id="prompt" placeholder="e.g., Create a simple calculator" value="Create a simple calculator">
   <br>
   <button id="generate">Generate Tool</button>
@@ -104,12 +118,26 @@
     const urlParams = new URLSearchParams(window.location.search);
     const apiEndpoint = urlParams.get('endpoint') || 'https://questit.cc/api/ai/proxy';
     const apiBase = urlParams.get('apiBase') || 'https://questit.cc/api';
+    const modelMap = {
+      'openai:gpt-4o-mini': { provider: 'openai', model: 'gpt-4o-mini' },
+      'gemini:1.5-flash': { provider: 'gemini', model: 'gemini-1.5-flash-latest' }
+    };
+    const defaultModelId = urlParams.get('model') || 'openai:gpt-4o-mini';
+    const resolveModelConfig = (id) => modelMap[id] || modelMap['openai:gpt-4o-mini'];
 
     console.log('Using API endpoint:', apiEndpoint);
     console.log('Using API base:', apiBase);
 
-    const questit = new Questit({
-      endpoint: apiEndpoint
+    const modelSelect = document.getElementById('model-select');
+    if (modelMap[defaultModelId]) {
+      modelSelect.value = defaultModelId;
+    }
+
+    let currentModelConfig = resolveModelConfig(modelSelect.value);
+    let questit = new Questit({
+      endpoint: apiEndpoint,
+      provider: currentModelConfig.provider,
+      model: currentModelConfig.model
     });
 
     const promptInput = document.getElementById('prompt');
@@ -119,6 +147,18 @@
     const errorDiv = document.getElementById('error');
 
     let currentTool = null;
+
+    modelSelect.addEventListener('change', () => {
+      currentModelConfig = resolveModelConfig(modelSelect.value);
+      questit = new Questit({
+        endpoint: apiEndpoint,
+        provider: currentModelConfig.provider,
+        model: currentModelConfig.model
+      });
+      currentTool = null;
+      publishBtn.disabled = true;
+      errorDiv.innerHTML = '<div style="background: #eff6ff; padding: 12px; border-radius: 8px; margin-top: 12px;">Model changed. Generate a new tool to use the selected provider.</div>';
+    });
 
     function showError(message, details = null) {
       let errorHtml = `<div class="error"><strong>Error:</strong> ${message}`;

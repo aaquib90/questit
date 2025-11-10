@@ -6,6 +6,7 @@ Configure the following:
 Set via `wrangler secret put` (staging/prod as needed):
 
 - `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
 - `GITHUB_TOKEN` (optional)
 - `CLOUDFLARE_API_TOKEN` (GitHub Actions uses repo secret)
 - `CLOUDFLARE_ACCOUNT_ID` (GitHub Actions uses repo secret)
