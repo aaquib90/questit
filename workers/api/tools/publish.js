@@ -259,6 +259,8 @@ function declarationsToCss(vars) {
 function buildThemeCss(themeKey = DEFAULT_THEME_KEY) {
   const { lightVars, darkVars } = resolveThemeVars(themeKey);
   return `
+@import url('https://fonts.googleapis.com/css2?family=Rubik+80s+Fade&display=swap');
+
 :root {
 ${declarationsToCss(lightVars)}
 }
@@ -299,28 +301,125 @@ textarea {
 
 function buildLayoutCss() {
   return `
+.questit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(12px, 2vw, 18px);
+  margin-bottom: clamp(18px, 4vw, 28px);
+  padding: clamp(12px, 2vw, 18px);
+  border-radius: clamp(18px, 3vw, 26px);
+  border: 1px solid hsla(var(--border), 0.65);
+  background: linear-gradient(135deg, hsla(var(--background), 0.82) 0%, hsla(var(--background), 0.6) 55%);
+  box-shadow: inset 0 1px 0 hsla(var(--background), 0.4), 0 18px 40px -32px hsl(var(--primary));
+}
+
+.questit-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.questit-header-logo {
+  font-family: 'Rubik 80s Fade', cursive;
+  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+  color: hsl(var(--primary));
+  text-shadow:
+    0 16px 36px hsl(var(--primary) / 0.35),
+    0 3px 8px hsl(var(--primary) / 0.45);
+  letter-spacing: 0.04em;
+}
+
+.questit-header-subtitle {
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: hsla(var(--muted-foreground), 0.85);
+}
+
+.questit-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.questit-header-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
+  border: 1px solid hsla(var(--border), 0.7);
+}
+
+.questit-header-pill--primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 18px 40px -26px hsl(var(--primary));
+}
+
+.questit-header-pill--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 24px 55px -30px hsl(var(--primary));
+}
+
+.questit-header-pill--ghost {
+  background: hsla(var(--muted), 0.35);
+  color: hsl(var(--foreground));
+  border: 1px solid hsla(var(--border), 0.65);
+}
+
+.questit-header-pill--ghost:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px -32px hsl(var(--ring));
+}
+
 .questit-shell {
   min-height: 100vh;
   display: flex;
-  align-items: stretch;
-  justify-content: center;
-  padding: clamp(24px, 6vw, 72px);
-  background: radial-gradient(120% 120% at 50% 0%, hsla(var(--primary) / 0.12), transparent 65%);
+  flex-direction: column;
+  gap: clamp(20px, 4vw, 32px);
+  align-items: center;
+  padding: clamp(28px, 8vw, 88px) clamp(18px, 6vw, 64px);
+  background:
+    radial-gradient(120% 120% at 50% 0%, hsla(var(--primary) / 0.12), transparent 65%),
+    radial-gradient(150% 150% at 0% 0%, hsla(var(--accent) / 0.08), transparent 70%);
 }
 
 .questit-surface {
   width: min(960px, 100%);
-  background: hsl(var(--card));
+  background: linear-gradient(135deg, hsla(var(--background), 0.85) 0%, hsla(var(--background), 0.65) 60%);
   color: hsl(var(--card-foreground));
-  border-radius: max(calc(var(--radius) * 1.35), 18px);
-  border: 1px solid hsla(var(--border), 0.7);
-  box-shadow: 0 28px 65px -40px rgba(15, 23, 42, 0.55);
-  padding: clamp(24px, 5vw, 52px);
-  backdrop-filter: saturate(120%) blur(2px);
+  border-radius: max(calc(var(--radius) * 1.2), 18px);
+  border: 1px solid hsla(var(--border), 0.65);
+  box-shadow: 0 18px 45px -32px rgba(15, 23, 42, 0.6);
+  padding: clamp(16px, 3vw, 24px);
+  backdrop-filter: saturate(120%) blur(3px);
+}
+
+.questit-header-wrapper {
+  width: min(960px, 100%);
+  display: flex;
+  justify-content: center;
 }
 
 .questit-surface > * {
   max-width: 100%;
+}
+
+.questit-tool-container {
+  width: min(960px, 100%);
+  background: linear-gradient(145deg, hsla(var(--background), 0.82) 0%, hsla(var(--background), 0.65) 55%);
+  border-radius: max(calc(var(--radius) * 1.3), 18px);
+  border: 1px solid hsla(var(--border), 0.65);
+  box-shadow: 0 28px 70px -38px rgba(15, 23, 42, 0.58);
+  padding: clamp(24px, 5vw, 48px);
+  backdrop-filter: saturate(130%) blur(4px);
 }
 
 .questit-meta {
@@ -530,6 +629,7 @@ if (media.addEventListener) {
   const modelDisplay = formatModelLabel(tool.model_provider, tool.model_name);
   const themeLabel = themeKey.charAt(0).toUpperCase() + themeKey.slice(1);
   const modeLabel = colorMode === 'system' ? 'System (auto)' : colorMode === 'dark' ? 'Dark' : 'Light';
+  const shareSlug = tool.share_slug || null;
   const htmlSnippet = String(tool.html ?? '').trim() || '<p>No content returned.</p>';
   const cssSnippet = sanitizeForStyle(tool.css);
   const jsSnippet = sanitizeForScript(tool.js);
@@ -547,7 +647,26 @@ ${cssSnippet}</style>
 <body>
 <div class="questit-shell">
   <div class="questit-surface">
-    <header class="questit-meta">
+    <div class="questit-header">
+      <div class="questit-header-meta">
+        <span class="questit-header-logo">Questit</span>
+        <span class="questit-header-subtitle">Shared tool</span>
+      </div>
+      <div class="questit-header-actions">
+        <a class="questit-header-pill questit-header-pill--primary" data-questit-action="remix" href="https://questit.cc">
+          Remix in Workbench
+        </a>
+        <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
+          Open Questit
+        </a>
+        <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc/?login=1">
+          Log in
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="questit-tool-container">
+    <div class="questit-meta">
       <span>Generated with Questit</span>
       <h1>${shellTitle}</h1>
       ${summaryHtml}
@@ -565,15 +684,7 @@ ${cssSnippet}</style>
           <strong>${escapeHtmlText(modeLabel)}</strong>
         </div>
       </div>
-      <div class="questit-actions">
-        <a class="questit-action questit-action--primary" data-questit-action="remix" href="https://questit.cc">
-          Remix in Workbench
-        </a>
-        <a class="questit-action questit-action--ghost" href="https://questit.cc/support" target="_blank" rel="noopener noreferrer">
-          Report issue
-        </a>
-      </div>
-    </header>
+    </div>
     <section class="questit-tool" id="questit-tool-root">
 ${htmlSnippet}
     </section>
@@ -587,12 +698,14 @@ ${colorModeSetup}
 (() => {
   try {
     const anchor = document.querySelector('[data-questit-action="remix"]');
-    if (anchor) {
+    const slugFromMeta = ${shareSlug ? `"${shareSlug}"` : 'null'};
+    let slug = slugFromMeta;
+    if (!slug && typeof window !== 'undefined') {
       const host = window.location.hostname || '';
-      const slug = host.split('.').filter(Boolean)[0] || '';
-      if (slug) {
-        anchor.href = 'https://questit.cc/?remix=' + encodeURIComponent(slug);
-      }
+      slug = host.split('.').filter(Boolean)[0] || '';
+    }
+    if (anchor && slug) {
+      anchor.href = 'https://questit.cc/?remix=' + encodeURIComponent(slug);
     }
   } catch (error) {
     console.warn('Questit remix link generation failed', error);
@@ -613,6 +726,7 @@ ${jsSnippet}
     color_mode: colorMode,
     model_provider: tool.model_provider || null,
     model_name: tool.model_name || null,
+    slug: shareSlug,
     html: tool.html || '',
     css: tool.css || '',
     js: tool.js || ''
@@ -693,9 +807,25 @@ export default {
       });
     }
 
-    const rawName = (tool.id || `tool-${Math.random().toString(36).slice(2)}`).toLowerCase();
-    const scriptName = rawName.replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || `tool-${Date.now()}`;
-    const source = buildUserWorkerScript(tool);
+    const sanitizeSlug = (value) =>
+      String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    const baseSlugSource = tool.slug || tool.title || tool.id || '';
+    let baseSlug = sanitizeSlug(baseSlugSource).slice(0, 40);
+    if (!baseSlug) {
+      baseSlug = `tool`;
+    }
+    const randomSuffix = Math.random().toString(36).slice(2, 7);
+    let scriptName = `${baseSlug}-${randomSuffix}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    if (scriptName.length > 63) {
+      scriptName = scriptName.slice(0, 63).replace(/-+$/g, '');
+    }
+
+    const enrichedTool = { ...tool, share_slug: scriptName };
+    const source = buildUserWorkerScript(enrichedTool);
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${namespaceSlug}/scripts/${scriptName}`;
     const res = await fetch(url, {
