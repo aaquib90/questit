@@ -60,8 +60,40 @@ export async function generateTool(
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`AI proxy failed: ${res.status} ${text}`);
+    const fallbackText = await res.text().catch(() => '');
+    let parsedError = null;
+    try {
+      parsedError = fallbackText ? JSON.parse(fallbackText) : null;
+    } catch {
+      parsedError = null;
+    }
+
+    const upstreamMessage =
+      parsedError?.error?.message ||
+      parsedError?.message ||
+      fallbackText ||
+      '';
+
+    let friendlyMessage = '';
+    if (res.status === 503 && upstreamMessage.toLowerCase().includes('overloaded')) {
+      friendlyMessage =
+        'The selected model is temporarily overloaded. Please try again in a few seconds or pick a different model.';
+    } else if (res.status === 429) {
+      friendlyMessage =
+        'We are sending requests too quickly. Wait a moment and try again.';
+    } else if (res.status >= 500) {
+      friendlyMessage =
+        'The AI service returned an unexpected error. Please retry shortly.';
+    }
+
+    const error = new Error(
+      friendlyMessage ||
+        `The AI service returned an error (status ${res.status}).`
+    );
+    error.name = 'AiProxyError';
+    error.status = res.status;
+    error.details = parsedError || upstreamMessage || null;
+    throw error;
   }
 
   const raw = await res.text();
