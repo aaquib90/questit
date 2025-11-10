@@ -872,8 +872,6 @@ function App() {
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="questit-aurora" />
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6 lg:px-10">
-        <WorkbenchHero onNavigateDocs={handleOpenDocs} />
-
         <section className="questit-glass flex flex-col gap-6 rounded-3xl border border-border/60 p-6 shadow-xl">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
@@ -930,6 +928,7 @@ function App() {
 
         {activeView === 'workbench' ? (
           <div className="space-y-8">
+            <WorkbenchHero onNavigateDocs={handleOpenDocs} />
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <Card className="border border-primary/30 shadow-lg shadow-primary/10">
             <CardHeader className="space-y-1.5">
