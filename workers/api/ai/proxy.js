@@ -149,7 +149,7 @@ async function handleGemini({ system, input, options, corsHeaders, env, model })
     });
   }
 
-  const selectedModel = model || options?.model || 'gemini-1.5-flash';
+  const selectedModel = model || options?.model || 'gemini-2.5-flash';
   const promptText = [system ? `System: ${system}` : null, input || '']
     .filter(Boolean)
     .join('\n\n');

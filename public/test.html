@@ -65,8 +65,9 @@
 
   <label for="model-select" style="display:block;font-weight:600;margin-bottom:6px;">Model</label>
   <select id="model-select">
+    <option value="gemini:2.5-flash">Google · Gemini 2.5 Flash</option>
     <option value="openai:gpt-4o-mini">OpenAI · GPT-4o mini</option>
-    <option value="gemini:1.5-flash">Google · Gemini 1.5 Flash</option>
+    <option value="gemini:1.5-flash">Google · Gemini 1.5 Flash (Legacy)</option>
   </select>
 
   <input type="text" id="prompt" placeholder="e.g., Create a simple calculator" value="Create a simple calculator">
@@ -119,10 +120,11 @@
     const apiEndpoint = urlParams.get('endpoint') || 'https://questit.cc/api/ai/proxy';
     const apiBase = urlParams.get('apiBase') || 'https://questit.cc/api';
     const modelMap = {
+      'gemini:2.5-flash': { provider: 'gemini', model: 'gemini-2.5-flash' },
       'openai:gpt-4o-mini': { provider: 'openai', model: 'gpt-4o-mini' },
       'gemini:1.5-flash': { provider: 'gemini', model: 'gemini-1.5-flash' }
     };
-    const defaultModelId = urlParams.get('model') || 'openai:gpt-4o-mini';
+    const defaultModelId = urlParams.get('model') || 'gemini:2.5-flash';
     const resolveModelConfig = (id) => modelMap[id] || modelMap['openai:gpt-4o-mini'];
 
     console.log('Using API endpoint:', apiEndpoint);

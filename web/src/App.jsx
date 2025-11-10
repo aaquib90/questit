@@ -293,6 +293,12 @@ const COLOR_MODE_OPTIONS = [
 
 const MODEL_OPTIONS = [
   {
+    id: 'gemini:2.5-flash',
+    label: 'Google · Gemini 2.5 Flash',
+    provider: 'gemini',
+    model: 'gemini-2.5-flash'
+  },
+  {
     id: 'openai:gpt-4o-mini',
     label: 'OpenAI · GPT-4o mini',
     provider: 'openai',
@@ -300,7 +306,7 @@ const MODEL_OPTIONS = [
   },
   {
     id: 'gemini:1.5-flash',
-    label: 'Google · Gemini 1.5 Flash',
+    label: 'Google · Gemini 1.5 Flash (Legacy)',
     provider: 'gemini',
     model: 'gemini-1.5-flash'
   }
