@@ -101,11 +101,53 @@ export async function generateTool(
     throw new Error('AI proxy returned an empty response.');
   }
 
+  const parseResponse = (payload) => {
+    if (typeof payload !== 'string') {
+      return payload;
+    }
+    const trimmed = payload.trim();
+
+    const stripCodeFence = (text) => {
+      const fence = text.match(/```(?:json)?\s*([\s\S]+?)```/i);
+      if (fence) {
+        return fence[1].trim();
+      }
+      return text;
+    };
+
+    const attemptParse = (text) => {
+      const cleaned = stripCodeFence(text);
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        const fallbackMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (fallbackMatch) {
+          return JSON.parse(fallbackMatch[0]);
+        }
+        throw new Error('Response did not contain valid JSON.');
+      }
+    };
+
+    try {
+      return attemptParse(trimmed);
+    } catch (error) {
+      const simplified = trimmed
+        .replace(/,\s*([}\]])/g, '$1') // drop trailing commas
+        .replace(/:\s*'([^']*)'/g, ': "$1"') // convert single quotes to double
+        .replace(/\\(?!["\\/bfnrtu])/g, '\\\\'); // escape stray backslashes
+      return attemptParse(simplified);
+    }
+  };
+
   let parsed;
   try {
-    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    parsed = parseResponse(raw);
   } catch (error) {
-    throw new Error(`Failed to parse AI response as JSON: ${error.message}`);
+    throw new Error(
+      error?.message
+        ? `Failed to parse AI response as JSON: ${error.message}`
+        : 'Failed to parse AI response as JSON.'
+    );
   }
 
   const { html = '', css = '', js = '' } = parsed;
