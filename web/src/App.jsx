@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
+import WorkbenchHero from '@/components/workbench/WorkbenchHero.jsx';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -452,6 +453,9 @@ function App() {
     () => MODEL_OPTIONS.find((option) => option.id === modelId) || MODEL_OPTIONS[0],
     [modelId]
   );
+  const handleOpenDocs = useCallback(() => {
+    window.open('https://github.com/aaquib90/questit#readme', '_blank', 'noopener,noreferrer');
+  }, []);
   const { html: currentHtml, css: currentCss, js: currentJs } = toolCode;
   const hasGenerated = Boolean(currentHtml || currentCss || currentJs);
   const resolvedMode = colorMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : colorMode;
@@ -865,65 +869,64 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="container mx-auto max-w-6xl space-y-8 py-10">
-        <header className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-4 text-center md:text-left">
-            <Badge variant="secondary" className="mx-auto w-fit rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide md:mx-0">
-              Questit Workbench
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Build micro-tools from natural language
-              </h1>
-              <p className="mx-auto max-w-2xl text-sm text-muted-foreground md:mx-0">
-                Provide a prompt to generate a self-contained HTML/CSS/JS bundle, then iterate with follow-up instructions. Everything runs on the Questit edge stack.
-              </p>
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="questit-aurora" />
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6 lg:px-10">
+        <WorkbenchHero onNavigateDocs={handleOpenDocs} />
+
+        <section className="questit-glass flex flex-col gap-6 rounded-3xl border border-border/60 p-6 shadow-xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">Workspace</p>
+              <h2 className="text-lg font-semibold text-foreground">Workbench control center</h2>
             </div>
-          </div>
-          <div className="flex flex-col items-center gap-4 md:items-end">
-            <div className="flex rounded-full border border-primary/20 bg-background/80 p-1 shadow-sm">
-              <Button
-                variant={activeView === 'workbench' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('workbench')}
-                aria-pressed={activeView === 'workbench'}
-              >
-                Workbench
-              </Button>
-              <Button
-                variant={activeView === 'my-tools' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('my-tools')}
-                aria-pressed={activeView === 'my-tools'}
-              >
-                My Tools
-              </Button>
-            </div>
-            <div className="flex items-center justify-center gap-3">
-              {user ? (
-                <>
-                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
-                    {userLabel}
-                  </Badge>
-                  <Button variant="ghost" onClick={handleSignOut}>
-                    Sign out
-                  </Button>
-                </>
-              ) : (
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
+              <div className="flex rounded-full border border-primary/20 bg-primary/10 p-1 shadow-sm">
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setAuthDialogOpen(true);
-                    setAuthStatus({ state: 'idle', message: '' });
-                  }}
+                  variant={activeView === 'workbench' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveView('workbench')}
+                  aria-pressed={activeView === 'workbench'}
+                  className="rounded-full px-5"
                 >
-                  Log in
+                  Workbench
                 </Button>
-              )}
+                <Button
+                  variant={activeView === 'my-tools' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveView('my-tools')}
+                  aria-pressed={activeView === 'my-tools'}
+                  className="rounded-full px-5"
+                >
+                  My Tools
+                </Button>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                {user ? (
+                  <>
+                    <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-medium">
+                      {userLabel}
+                    </Badge>
+                    <Button variant="ghost" className="text-sm" onClick={handleSignOut}>
+                      Sign out
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="gap-2 rounded-full px-5"
+                    onClick={() => {
+                      setAuthDialogOpen(true);
+                      setAuthStatus({ state: 'idle', message: '' });
+                    }}
+                  >
+                    Log in
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-        </header>
+        </section>
 
         {activeView === 'workbench' ? (
           <div className="space-y-8">
@@ -1447,7 +1450,7 @@ function App() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+      </main>
     </div>
   );
 }
