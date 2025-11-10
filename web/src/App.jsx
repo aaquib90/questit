@@ -928,7 +928,6 @@ function App() {
 
         {activeView === 'workbench' ? (
           <div className="space-y-8">
-            <WorkbenchHero onNavigateDocs={handleOpenDocs} />
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <Card className="border border-primary/30 shadow-lg shadow-primary/10">
             <CardHeader className="space-y-1.5">
@@ -1450,6 +1449,12 @@ function App() {
           </DialogContent>
         </Dialog>
       </main>
+      <footer className="relative mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-10">
+        <div className="space-y-10">
+          <WorkbenchHero onNavigateDocs={handleOpenDocs} />
+          {/* Future: feature grid / roadmap summary can live here */}
+        </div>
+      </footer>
     </div>
   );
 }
