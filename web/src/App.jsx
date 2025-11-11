@@ -537,7 +537,7 @@ function App() {
     }
 
     setIsGenerating(true);
-    setSessionStatus({ state: 'loading', message: 'Generating tool…' });
+    setSessionStatus({ state: 'loading', message: '' });
 
     try {
       const modelConfig = {
