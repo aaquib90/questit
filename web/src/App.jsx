@@ -390,9 +390,7 @@ function buildShareUrl(workerName, apiBase) {
     if (host.includes('localhost') || host.startsWith('127.') || host.startsWith('0.')) {
       return '';
     }
-    const hostParts = host.split('.');
-    const apexHost = hostParts.length >= 2 ? hostParts.slice(-2).join('.') : host;
-    return `https://${workerName}.${apexHost}/`;
+    return `${url.origin}/tools/${encodeURIComponent(workerName)}/`;
   } catch {
     return '';
   }
@@ -491,12 +489,37 @@ function App() {
     const loadRemix = async () => {
       try {
         setStatusMessage('Loading shared tool for remix…');
-        const response = await fetch(`https://${sanitizedSlug}.questit.cc/metadata`, {
-          headers: { Accept: 'application/json' }
-        });
-        if (!response.ok) {
-          throw new Error(`Unable to fetch shared tool (status ${response.status})`);
+        const origin = window.location.origin || '';
+        const isLocalOrigin =
+          origin.includes('localhost') || origin.includes('127.') || origin.includes('0.0.0.0');
+        const canonicalOrigin = isLocalOrigin ? 'https://questit.cc' : origin;
+        const metadataCandidates = [
+          `${canonicalOrigin.replace(/\/$/, '')}/tools/${encodeURIComponent(sanitizedSlug)}/metadata`,
+          `https://${sanitizedSlug}.questit.cc/metadata`
+        ];
+
+        let response;
+        let lastError = null;
+
+        for (const candidate of metadataCandidates) {
+          try {
+            response = await fetch(candidate, {
+              headers: { Accept: 'application/json' }
+            });
+            if (response.ok) {
+              lastError = null;
+              break;
+            }
+            lastError = new Error(`Unable to fetch shared tool (status ${response.status})`);
+          } catch (error) {
+            lastError = error;
+          }
         }
+
+        if (!response || !response.ok) {
+          throw lastError || new Error('Unable to fetch shared tool metadata.');
+        }
+
         const data = await response.json();
         const html = data.html || '';
         const css = data.css || '';

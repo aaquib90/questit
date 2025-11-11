@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Questit Auth Bridge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #030712;
+        color: rgba(226, 232, 240, 0.68);
+        font: 500 14px/1.6 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        letter-spacing: 0.015em;
+      }
+      .notice {
+        opacity: 0.6;
+        text-align: center;
+        max-width: 320px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="notice">Questit auth bridge ready.</div>
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const encodedOrigin = params.get('origin');
+        if (!encodedOrigin) {
+          return;
+        }
+
+        let allowedOrigin;
+        try {
+          const url = new URL(decodeURIComponent(encodedOrigin));
+          allowedOrigin = url.origin;
+        } catch (error) {
+          console.warn('Questit auth bridge: invalid origin', error);
+          return;
+        }
+
+        const buildAuthPayload = () => {
+          const payload = {
+            type: 'questit-auth-state',
+            status: 'signed-out',
+            user: null
+          };
+          try {
+            const keys = Object.keys(localStorage).filter(
+              (key) => key.startsWith('sb-') && key.endsWith('-auth-token')
+            );
+            for (const key of keys) {
+              const raw = localStorage.getItem(key);
+              if (!raw) continue;
+              const record = JSON.parse(raw);
+              const session = record?.currentSession || record?.session || null;
+              const user =
+                session?.user || record?.currentUser || record?.user || null;
+              if (user) {
+                payload.status = 'signed-in';
+                payload.user = {
+                  id: user.id || null,
+                  email: user.email || null,
+                  name:
+                    user.user_metadata?.full_name ||
+                    user.user_metadata?.name ||
+                    null
+                };
+                break;
+              }
+            }
+          } catch (error) {
+            payload.status = 'error';
+            payload.error = error?.message || String(error);
+          }
+          return payload;
+        };
+
+        const postState = (target, origin) => {
+          if (!target || !origin) return;
+          try {
+            target.postMessage(buildAuthPayload(), origin);
+          } catch (error) {
+            console.warn('Questit auth bridge: postMessage failed', error);
+          }
+        };
+
+        const handleMessage = (event) => {
+          if (event.origin !== allowedOrigin) return;
+          const data = event.data;
+          if (!data || data.type !== 'questit-auth-request') return;
+          postState(event.source || window.parent, event.origin);
+        };
+
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('storage', (event) => {
+          if (
+            event.key &&
+            event.key.startsWith('sb-') &&
+            event.key.endsWith('-auth-token')
+          ) {
+            postState(window.parent, allowedOrigin);
+          }
+        });
+
+        if (window.parent && window.parent !== window) {
+          postState(window.parent, allowedOrigin);
+        }
+      })();
+    </script>
+  </body>
+</html>

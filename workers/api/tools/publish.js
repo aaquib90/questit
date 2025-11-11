@@ -301,143 +301,279 @@ textarea {
 
 function buildLayoutCss() {
   return `
+.questit-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(24px, 5vw, 42px);
+  padding: clamp(28px, 7vw, 68px) clamp(18px, 7vw, 80px) clamp(48px, 10vw, 104px);
+  background: hsl(var(--background));
+  overflow: hidden;
+}
+
+.questit-shell::before {
+  content: "";
+  position: absolute;
+  inset: -40% -25% -10%;
+  background:
+    radial-gradient(48% 48% at 20% 18%, hsla(var(--primary), 0.22), transparent 70%),
+    radial-gradient(60% 60% at 82% 10%, hsla(var(--accent), 0.2), transparent 75%),
+    radial-gradient(55% 55% at 50% 78%, hsla(var(--secondary), 0.18), transparent 75%);
+  filter: blur(120px);
+  opacity: 0.85;
+  z-index: -2;
+}
+
+.questit-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, hsla(var(--background), 0.94) 0%, hsla(var(--background), 0.98) 24%, hsl(var(--background)) 100%);
+  z-index: -1;
+}
+
+.questit-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.questit-surface {
+  width: min(960px, 100%);
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 .questit-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: clamp(12px, 2vw, 18px);
-  margin-bottom: clamp(18px, 4vw, 28px);
-  padding: clamp(12px, 2vw, 18px);
-  border-radius: clamp(18px, 3vw, 26px);
-  border: 1px solid hsla(var(--border), 0.65);
-  background: linear-gradient(135deg, hsla(var(--background), 0.82) 0%, hsla(var(--background), 0.6) 55%);
-  box-shadow: inset 0 1px 0 hsla(var(--background), 0.4), 0 18px 40px -32px hsl(var(--primary));
+  gap: clamp(16px, 3vw, 28px);
+  width: 100%;
+  border-radius: clamp(24px, 3vw, 36px);
+  padding: clamp(20px, 3vw, 32px);
+  border: 1px solid hsla(var(--primary), 0.18);
+  background:
+    linear-gradient(138deg, hsla(var(--background), 0.95) 0%, hsla(var(--background), 0.72) 100%);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.75),
+    0 24px 55px -30px hsl(var(--primary)),
+    0 18px 44px -28px rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(22px) saturate(120%);
+  overflow: hidden;
+}
+
+.questit-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(140deg, hsla(var(--primary), 0.1) 0%, transparent 60%),
+    linear-gradient(200deg, hsla(var(--accent), 0.12) 15%, transparent 70%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.questit-header::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid hsla(var(--primary), 0.12);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+
+.questit-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .questit-header-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .questit-header-logo {
   font-family: 'Rubik 80s Fade', cursive;
-  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+  font-size: clamp(2rem, 3.6vw, 2.75rem);
   color: hsl(var(--primary));
   text-shadow:
-    0 16px 36px hsl(var(--primary) / 0.35),
-    0 3px 8px hsl(var(--primary) / 0.45);
+    0 18px 38px hsl(var(--primary) / 0.35),
+    0 4px 12px hsl(var(--primary) / 0.45);
   letter-spacing: 0.04em;
 }
 
 .questit-header-subtitle {
   font-size: 0.72rem;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   color: hsla(var(--muted-foreground), 0.85);
+}
+
+.questit-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
 }
 
 .questit-header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  justify-content: flex-end;
 }
 
 .questit-header-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
   border-radius: 999px;
-  padding: 0.6rem 1.4rem;
-  font-size: 0.85rem;
+  padding: 0.65rem 1.55rem;
+  font-size: 0.88rem;
   font-weight: 600;
   text-decoration: none;
-  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
-  border: 1px solid hsla(var(--border), 0.7);
+  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+  border: 1px solid hsla(var(--primary), 0.22);
+  box-shadow: 0 18px 40px -30px hsl(var(--primary));
+}
+
+.questit-header-pill:hover {
+  transform: translateY(-1px);
 }
 
 .questit-header-pill--primary {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsla(var(--primary), 0.85) 100%);
   color: hsl(var(--primary-foreground));
-  box-shadow: 0 18px 40px -26px hsl(var(--primary));
+  border-color: transparent;
+  box-shadow: 0 26px 55px -32px hsl(var(--primary));
 }
 
 .questit-header-pill--primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 24px 55px -30px hsl(var(--primary));
+  box-shadow: 0 30px 65px -30px hsl(var(--primary));
 }
 
 .questit-header-pill--ghost {
-  background: hsla(var(--muted), 0.35);
+  background: linear-gradient(135deg, hsla(var(--background), 0.92) 0%, hsla(var(--background), 0.72) 100%);
   color: hsl(var(--foreground));
-  border: 1px solid hsla(var(--border), 0.65);
+  box-shadow: 0 18px 42px -32px rgba(15, 23, 42, 0.48);
 }
 
 .questit-header-pill--ghost:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 18px 40px -32px hsl(var(--ring));
+  box-shadow: 0 22px 50px -30px hsl(var(--primary));
 }
 
-.questit-shell {
-  min-height: 100vh;
+.questit-header-status {
   display: flex;
-  flex-direction: column;
-  gap: clamp(20px, 4vw, 32px);
+  flex-wrap: wrap;
   align-items: center;
-  padding: clamp(28px, 8vw, 88px) clamp(18px, 6vw, 64px);
-  background:
-    radial-gradient(120% 120% at 50% 0%, hsla(var(--primary) / 0.12), transparent 65%),
-    radial-gradient(150% 150% at 0% 0%, hsla(var(--accent) / 0.08), transparent 70%);
+  justify-content: flex-end;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  color: hsla(var(--muted-foreground), 0.9);
 }
 
-.questit-surface {
-  width: min(960px, 100%);
-  background: linear-gradient(135deg, hsla(var(--background), 0.85) 0%, hsla(var(--background), 0.65) 60%);
-  color: hsl(var(--card-foreground));
-  border-radius: max(calc(var(--radius) * 1.2), 18px);
-  border: 1px solid hsla(var(--border), 0.65);
-  box-shadow: 0 18px 45px -32px rgba(15, 23, 42, 0.6);
-  padding: clamp(16px, 3vw, 24px);
-  backdrop-filter: saturate(120%) blur(3px);
+.questit-header-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid hsla(var(--primary), 0.18);
+  background: linear-gradient(135deg, hsla(var(--background), 0.92) 0%, hsla(var(--background), 0.72) 100%);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 28px -26px rgba(15, 23, 42, 0.55);
 }
 
-.questit-header-wrapper {
-  width: min(960px, 100%);
-  display: flex;
+.questit-header-status[data-status='signed-in'] .questit-header-status__badge {
+  color: hsl(var(--primary));
+  background: linear-gradient(135deg, hsla(var(--primary), 0.18) 0%, hsla(var(--background), 0.75) 100%);
+}
+
+.questit-header-status__action {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid hsla(var(--primary), 0.24);
+  background: hsla(var(--primary), 0.14);
+  color: hsl(var(--primary));
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
+  box-shadow: 0 14px 34px -28px hsl(var(--primary));
 }
 
-.questit-surface > * {
-  max-width: 100%;
+.questit-header-status__action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 44px -30px hsl(var(--primary));
+}
+
+.questit-header-status__action[hidden] {
+  display: none;
 }
 
 .questit-tool-container {
+  position: relative;
   width: min(960px, 100%);
-  background: linear-gradient(145deg, hsla(var(--background), 0.82) 0%, hsla(var(--background), 0.65) 55%);
-  border-radius: max(calc(var(--radius) * 1.3), 18px);
-  border: 1px solid hsla(var(--border), 0.65);
-  box-shadow: 0 28px 70px -38px rgba(15, 23, 42, 0.58);
-  padding: clamp(24px, 5vw, 48px);
-  backdrop-filter: saturate(130%) blur(4px);
+  background: linear-gradient(150deg, hsla(var(--background), 0.96) 0%, hsla(var(--background), 0.72) 60%);
+  border-radius: clamp(28px, 4vw, 40px);
+  border: 1px solid hsla(var(--primary), 0.14);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.75),
+    0 36px 80px -38px rgba(15, 23, 42, 0.62);
+  padding: clamp(28px, 5vw, 48px);
+  backdrop-filter: blur(26px) saturate(120%);
+  overflow: hidden;
+}
+
+.questit-tool-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(160deg, hsla(var(--primary), 0.08) 10%, transparent 65%),
+    linear-gradient(220deg, hsla(var(--accent), 0.1) 15%, transparent 75%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.questit-tool-container > * {
+  position: relative;
+  z-index: 1;
 }
 
 .questit-meta {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: clamp(18px, 4vw, 28px);
+  margin-bottom: clamp(20px, 4vw, 32px);
 }
 
 .questit-meta span {
   font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
+  color: hsla(var(--muted-foreground), 0.85);
 }
 
 .questit-meta h1 {
-  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  font-size: clamp(1.6rem, 2.6vw, 2.35rem);
   margin: 0;
   color: hsl(var(--foreground));
   font-weight: 600;
@@ -445,94 +581,81 @@ function buildLayoutCss() {
 
 .questit-summary {
   margin: 0;
-  color: hsl(var(--muted-foreground));
-  font-size: clamp(0.9rem, 1vw, 1rem);
-  line-height: 1.6;
+  color: hsla(var(--muted-foreground), 0.9);
+  font-size: clamp(0.92rem, 1.05vw, 1.05rem);
+  line-height: 1.65;
 }
 
 .questit-summary--empty {
   font-style: italic;
-  color: hsl(var(--muted-foreground) / 0.9);
+  color: hsla(var(--muted-foreground), 0.75);
 }
 
 .questit-meta-grid {
   display: grid;
-  gap: clamp(10px, 2vw, 16px);
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin-top: clamp(12px, 2vw, 20px);
+  gap: clamp(12px, 2.5vw, 20px);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-top: clamp(14px, 2.5vw, 24px);
 }
 
 .questit-meta-chip {
-  border-radius: calc(var(--radius) - 4px);
-  background: hsla(var(--muted), 0.55);
-  border: 1px solid hsla(var(--border), 0.75);
-  padding: clamp(12px, 2vw, 16px);
-  box-shadow: inset 0 1px 0 hsla(var(--background), 0.6);
+  position: relative;
+  border-radius: calc(var(--radius) + 2px);
+  background: linear-gradient(140deg, hsla(var(--background), 0.9) 0%, hsla(var(--background), 0.76) 100%);
+  border: 1px solid hsla(var(--primary), 0.12);
+  padding: clamp(14px, 2.5vw, 18px);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.7),
+    0 14px 30px -28px rgba(15, 23, 42, 0.6);
 }
 
 .questit-meta-chip span {
   display: block;
-  font-size: 0.68rem;
-  letter-spacing: 0.15em;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
+  color: hsla(var(--muted-foreground), 0.85);
   margin-bottom: 6px;
 }
 
 .questit-meta-chip strong {
   display: block;
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   color: hsl(var(--foreground));
   font-weight: 600;
 }
 
-.questit-actions {
+.questit-meta-cta {
+  margin-top: clamp(18px, 3vw, 28px);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: clamp(14px, 2vw, 28px);
-}
-
-.questit-action {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  border-radius: 999px;
-  padding: 0.7rem 1.35rem;
+  gap: 0.85rem;
+  border-radius: calc(var(--radius) + 6px);
+  padding: clamp(12px, 2.5vw, 18px);
+  background: hsla(var(--muted), 0.38);
+  border: 1px dashed hsla(var(--primary), 0.28);
+  color: hsla(var(--muted-foreground), 0.88);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.questit-meta-cta strong {
+  color: hsl(var(--primary));
   font-weight: 600;
-  text-decoration: none;
-  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
-}
-
-.questit-action:hover {
-  transform: translateY(-1px);
-}
-
-.questit-action--primary {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: 0 20px 40px -22px hsl(var(--primary));
-}
-
-.questit-action--primary:hover {
-  box-shadow: 0 26px 55px -30px hsl(var(--primary));
-}
-
-.questit-action--ghost {
-  background: hsla(var(--muted), 0.45);
-  color: hsl(var(--foreground));
-  border: 1px solid hsla(var(--border), 0.7);
 }
 
 .questit-tool {
+  position: relative;
   display: block;
-  border-radius: calc(var(--radius) + 4px);
-  background: hsla(var(--muted), 0.45);
-  border: 1px solid hsla(var(--border), 0.65);
-  padding: clamp(18px, 4vw, 28px);
-  box-shadow: inset 0 1px 0 hsla(var(--background), 0.4);
-  backdrop-filter: blur(8px);
+  border-radius: calc(var(--radius) + 6px);
+  background: linear-gradient(135deg, hsla(var(--background), 0.92) 0%, hsla(var(--background), 0.68) 100%);
+  border: 1px solid hsla(var(--primary), 0.12);
+  padding: clamp(20px, 4.2vw, 32px);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.7),
+    0 18px 42px -32px rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(10px) saturate(115%);
 }
 
 .questit-tool > * {
@@ -548,6 +671,24 @@ function buildLayoutCss() {
 @media (max-width: 640px) {
   .questit-shell {
     padding: 16px;
+  }
+
+  .questit-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .questit-header-right {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .questit-header-actions {
+    justify-content: flex-start;
+  }
+
+  .questit-header-status {
+    justify-content: flex-start;
   }
 
   .questit-tool {
@@ -652,16 +793,21 @@ ${cssSnippet}</style>
         <span class="questit-header-logo">Questit</span>
         <span class="questit-header-subtitle">Shared tool</span>
       </div>
-      <div class="questit-header-actions">
-        <a class="questit-header-pill questit-header-pill--primary" data-questit-action="remix" href="https://questit.cc">
-          Remix in Workbench
-        </a>
-        <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
-          Open Questit
-        </a>
-        <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc/?login=1">
-          Log in
-        </a>
+      <div class="questit-header-right">
+        <div class="questit-header-actions">
+          <a class="questit-header-pill questit-header-pill--primary" data-questit-action="remix" href="https://questit.cc">
+            Remix in Workbench
+          </a>
+          <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
+            Open Questit Workspace
+          </a>
+        </div>
+        <div class="questit-header-status" data-questit-auth data-status="checking">
+          <span class="questit-header-status__badge" data-questit-auth-label>Checking sign-in…</span>
+          <a class="questit-header-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
+            Log in to Questit
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -683,6 +829,10 @@ ${cssSnippet}</style>
           <span>Mode</span>
           <strong>${escapeHtmlText(modeLabel)}</strong>
         </div>
+      </div>
+      <div class="questit-meta-cta">
+        <strong>Tip:</strong>
+        <span>Remix or open above to customise this tool in Questit. If you're not signed in yet, the workspace will prompt you to log in.</span>
       </div>
     </div>
     <section class="questit-tool" id="questit-tool-root">
@@ -710,6 +860,122 @@ ${colorModeSetup}
   } catch (error) {
     console.warn('Questit remix link generation failed', error);
   }
+})();
+(() => {
+  if (typeof window === 'undefined') return;
+  const root = document.querySelector('[data-questit-auth]');
+  if (!root) return;
+  const labelEl = root.querySelector('[data-questit-auth-label]');
+  const actionEl = root.querySelector('[data-questit-auth-action]');
+  const defaultAction = {
+    href: actionEl ? actionEl.getAttribute('href') || 'https://questit.cc/?login=1' : 'https://questit.cc/?login=1',
+    text: actionEl ? actionEl.textContent || 'Log in to Questit' : 'Log in to Questit'
+  };
+
+  const setState = (state, meta = {}) => {
+    root.setAttribute('data-status', state);
+    if (labelEl) {
+      labelEl.textContent = meta.label || (state === 'signed-in'
+        ? 'Signed in to Questit'
+        : state === 'error'
+          ? 'Status unavailable'
+          : state === 'checking'
+            ? 'Checking sign-in…'
+            : 'Viewing as guest');
+    }
+    if (actionEl) {
+      if (state === 'signed-in') {
+        actionEl.hidden = true;
+        actionEl.textContent = defaultAction.text;
+        actionEl.href = defaultAction.href;
+      } else {
+        actionEl.hidden = false;
+        actionEl.textContent = meta.actionText || defaultAction.text;
+        actionEl.href = meta.actionHref || defaultAction.href;
+      }
+    }
+  };
+
+  setState('checking');
+
+  const defaultBridgeOrigin = 'https://questit.cc';
+  let bridgeOrigin = defaultBridgeOrigin;
+  try {
+    const currentOrigin = window.location.origin;
+    if (currentOrigin && currentOrigin.startsWith('http')) {
+      bridgeOrigin = currentOrigin;
+    }
+  } catch {
+    bridgeOrigin = defaultBridgeOrigin;
+  }
+  const bridgeUrl =
+    bridgeOrigin.replace(/\/$/, '') +
+    '/auth-bridge.html?origin=' +
+    encodeURIComponent(window.location.origin || bridgeOrigin);
+
+  const iframe = document.createElement('iframe');
+  iframe.src = bridgeUrl;
+  iframe.style.position = 'absolute';
+  iframe.style.width = '1px';
+  iframe.style.height = '1px';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.tabIndex = -1;
+
+  const requestAuthState = () => {
+    try {
+      iframe.contentWindow?.postMessage({ type: 'questit-auth-request' }, bridgeOrigin);
+    } catch (error) {
+      console.warn('Questit auth request failed', error);
+    }
+  };
+
+  const applyPayload = (payload) => {
+    if (!payload || payload.type !== 'questit-auth-state') return;
+    if (payload.status === 'signed-in' && payload.user) {
+      const userLabel = payload.user.email || payload.user.name || 'Signed in to Questit';
+      setState('signed-in', { label: 'Signed in as ' + userLabel });
+      return;
+    }
+    if (payload.status === 'error') {
+      setState('error', {
+        label: 'Status unavailable',
+        actionText: 'Open Questit',
+        actionHref: bridgeOrigin
+      });
+      return;
+    }
+    setState('signed-out', {
+      label: 'Viewing as guest',
+      actionText: 'Log in to Questit',
+      actionHref: 'https://questit.cc/?login=1'
+    });
+  };
+
+  const handleMessage = (event) => {
+    if (event.origin !== bridgeOrigin) return;
+    applyPayload(event.data);
+  };
+
+  window.addEventListener('message', handleMessage);
+  iframe.addEventListener('load', () => {
+    requestAuthState();
+    window.setTimeout(requestAuthState, 500);
+  });
+
+  window.setTimeout(() => {
+    if (root.getAttribute('data-status') === 'checking') {
+      setState('signed-out', {
+        label: 'Viewing as guest',
+        actionText: 'Log in to Questit',
+        actionHref: 'https://questit.cc/?login=1'
+      });
+    }
+  }, 4000);
+
+  document.body.appendChild(iframe);
 })();
 </script>
 <script type="module">
