@@ -802,10 +802,10 @@ ${cssSnippet}</style>
             Open Questit Workspace
           </a>
         </div>
-        <div class="questit-header-status" data-questit-auth data-status="checking">
-          <span class="questit-header-status__badge" data-questit-auth-label>Checking sign-in…</span>
+        <div class="questit-header-status" data-questit-auth data-status="signed-out">
+          <span class="questit-header-status__badge" data-questit-auth-label>Viewing as guest</span>
           <a class="questit-header-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
-            Log in to Questit
+          Log in to Questit
           </a>
         </div>
       </div>
@@ -871,6 +871,11 @@ ${colorModeSetup}
     href: actionEl ? actionEl.getAttribute('href') || 'https://questit.cc/?login=1' : 'https://questit.cc/?login=1',
     text: actionEl ? actionEl.textContent || 'Log in to Questit' : 'Log in to Questit'
   };
+  const guestState = {
+    label: 'Viewing as guest',
+    actionText: defaultAction.text,
+    actionHref: defaultAction.href
+  };
 
   const setState = (state, meta = {}) => {
     root.setAttribute('data-status', state);
@@ -881,7 +886,7 @@ ${colorModeSetup}
           ? 'Status unavailable'
           : state === 'checking'
             ? 'Checking sign-in…'
-            : 'Viewing as guest');
+          : 'Viewing as guest');
     }
     if (actionEl) {
       if (state === 'signed-in') {
@@ -896,7 +901,7 @@ ${colorModeSetup}
     }
   };
 
-  setState('checking');
+  setState('signed-out', guestState);
 
   const defaultBridgeOrigin = 'https://questit.cc';
   let bridgeOrigin = defaultBridgeOrigin;
@@ -924,6 +929,8 @@ ${colorModeSetup}
   iframe.setAttribute('aria-hidden', 'true');
   iframe.tabIndex = -1;
 
+  let handshakeResolved = false;
+
   const requestAuthState = () => {
     try {
       iframe.contentWindow?.postMessage({ type: 'questit-auth-request' }, bridgeOrigin);
@@ -934,6 +941,7 @@ ${colorModeSetup}
 
   const applyPayload = (payload) => {
     if (!payload || payload.type !== 'questit-auth-state') return;
+    handshakeResolved = true;
     if (payload.status === 'signed-in' && payload.user) {
       const userLabel = payload.user.email || payload.user.name || 'Signed in to Questit';
       setState('signed-in', { label: 'Signed in as ' + userLabel });
@@ -950,7 +958,7 @@ ${colorModeSetup}
     setState('signed-out', {
       label: 'Viewing as guest',
       actionText: 'Log in to Questit',
-      actionHref: 'https://questit.cc/?login=1'
+      actionHref: defaultAction.href
     });
   };
 
@@ -966,14 +974,10 @@ ${colorModeSetup}
   });
 
   window.setTimeout(() => {
-    if (root.getAttribute('data-status') === 'checking') {
-      setState('signed-out', {
-        label: 'Viewing as guest',
-        actionText: 'Log in to Questit',
-        actionHref: 'https://questit.cc/?login=1'
-      });
+    if (!handshakeResolved) {
+      setState('signed-out', guestState);
     }
-  }, 4000);
+  }, 2500);
 
   document.body.appendChild(iframe);
 })();
