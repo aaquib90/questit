@@ -9,7 +9,9 @@ import {
   Sun,
   Monitor,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Check,
+  Copy
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -878,6 +880,19 @@ function App() {
     }
   };
 
+  const handleCopyShareLink = useCallback(async (shareUrl, toolId) => {
+    if (!shareUrl || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      updateToolActionStatus(toolId, { linkCopied: true });
+      setTimeout(() => {
+        updateToolActionStatus(toolId, { linkCopied: false });
+      }, 3000);
+    } catch (error) {
+      console.warn('Failed to copy link to clipboard:', error);
+    }
+  }, [updateToolActionStatus]);
+
   const handlePublishSavedTool = async (toolId) => {
     if (!user) {
       handleRequestLogin();
@@ -931,6 +946,11 @@ function App() {
         publishedName: result?.name || '',
         publishedNamespace: result?.namespace || ''
       });
+
+      // Copy link to clipboard automatically
+      if (shareUrl) {
+        await handleCopyShareLink(shareUrl, toolId);
+      }
     } catch (error) {
       console.error('Failed to publish saved tool:', error);
       updateToolActionStatus(toolId, {
@@ -1488,18 +1508,35 @@ function App() {
                           </Button>
                         </div>
                         {status.shareUrl ? (
-                          <p className="flex items-center gap-1 text-xs text-emerald-600">
-                            Link:{' '}
-                            <a
-                              href={status.shareUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
-                            >
-                              {status.shareUrl}
-                              <ExternalLink className="h-3 w-3" aria-hidden />
-                            </a>
-                          </p>
+                          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+                            {status.linkCopied ? (
+                              <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                <Check className="h-4 w-4" aria-hidden />
+                                Link copied to clipboard
+                              </div>
+                            ) : (
+                              <div className="flex flex-1 items-center justify-between gap-2">
+                                <a
+                                  href={status.shareUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
+                                >
+                                  {status.shareUrl}
+                                  <ExternalLink className="h-3 w-3" aria-hidden />
+                                </a>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 gap-1.5 px-2 text-xs"
+                                  onClick={() => handleCopyShareLink(status.shareUrl, tool.id)}
+                                >
+                                  <Copy className="h-3 w-3" aria-hidden />
+                                  Copy
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         ) : status.publishedName ? (
                           <p className="text-xs text-muted-foreground">
                             Published worker: {status.publishedName}
