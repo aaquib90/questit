@@ -114,7 +114,7 @@ const PromptComposer = forwardRef(function PromptComposer(
             <Button
               type="button"
               size="lg"
-              variant="secondary"
+              variant="outline"
               onClick={onSave}
               disabled={!user || saveStatus?.state === 'loading'}
               className="gap-2 shrink-0"
