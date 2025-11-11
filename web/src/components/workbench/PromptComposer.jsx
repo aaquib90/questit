@@ -91,17 +91,15 @@ const PromptComposer = forwardRef(function PromptComposer(
         </p>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1">
-          {statusMessage ? (
-            <Alert
-              variant={statusState === 'error' ? 'destructive' : 'secondary'}
-              className="border border-primary/20 bg-background/80 text-xs"
-            >
-              <AlertDescription>{statusMessage}</AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
+      <div className="flex flex-col gap-2">
+        {statusMessage ? (
+          <Alert
+            variant={statusState === 'error' ? 'destructive' : 'secondary'}
+            className="border border-primary/20 bg-background/80 text-xs"
+          >
+            <AlertDescription>{statusMessage}</AlertDescription>
+          </Alert>
+        ) : null}
         <div className="flex items-center gap-2">
           <Button
             type="submit"
