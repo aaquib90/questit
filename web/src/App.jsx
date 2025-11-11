@@ -1180,6 +1180,10 @@ function App() {
                     status={sessionStatus}
                     onReset={handleResetSession}
                     canReset={sessionEntries.length > 0 || hasGenerated}
+                    onSave={handleOpenSaveDialog}
+                    hasGenerated={hasGenerated}
+                    user={user}
+                    saveStatus={saveStatus}
                     placeholder="Describe the tool you want to build…"
                   />
                 </CardContent>
@@ -1262,35 +1266,6 @@ function App() {
                             </div>
                           )}
                         </div>
-
-                        {hasGenerated ? (
-                          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="space-y-1">
-                              <p className="text-sm font-semibold text-foreground">Save to Supabase</p>
-                              <p className="text-xs text-muted-foreground">
-                                Persist the current bundle to your Supabase project.
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                              {user ? (
-                                <Badge variant="secondary" className="justify-center sm:justify-start">
-                                  {userLabel}
-                                </Badge>
-                              ) : (
-                                <Button variant="secondary" size="sm" onClick={handleRequestLogin}>
-                                  Sign in
-                                </Button>
-                              )}
-                              <Button onClick={handleOpenSaveDialog} disabled={!user || saveStatus.state === 'loading'}>
-                                {saveStatus.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">
-                            Generate a tool to preview and save.
-                          </p>
-                        )}
                         {saveStatus.message ? (
                           <p
                             className={`text-xs ${

@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { Sparkles, RotateCcw } from 'lucide-react';
+import { Sparkles, RotateCcw, Database } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,10 @@ const PromptComposer = forwardRef(function PromptComposer(
     placeholder,
     onReset,
     canReset,
+    onSave,
+    hasGenerated,
+    user,
+    saveStatus,
     className = ''
   },
   ref
@@ -98,15 +102,30 @@ const PromptComposer = forwardRef(function PromptComposer(
             </Alert>
           ) : null}
         </div>
-        <Button
-          type="submit"
-          size="lg"
-          disabled={disabled || isWorking || !value?.trim()}
-          className="w-full gap-2 sm:w-auto"
-        >
-          <Sparkles className={`h-4 w-4 ${isWorking ? 'animate-spin' : ''}`} aria-hidden />
-          {isWorking ? 'Generating…' : 'Send to Questit'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={disabled || isWorking || !value?.trim()}
+            className="gap-2"
+          >
+            <Sparkles className={`h-4 w-4 ${isWorking ? 'animate-spin' : ''}`} aria-hidden />
+            {isWorking ? 'Generating…' : 'Send to Questit'}
+          </Button>
+          {hasGenerated && onSave ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="secondary"
+              onClick={onSave}
+              disabled={!user || saveStatus?.state === 'loading'}
+              className="gap-2"
+            >
+              <Database className="h-4 w-4" aria-hidden />
+              {saveStatus?.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
+            </Button>
+          ) : null}
+        </div>
       </div>
     </form>
   );
