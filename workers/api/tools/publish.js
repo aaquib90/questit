@@ -358,14 +358,14 @@ function buildLayoutCss() {
   width: 100%;
   border-radius: clamp(24px, 3vw, 36px);
   padding: clamp(20px, 3vw, 32px);
-  border: 1px solid hsla(var(--primary), 0.18);
+  border: 1px solid hsla(var(--primary), 0.24);
   background:
-    linear-gradient(138deg, hsla(var(--background), 0.95) 0%, hsla(var(--background), 0.72) 100%);
+    linear-gradient(145deg, hsla(var(--primary), 0.22) 0%, hsla(var(--background), 0.86) 45%, hsla(var(--background), 0.7) 100%);
   box-shadow:
-    inset 0 1px 0 hsla(var(--background), 0.75),
-    0 24px 55px -30px hsl(var(--primary)),
-    0 18px 44px -28px rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(22px) saturate(120%);
+    inset 0 1px 0 hsla(var(--background), 0.65),
+    0 32px 65px -28px rgba(15, 23, 42, 0.58),
+    0 18px 48px -24px hsl(var(--primary) / 0.55);
+  backdrop-filter: blur(22px) saturate(125%);
   overflow: hidden;
 }
 
@@ -374,9 +374,9 @@ function buildLayoutCss() {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(140deg, hsla(var(--primary), 0.1) 0%, transparent 60%),
-    linear-gradient(200deg, hsla(var(--accent), 0.12) 15%, transparent 70%);
-  opacity: 0.7;
+    radial-gradient(65% 85% at 12% 18%, hsla(var(--primary), 0.32) 0%, transparent 65%),
+    linear-gradient(160deg, hsla(var(--accent), 0.18) 15%, transparent 70%);
+  opacity: 0.8;
   pointer-events: none;
 }
 
