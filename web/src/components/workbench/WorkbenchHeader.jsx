@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 
 const VIEW_TABS = [
   { id: 'workbench', label: 'Workbench' },
-  { id: 'history', label: 'History' },
   { id: 'my-tools', label: 'My Tools' }
 ];
 

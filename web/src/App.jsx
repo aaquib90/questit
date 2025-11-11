@@ -1165,181 +1165,188 @@ function App() {
                 </CardContent>
               </Card>
 
-              <div className="space-y-6">
-                <Card className="overflow-hidden border border-primary/30 bg-card shadow-lg shadow-primary/10">
-                  <CardHeader className="space-y-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <FileCode className="h-5 w-5 text-primary" aria-hidden />
-                          Preview
-                        </CardTitle>
-                        <CardDescription>Rendered output from the latest AI response.</CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Palette className="h-4 w-4 text-primary" aria-hidden />
-                          Theme
-                        </span>
-                        <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                          <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Select theme" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {THEME_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ModeIndicator className="h-4 w-4 text-primary" aria-hidden />
-                          Mode
-                        </span>
-                        <Select value={colorMode} onValueChange={setColorMode}>
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select mode" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {COLOR_MODE_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {hasGenerated ? (
-                        <Badge variant="secondary" className="w-fit">
-                          Live
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="relative overflow-hidden rounded-xl border border-dashed border-primary/30 bg-muted/40">
-                      {iframeDoc ? (
-                        <iframe
-                          title="Questit preview"
-                          sandbox="allow-scripts allow-same-origin"
-                          srcDoc={iframeDoc}
-                          className="min-h-[360px] w-full rounded-xl bg-background"
-                        />
-                      ) : (
-                        <div className="flex min-h-[360px] items-center justify-center text-sm text-muted-foreground">
-                          Generated tool will appear here.
+              <Tabs defaultValue="preview" className="w-full">
+                <TabsList className="mb-4 grid w-full grid-cols-2 bg-muted/70">
+                  <TabsTrigger value="preview">Preview</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
+                </TabsList>
+                <TabsContent value="preview">
+                  <div className="space-y-6">
+                    <Card className="overflow-hidden border border-primary/30 bg-card shadow-lg shadow-primary/10">
+                      <CardHeader className="space-y-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                              <FileCode className="h-5 w-5 text-primary" aria-hidden />
+                              Preview
+                            </CardTitle>
+                            <CardDescription>Rendered output from the latest AI response.</CardDescription>
+                          </div>
                         </div>
-                      )}
-                    </div>
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-col gap-1">
+                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Palette className="h-4 w-4 text-primary" aria-hidden />
+                              Theme
+                            </span>
+                            <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select theme" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {THEME_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <ModeIndicator className="h-4 w-4 text-primary" aria-hidden />
+                              Mode
+                            </span>
+                            <Select value={colorMode} onValueChange={setColorMode}>
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select mode" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {COLOR_MODE_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {hasGenerated ? (
+                            <Badge variant="secondary" className="w-fit">
+                              Live
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="relative overflow-hidden rounded-xl border border-dashed border-primary/30 bg-muted/40">
+                          {iframeDoc ? (
+                            <iframe
+                              title="Questit preview"
+                              sandbox="allow-scripts allow-same-origin"
+                              srcDoc={iframeDoc}
+                              className="min-h-[360px] w-full rounded-xl bg-background"
+                            />
+                          ) : (
+                            <div className="flex min-h-[360px] items-center justify-center text-sm text-muted-foreground">
+                              Generated tool will appear here.
+                            </div>
+                          )}
+                        </div>
+
+                        {hasGenerated ? (
+                          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-foreground">Save to Supabase</p>
+                              <p className="text-xs text-muted-foreground">
+                                Persist the current bundle to your Supabase project.
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                              {user ? (
+                                <Badge variant="secondary" className="justify-center sm:justify-start">
+                                  {userLabel}
+                                </Badge>
+                              ) : (
+                                <Button variant="secondary" size="sm" onClick={handleRequestLogin}>
+                                  Sign in
+                                </Button>
+                              )}
+                              <Button onClick={handleOpenSaveDialog} disabled={!user || saveStatus.state === 'loading'}>
+                                {saveStatus.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Generate a tool to preview and save.
+                          </p>
+                        )}
+                        {saveStatus.message ? (
+                          <p
+                            className={`text-xs ${
+                              saveStatus.state === 'error'
+                                ? 'text-destructive'
+                                : saveStatus.state === 'success'
+                                  ? 'text-emerald-500'
+                                  : 'text-muted-foreground'
+                            }`}
+                          >
+                            {saveStatus.message}
+                          </p>
+                        ) : null}
+                      </CardContent>
+                    </Card>
 
                     {hasGenerated ? (
-                      <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-foreground">Save to Supabase</p>
-                          <p className="text-xs text-muted-foreground">
-                            Persist the current bundle to your Supabase project.
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                          {user ? (
-                            <Badge variant="secondary" className="justify-center sm:justify-start">
-                              {userLabel}
-                            </Badge>
-                          ) : (
-                            <Button variant="secondary" size="sm" onClick={handleRequestLogin}>
-                              Sign in
-                            </Button>
-                          )}
-                          <Button onClick={handleOpenSaveDialog} disabled={!user || saveStatus.state === 'loading'}>
-                            {saveStatus.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Generate a tool to preview and save.
-                      </p>
-                    )}
-                    {saveStatus.message ? (
-                      <p
-                        className={`text-xs ${
-                          saveStatus.state === 'error'
-                            ? 'text-destructive'
-                            : saveStatus.state === 'success'
-                              ? 'text-emerald-500'
-                              : 'text-muted-foreground'
-                        }`}
-                      >
-                        {saveStatus.message}
-                      </p>
+                      <Card className="border border-primary/20 shadow-md">
+                        <CardHeader className="space-y-1.5">
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <FileCode className="h-5 w-5 text-primary" aria-hidden />
+                            Generated code
+                          </CardTitle>
+                          <CardDescription>Review the HTML, CSS, and JavaScript bundles.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Tabs defaultValue="html" className="w-full">
+                            <TabsList className="grid w-full grid-cols-3 bg-muted/70">
+                              <TabsTrigger value="html">HTML</TabsTrigger>
+                              <TabsTrigger value="css">CSS</TabsTrigger>
+                              <TabsTrigger value="js">JavaScript</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="html">
+                              <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
+                                {toolCode.html || '// No HTML returned'}
+                              </pre>
+                            </TabsContent>
+                            <TabsContent value="css">
+                              <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
+                                {toolCode.css || '// No CSS returned'}
+                              </pre>
+                            </TabsContent>
+                            <TabsContent value="js">
+                              <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
+                                {toolCode.js || '// No JS returned'}
+                              </pre>
+                            </TabsContent>
+                          </Tabs>
+                        </CardContent>
+                      </Card>
                     ) : null}
-                  </CardContent>
-                </Card>
-
-                {hasGenerated ? (
-                  <Card className="border border-primary/20 shadow-md">
-                    <CardHeader className="space-y-1.5">
+                  </div>
+                </TabsContent>
+                <TabsContent value="history">
+                  <Card className="border border-primary/30 bg-card shadow-lg shadow-primary/10">
+                    <CardHeader className="space-y-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <FileCode className="h-5 w-5 text-primary" aria-hidden />
-                        Generated code
+                        <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+                        Prompt History
                       </CardTitle>
-                      <CardDescription>Review the HTML, CSS, and JavaScript bundles.</CardDescription>
+                      <CardDescription>
+                        Review previous prompts and statuses. Reuse or retry as needed.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Tabs defaultValue="html" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 bg-muted/70">
-                          <TabsTrigger value="html">HTML</TabsTrigger>
-                          <TabsTrigger value="css">CSS</TabsTrigger>
-                          <TabsTrigger value="js">JavaScript</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="html">
-                          <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                            {toolCode.html || '// No HTML returned'}
-                          </pre>
-                        </TabsContent>
-                        <TabsContent value="css">
-                          <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                            {toolCode.css || '// No CSS returned'}
-                          </pre>
-                        </TabsContent>
-                        <TabsContent value="js">
-                          <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                            {toolCode.js || '// No JS returned'}
-                          </pre>
-                        </TabsContent>
-                      </Tabs>
+                      <PromptTimeline
+                        entries={sessionEntries}
+                        onUsePrompt={handleUsePrompt}
+                        onRetry={handleRetryEntry}
+                      />
                     </CardContent>
                   </Card>
-                ) : null}
-              </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
-        ) : activeView === 'history' ? (
-          <section className="space-y-6">
-            <Card className="border border-primary/30 bg-card shadow-lg shadow-primary/10">
-              <CardHeader className="space-y-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                  Prompt History
-                </CardTitle>
-                <CardDescription>
-                  Review previous prompts and statuses. Reuse or retry as needed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PromptTimeline
-                  entries={sessionEntries}
-                  onUsePrompt={handleUsePrompt}
-                  onRetry={handleRetryEntry}
-                />
-              </CardContent>
-            </Card>
-          </section>
         ) : (
           <section className="space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
