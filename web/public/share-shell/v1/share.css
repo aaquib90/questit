@@ -1,0 +1,428 @@
+:root {
+  color-scheme: light dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: hsl(var(--background, 0 0% 100%));
+  font-family: var(
+    --font-sans,
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif
+  );
+  color: hsl(var(--foreground, 222.2 47.4% 11.2%));
+  -webkit-font-smoothing: antialiased;
+}
+
+.questit-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(24px, 5vw, 42px);
+  padding: clamp(28px, 7vw, 68px) clamp(18px, 7vw, 80px) clamp(48px, 10vw, 104px);
+  background: hsl(var(--background));
+  overflow: hidden;
+}
+
+.questit-shell::before {
+  content: "";
+  position: absolute;
+  inset: -40% -25% -10%;
+  background:
+    radial-gradient(48% 48% at 20% 18%, hsla(var(--primary), 0.22), transparent 70%),
+    radial-gradient(60% 60% at 82% 10%, hsla(var(--accent), 0.2), transparent 75%),
+    radial-gradient(55% 55% at 50% 78%, hsla(var(--secondary), 0.18), transparent 75%);
+  filter: blur(120px);
+  opacity: 0.85;
+  z-index: -2;
+}
+
+.questit-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, hsla(var(--background), 0.94) 0%, hsla(var(--background), 0.98) 24%, hsl(var(--background)) 100%);
+  z-index: -1;
+}
+
+.questit-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.questit-glass {
+  background: linear-gradient(135deg, hsl(var(--background) / 0.86) 0%, hsl(var(--background) / 0.68) 60%);
+  border: 1px solid hsl(var(--primary) / 0.1);
+  box-shadow: 0 24px 60px -32px hsl(var(--primary) / 0.55);
+  backdrop-filter: blur(22px);
+}
+
+.questit-surface {
+  width: min(960px, 100%);
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.questit-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(16px, 3vw, 28px);
+  width: 100%;
+  border-radius: clamp(24px, 3vw, 36px);
+  padding: clamp(20px, 3vw, 32px);
+  border: 1px solid hsl(var(--primary) / 0.12);
+  background:
+    linear-gradient(120deg, hsl(var(--background) / 0.9), hsl(var(--background) / 0.7));
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.55),
+    0 22px 48px -30px rgba(15, 23, 42, 0.48),
+    0 32px 60px -28px hsl(var(--primary) / 0.4);
+  backdrop-filter: blur(26px) saturate(135%);
+  overflow: hidden;
+}
+
+.questit-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 100% at 12% 16%, hsla(var(--primary), 0.28) 0%, transparent 60%),
+    radial-gradient(70% 120% at 88% 8%, hsla(var(--accent), 0.2) 0%, transparent 70%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.questit-header::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid hsla(var(--primary), 0.12);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+
+.questit-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+.questit-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.questit-header-logo {
+  font-family: 'Rubik 80s Fade', cursive;
+  font-size: clamp(2rem, 3.6vw, 2.75rem);
+  color: hsl(var(--primary));
+  text-shadow:
+    0 18px 38px hsl(var(--primary) / 0.35),
+    0 4px 12px hsl(var(--primary) / 0.45);
+  letter-spacing: 0.04em;
+}
+
+.questit-header-subtitle {
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: hsla(var(--muted-foreground), 0.85);
+}
+
+.questit-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.questit-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.questit-header-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.65rem 1.55rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+  border: 1px solid hsla(var(--primary), 0.22);
+  box-shadow: 0 18px 40px -30px hsl(var(--primary));
+}
+
+.questit-header-pill:hover {
+  transform: translateY(-1px);
+}
+
+.questit-header-pill--primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsla(var(--primary), 0.85) 100%);
+  color: hsl(var(--primary-foreground));
+  border-color: transparent;
+  box-shadow: 0 26px 55px -32px hsl(var(--primary));
+}
+
+.questit-header-pill--primary:hover {
+  box-shadow: 0 30px 65px -30px hsl(var(--primary));
+}
+
+.questit-header-pill--ghost {
+  background: linear-gradient(135deg, hsla(var(--background), 0.92) 0%, hsla(var(--background), 0.72) 100%);
+  color: hsl(var(--foreground));
+  box-shadow: 0 18px 42px -32px rgba(15, 23, 42, 0.48);
+}
+
+.questit-header-pill--ghost:hover {
+  box-shadow: 0 22px 50px -30px hsl(var(--primary));
+}
+
+.questit-header-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  color: hsla(var(--muted-foreground), 0.9);
+}
+
+.questit-header-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid hsla(var(--primary), 0.18);
+  background: linear-gradient(135deg, hsla(var(--background), 0.92) 0%, hsla(var(--background), 0.72) 100%);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 28px -26px rgba(15, 23, 42, 0.55);
+}
+
+.questit-header-status[data-status='signed-in'] .questit-header-status__badge {
+  color: hsl(var(--primary));
+  background: linear-gradient(135deg, hsla(var(--primary), 0.18) 0%, hsla(var(--background), 0.75) 100%);
+}
+
+.questit-header-status__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid hsla(var(--primary), 0.24);
+  background: hsla(var(--primary), 0.14);
+  color: hsl(var(--primary));
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
+  box-shadow: 0 14px 34px -28px hsl(var(--primary));
+}
+
+.questit-header-status__action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 44px -30px hsl(var(--primary));
+}
+
+.questit-header-status__action[hidden] {
+  display: none;
+}
+
+.questit-tool-container {
+  position: relative;
+  width: min(960px, 100%);
+  background: linear-gradient(150deg, hsla(var(--background), 0.96) 0%, hsla(var(--background), 0.72) 60%);
+  border-radius: clamp(28px, 4vw, 40px);
+  border: 1px solid hsla(var(--primary), 0.14);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.75),
+    0 36px 80px -38px rgba(15, 23, 42, 0.62);
+  padding: clamp(28px, 5vw, 48px);
+  backdrop-filter: blur(26px) saturate(120%);
+  overflow: hidden;
+}
+
+.questit-tool-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(160deg, hsla(var(--primary), 0.08) 10%, transparent 65%),
+    linear-gradient(220deg, hsla(var(--accent), 0.1) 15%, transparent 75%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.questit-tool-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+.questit-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: clamp(20px, 4vw, 32px);
+}
+
+.questit-meta span {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsla(var(--muted-foreground), 0.85);
+}
+
+.questit-meta h1 {
+  font-size: clamp(1.6rem, 2.6vw, 2.35rem);
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.questit-summary {
+  margin: 0;
+  color: hsla(var(--muted-foreground), 0.9);
+  font-size: clamp(0.92rem, 1.05vw, 1.05rem);
+  line-height: 1.65;
+}
+
+.questit-summary--empty {
+  font-style: italic;
+  color: hsla(var(--muted-foreground), 0.75);
+}
+
+.questit-meta-grid {
+  display: grid;
+  gap: clamp(12px, 2.5vw, 20px);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-top: clamp(14px, 2.5vw, 24px);
+}
+
+.questit-meta-chip {
+  position: relative;
+  border-radius: calc(var(--radius) + 2px);
+  background: linear-gradient(140deg, hsla(var(--background), 0.9) 0%, hsla(var(--background), 0.76) 100%);
+  border: 1px solid hsla(var(--primary), 0.12);
+  padding: clamp(14px, 2.5vw, 18px);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.7),
+    0 14px 30px -28px rgba(15, 23, 42, 0.6);
+}
+
+.questit-meta-chip span {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: hsla(var(--muted-foreground), 0.85);
+  margin-bottom: 6px;
+}
+
+.questit-meta-chip strong {
+  display: block;
+  font-size: 0.98rem;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.questit-meta-cta {
+  margin-top: clamp(18px, 3vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+  border-radius: calc(var(--radius) + 6px);
+  padding: clamp(12px, 2.5vw, 18px);
+  background: hsla(var(--muted), 0.38);
+  border: 1px dashed hsla(var(--primary), 0.28);
+  color: hsla(var(--muted-foreground), 0.88);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.questit-meta-cta strong {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.questit-tool {
+  position: relative;
+  display: block;
+  border-radius: calc(var(--radius) + 6px);
+  background: linear-gradient(135deg, hsla(var(--background), 0.92) 0%, hsla(var(--background), 0.68) 100%);
+  border: 1px solid hsla(var(--primary), 0.12);
+  padding: clamp(20px, 4.2vw, 32px);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--background), 0.7),
+    0 18px 42px -32px rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(10px) saturate(115%);
+}
+
+.questit-tool > * {
+  max-width: 100%;
+}
+
+.questit-footer {
+  margin-top: clamp(20px, 4vw, 32px);
+  font-size: 0.75rem;
+  color: hsla(var(--muted-foreground), 0.85);
+}
+
+@media (max-width: 640px) {
+  .questit-shell {
+    padding: 16px;
+  }
+
+  .questit-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .questit-header-right {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .questit-header-actions {
+    justify-content: flex-start;
+  }
+
+  .questit-header-status {
+    justify-content: flex-start;
+  }
+
+  .questit-tool {
+    padding: 16px;
+  }
+}

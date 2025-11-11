@@ -241,6 +241,7 @@ const THEME_PRESETS = {
 };
 
 const DEFAULT_THEME_KEY = 'emerald';
+const SHARE_SHELL_VERSION = 'v1';
 
 function resolveThemeVars(themeKey = DEFAULT_THEME_KEY) {
   const safeKey = (themeKey || '').toLowerCase();
@@ -339,6 +340,13 @@ function buildLayoutCss() {
   z-index: 1;
 }
 
+.questit-glass {
+  background: linear-gradient(135deg, hsl(var(--background) / 0.86) 0%, hsl(var(--background) / 0.68) 60%);
+  border: 1px solid hsl(var(--primary) / 0.1);
+  box-shadow: 0 24px 60px -32px hsl(var(--primary) / 0.55);
+  backdrop-filter: blur(22px);
+}
+
 .questit-surface {
   width: min(960px, 100%);
   display: flex;
@@ -358,15 +366,14 @@ function buildLayoutCss() {
   width: 100%;
   border-radius: clamp(24px, 3vw, 36px);
   padding: clamp(20px, 3vw, 32px);
-  border: 1px solid hsla(var(--primary), 0.32);
+  border: 1px solid hsl(var(--primary) / 0.12);
   background:
-    linear-gradient(165deg, hsla(var(--primary), 0.42) 0%, hsla(var(--primary), 0.24) 24%, hsla(var(--background), 0.82) 62%, hsla(var(--background), 0.72) 100%),
-    linear-gradient(120deg, hsla(var(--background), 0.75), hsla(var(--background), 0.68));
+    linear-gradient(120deg, hsl(var(--background) / 0.9), hsl(var(--background) / 0.7));
   box-shadow:
     inset 0 1px 0 hsla(var(--background), 0.55),
-    0 22px 32px -22px hsla(var(--primary), 0.65),
-    0 38px 65px -26px rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(26px) saturate(140%);
+    0 22px 48px -30px rgba(15, 23, 42, 0.48),
+    0 32px 60px -28px hsl(var(--primary) / 0.4);
+  backdrop-filter: blur(26px) saturate(135%);
   overflow: hidden;
 }
 
@@ -375,9 +382,9 @@ function buildLayoutCss() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(75% 95% at 14% 20%, hsla(var(--primary), 0.55) 0%, transparent 58%),
-    linear-gradient(150deg, hsla(var(--accent), 0.32) 12%, transparent 68%);
-  opacity: 0.9;
+    radial-gradient(70% 100% at 12% 16%, hsla(var(--primary), 0.28) 0%, transparent 60%),
+    radial-gradient(70% 120% at 88% 8%, hsla(var(--accent), 0.2) 0%, transparent 70%);
+  opacity: 0.85;
   pointer-events: none;
 }
 
@@ -707,26 +714,15 @@ function escapeHtmlAttr(value) {
     .replace(/>/g, '&gt;');
 }
 
-function escapeHtmlText(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\r\n|\n|\r/g, '<br>');
+function escapeJsonForScript(jsonString) {
+  return String(jsonString ?? '')
+    .replace(/<\//g, '<\\/')
+    .replace(/<!--/g, '<\\!--');
 }
 
-function sanitizeForStyle(content) {
-  return String(content ?? '').replace(/<\/style/gi, '<\\/style');
-}
-
-function sanitizeForScript(content) {
-  return String(content ?? '').replace(/<\/script/gi, '<\\/script');
-}
-
-function buildUserWorkerScript(tool) {
-  const themeKey = tool.theme || DEFAULT_THEME_KEY;
-  const themeCss = buildThemeCss(themeKey);
-  const layoutCss = buildLayoutCss();
+function buildUserWorkerScript(tool, assetBaseUrl) {
+  const themeKeyRaw = (tool.theme || DEFAULT_THEME_KEY).toLowerCase();
+  const themeKey = THEME_PRESETS[themeKeyRaw] ? themeKeyRaw : DEFAULT_THEME_KEY;
   const rawColorMode = (tool.color_mode || '').toLowerCase();
   const colorMode =
     rawColorMode === 'system'
@@ -737,258 +733,42 @@ function buildUserWorkerScript(tool) {
           ? 'light'
           : 'light';
   const htmlClass = colorMode === 'dark' ? ' class="dark"' : '';
-  const colorModeSetup =
-    colorMode === 'system'
-      ? `
-const media = window.matchMedia('(prefers-color-scheme: dark)');
-const applyScheme = (event) => {
-  document.documentElement.classList.toggle('dark', !!(event.matches ?? event));
-};
-applyScheme(media.matches);
-if (media.addEventListener) {
-  media.addEventListener('change', (event) => applyScheme(event.matches));
-} else if (media.addListener) {
-  media.addListener((event) => applyScheme(event.matches));
-}`
-      : '';
+  const shareSlug = tool.share_slug || null;
+  const assetBase =
+    (assetBaseUrl || 'https://questit.cc/share-shell').replace(/\/$/, '');
+  const cssHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.css`;
+  const jsHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.js`;
 
-  const formatModelLabel = (provider, model) => {
-    if (!provider && !model) return 'Not specified';
-    const providerLabel = provider
-      ? provider.toLowerCase() === 'openai'
-        ? 'OpenAI'
-        : provider.toLowerCase() === 'gemini'
-          ? 'Google Gemini'
-          : provider.charAt(0).toUpperCase() + provider.slice(1)
-      : 'Model';
-    return model ? `${providerLabel} · ${model}` : providerLabel;
+  const payload = {
+    title: tool.title || '',
+    public_summary: tool.public_summary || '',
+    model_provider: tool.model_provider || null,
+    model_name: tool.model_name || null,
+    theme: themeKey,
+    color_mode: colorMode,
+    html: String(tool.html ?? ''),
+    css: tool.css || '',
+    js: tool.js || '',
+    share_slug: shareSlug,
+    shell_version: SHARE_SHELL_VERSION
   };
 
   const shellTitle = escapeHtmlAttr(tool.title || 'Questit Tool');
-  const summaryHtml = tool.public_summary
-    ? `<p class="questit-summary">${escapeHtmlText(tool.public_summary)}</p>`
-    : `<p class="questit-summary questit-summary--empty">Creator hasn't added a public summary yet.</p>`;
-  const modelDisplay = formatModelLabel(tool.model_provider, tool.model_name);
-  const themeLabel = themeKey.charAt(0).toUpperCase() + themeKey.slice(1);
-  const modeLabel = colorMode === 'system' ? 'System (auto)' : colorMode === 'dark' ? 'Dark' : 'Light';
-  const shareSlug = tool.share_slug || null;
-  const htmlSnippet = String(tool.html ?? '').trim() || '<p>No content returned.</p>';
-  const cssSnippet = sanitizeForStyle(tool.css);
-  const jsSnippet = sanitizeForScript(tool.js);
-
-  const fullHtml = `<!doctype html>
+  const dataJson = escapeJsonForScript(JSON.stringify(payload));
+  const htmlDocument = `<!doctype html>
 <html${htmlClass}>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${shellTitle}</title>
-<style>${themeCss}
-${layoutCss}
-${cssSnippet}</style>
-</head>
-<body>
-<div class="questit-shell">
-  <div class="questit-surface">
-    <div class="questit-header">
-      <div class="questit-header-meta">
-        <span class="questit-header-logo">Questit</span>
-        <span class="questit-header-subtitle">Shared tool</span>
-      </div>
-      <div class="questit-header-right">
-        <div class="questit-header-actions">
-          <a class="questit-header-pill questit-header-pill--primary" data-questit-action="remix" href="https://questit.cc">
-            Remix in Workbench
-          </a>
-          <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
-            Open Questit Workspace
-          </a>
-        </div>
-        <div class="questit-header-status" data-questit-auth data-status="signed-out">
-          <span class="questit-header-status__badge" data-questit-auth-label>Viewing as guest</span>
-          <a class="questit-header-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
-          Log in to Questit
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="questit-tool-container">
-    <div class="questit-meta">
-      <span>Generated with Questit</span>
-      <h1>${shellTitle}</h1>
-      ${summaryHtml}
-      <div class="questit-meta-grid">
-        <div class="questit-meta-chip">
-          <span>Model</span>
-          <strong>${escapeHtmlText(modelDisplay)}</strong>
-        </div>
-        <div class="questit-meta-chip">
-          <span>Theme</span>
-          <strong>${escapeHtmlText(themeLabel)}</strong>
-        </div>
-        <div class="questit-meta-chip">
-          <span>Mode</span>
-          <strong>${escapeHtmlText(modeLabel)}</strong>
-        </div>
-      </div>
-      <div class="questit-meta-cta">
-        <strong>Tip:</strong>
-        <span>Remix or open above to customise this tool in Questit. If you're not signed in yet, the workspace will prompt you to log in.</span>
-      </div>
-    </div>
-    <section class="questit-tool" id="questit-tool-root">
-${htmlSnippet}
-    </section>
-    <footer class="questit-footer">
-      This tool runs entirely in the browser. Remix it in the Questit workbench to customize and publish your own copy.
-    </footer>
-  </div>
-</div>
-<script>
-${colorModeSetup}
-(() => {
-  try {
-    const anchor = document.querySelector('[data-questit-action="remix"]');
-    const slugFromMeta = ${shareSlug ? `"${shareSlug}"` : 'null'};
-    let slug = slugFromMeta;
-    if (!slug && typeof window !== 'undefined') {
-      const host = window.location.hostname || '';
-      slug = host.split('.').filter(Boolean)[0] || '';
-    }
-    if (anchor && slug) {
-      anchor.href = 'https://questit.cc/?remix=' + encodeURIComponent(slug);
-    }
-  } catch (error) {
-    console.warn('Questit remix link generation failed', error);
-  }
-})();
-(() => {
-  if (typeof window === 'undefined') return;
-  const root = document.querySelector('[data-questit-auth]');
-  if (!root) return;
-  const labelEl = root.querySelector('[data-questit-auth-label]');
-  const actionEl = root.querySelector('[data-questit-auth-action]');
-  const defaultAction = {
-    href: actionEl ? actionEl.getAttribute('href') || 'https://questit.cc/?login=1' : 'https://questit.cc/?login=1',
-    text: actionEl ? actionEl.textContent || 'Log in to Questit' : 'Log in to Questit'
-  };
-  const guestState = {
-    label: 'Viewing as guest',
-    actionText: defaultAction.text,
-    actionHref: defaultAction.href
-  };
-
-  const setState = (state, meta = {}) => {
-    root.setAttribute('data-status', state);
-    if (labelEl) {
-      labelEl.textContent = meta.label || (state === 'signed-in'
-        ? 'Signed in to Questit'
-        : state === 'error'
-          ? 'Status unavailable'
-          : state === 'checking'
-            ? 'Checking sign-in…'
-          : 'Viewing as guest');
-    }
-    if (actionEl) {
-      if (state === 'signed-in') {
-        actionEl.hidden = true;
-        actionEl.textContent = defaultAction.text;
-        actionEl.href = defaultAction.href;
-      } else {
-        actionEl.hidden = false;
-        actionEl.textContent = meta.actionText || defaultAction.text;
-        actionEl.href = meta.actionHref || defaultAction.href;
-      }
-    }
-  };
-
-  setState('signed-out', guestState);
-
-  const defaultBridgeOrigin = 'https://questit.cc';
-  let bridgeOrigin = defaultBridgeOrigin;
-  try {
-    const currentOrigin = window.location.origin;
-    if (currentOrigin && currentOrigin.startsWith('http')) {
-      bridgeOrigin = currentOrigin;
-    }
-  } catch {
-    bridgeOrigin = defaultBridgeOrigin;
-  }
-  const bridgeUrl =
-    bridgeOrigin.replace(/\/$/, '') +
-    '/auth-bridge.html?origin=' +
-    encodeURIComponent(window.location.origin || bridgeOrigin);
-
-  const iframe = document.createElement('iframe');
-  iframe.src = bridgeUrl;
-  iframe.style.position = 'absolute';
-  iframe.style.width = '1px';
-  iframe.style.height = '1px';
-  iframe.style.border = '0';
-  iframe.style.opacity = '0';
-  iframe.style.pointerEvents = 'none';
-  iframe.setAttribute('aria-hidden', 'true');
-  iframe.tabIndex = -1;
-
-  let handshakeResolved = false;
-
-  const requestAuthState = () => {
-    try {
-      iframe.contentWindow?.postMessage({ type: 'questit-auth-request' }, bridgeOrigin);
-    } catch (error) {
-      console.warn('Questit auth request failed', error);
-    }
-  };
-
-  const applyPayload = (payload) => {
-    if (!payload || payload.type !== 'questit-auth-state') return;
-    handshakeResolved = true;
-    if (payload.status === 'signed-in' && payload.user) {
-      const userLabel = payload.user.email || payload.user.name || 'Signed in to Questit';
-      setState('signed-in', { label: 'Signed in as ' + userLabel });
-      return;
-    }
-    if (payload.status === 'error') {
-      setState('error', {
-        label: 'Status unavailable',
-        actionText: 'Open Questit',
-        actionHref: bridgeOrigin
-      });
-      return;
-    }
-    setState('signed-out', {
-      label: 'Viewing as guest',
-      actionText: 'Log in to Questit',
-      actionHref: defaultAction.href
-    });
-  };
-
-  const handleMessage = (event) => {
-    if (event.origin !== bridgeOrigin) return;
-    applyPayload(event.data);
-  };
-
-  window.addEventListener('message', handleMessage);
-  iframe.addEventListener('load', () => {
-    requestAuthState();
-    window.setTimeout(requestAuthState, 500);
-  });
-
-  window.setTimeout(() => {
-    if (!handshakeResolved) {
-      setState('signed-out', guestState);
-    }
-  }, 2500);
-
-  document.body.appendChild(iframe);
-})();
-</script>
-<script type="module">
-${jsSnippet}
-</script>
-</body>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${shellTitle}</title>
+    <link rel="stylesheet" href="${cssHref}">
+  </head>
+  <body>
+    <div id="questit-share-root" class="questit-shell"></div>
+    <script type="application/json" id="questit-share-data">${dataJson}</script>
+    <script type="module" src="${jsHref}"></script>
+  </body>
 </html>`;
-
   const metadataPayload = {
     id: tool.id || null,
     title: tool.title || '',
@@ -1000,7 +780,8 @@ ${jsSnippet}
     slug: shareSlug,
     html: tool.html || '',
     css: tool.css || '',
-    js: tool.js || ''
+    js: tool.js || '',
+    shell_version: SHARE_SHELL_VERSION
   };
 
   const responseInit = JSON.stringify({
@@ -1014,7 +795,7 @@ ${jsSnippet}
   event.respondWith(handleRequest(event.request));
 });
 
-const html = ${JSON.stringify(fullHtml)};
+const html = ${JSON.stringify(htmlDocument)};
 const metadata = ${JSON.stringify(metadataPayload)};
 
 async function handleRequest(request) {
@@ -1096,7 +877,8 @@ export default {
     }
 
     const enrichedTool = { ...tool, share_slug: scriptName };
-    const source = buildUserWorkerScript(enrichedTool);
+    const assetBaseUrl = (env.SHARE_SHELL_BASE_URL || 'https://questit.cc/share-shell').trim();
+    const source = buildUserWorkerScript(enrichedTool, assetBaseUrl);
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${namespaceSlug}/scripts/${scriptName}`;
     const res = await fetch(url, {
