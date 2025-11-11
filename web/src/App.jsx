@@ -409,7 +409,7 @@ function App() {
   const [sessionEntries, setSessionEntries] = useState([]);
   const [sessionStatus, setSessionStatus] = useState({
     state: 'idle',
-    message: 'Describe the tool you want to build and send it when ready.'
+    message: ''
   });
   const [toolCode, setToolCode] = useState({ html: '', css: '', js: '' });
   const [isGenerating, setIsGenerating] = useState(false);
@@ -593,6 +593,7 @@ function App() {
 
   const handleUsePrompt = (promptText) => {
     setComposerValue(promptText);
+    setActiveView('workbench');
     composerRef.current?.focus();
   };
 
@@ -602,7 +603,7 @@ function App() {
     setComposerValue(DEFAULT_PROMPT);
     setSessionStatus({
       state: 'idle',
-      message: 'Describe the tool you want to build and send it when ready.'
+      message: ''
     });
     setSaveStatus({ state: 'idle', message: '' });
     setSaveDraft({ title: '', summary: '' });
@@ -1119,10 +1120,10 @@ function App() {
                   <div className="space-y-1.5">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                      Prompt &amp; History
+                      Prompt
                     </CardTitle>
                     <CardDescription>
-                      Drive generation and iterations from a single thread.
+                      Describe what you want and generate a tool.
                     </CardDescription>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1149,11 +1150,6 @@ function App() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <PromptTimeline
-                    entries={sessionEntries}
-                    onUsePrompt={handleUsePrompt}
-                    onRetry={handleRetryEntry}
-                  />
                   <PromptComposer
                     ref={composerRef}
                     value={composerValue}
@@ -1323,6 +1319,27 @@ function App() {
               </div>
             </div>
           </div>
+        ) : activeView === 'history' ? (
+          <section className="space-y-6">
+            <Card className="border border-primary/30 bg-card shadow-lg shadow-primary/10">
+              <CardHeader className="space-y-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+                  Prompt History
+                </CardTitle>
+                <CardDescription>
+                  Review previous prompts and statuses. Reuse or retry as needed.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PromptTimeline
+                  entries={sessionEntries}
+                  onUsePrompt={handleUsePrompt}
+                  onRetry={handleRetryEntry}
+                />
+              </CardContent>
+            </Card>
+          </section>
         ) : (
           <section className="space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
