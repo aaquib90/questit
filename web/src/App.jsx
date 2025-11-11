@@ -560,7 +560,7 @@ function App() {
             : entry
         )
       );
-      setSessionStatus({ state: 'success', message: 'Tool updated. Review the preview.' });
+      setSessionStatus({ state: 'success', message: '' });
       setSaveDraft((draft) => ({
         title: draft.title || trimmed.slice(0, 80),
         summary: draft.summary
