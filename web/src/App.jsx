@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Sparkles,
   RefreshCcw,
-  AlertCircle,
-  CheckCircle2,
   Loader2,
-  History as HistoryIcon,
   FileCode,
   Palette,
   Moon,
@@ -19,10 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -32,6 +26,9 @@ import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
 import WorkbenchHero from '@/components/workbench/WorkbenchHero.jsx';
 import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
+import PromptComposer from '@/components/workbench/PromptComposer.jsx';
+import PromptTimeline from '@/components/workbench/PromptTimeline.jsx';
+import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -396,29 +393,41 @@ function buildShareUrl(workerName, apiBase) {
   }
 }
 
+function summarizeCodeBundle({ html = '', css = '', js = '' }) {
+  const parts = [];
+  if (html) parts.push(`HTML ${html.length.toLocaleString()} chars`);
+  if (css) parts.push(`CSS ${css.length.toLocaleString()} chars`);
+  if (js) parts.push(`JS ${js.length.toLocaleString()} chars`);
+  if (!parts.length) {
+    return '';
+  }
+  return `Updated ${parts.join(' · ')}`;
+}
+
 function App() {
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [activeAction, setActiveAction] = useState(null);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [composerValue, setComposerValue] = useState(DEFAULT_PROMPT);
+  const [sessionEntries, setSessionEntries] = useState([]);
+  const [sessionStatus, setSessionStatus] = useState({
+    state: 'idle',
+    message: 'Describe the tool you want to build and send it when ready.'
+  });
   const [toolCode, setToolCode] = useState({ html: '', css: '', js: '' });
-  const [history, setHistory] = useState([]);
-  const [iterationPrompt, setIterationPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(DEFAULT_THEME_KEY);
   const [user, setUser] = useState(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authEmail, setAuthEmail] = useState('');
   const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
-  const [saveTitle, setSaveTitle] = useState('');
-  const [saveSummary, setSaveSummary] = useState('');
   const [saveStatus, setSaveStatus] = useState({ state: 'idle', message: '' });
+  const [saveDraft, setSaveDraft] = useState({ title: '', summary: '' });
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState('workbench');
   const [myTools, setMyTools] = useState([]);
   const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
   const [myToolsError, setMyToolsError] = useState('');
   const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
   const [toolActionStatus, setToolActionStatus] = useState({});
+  const composerRef = useRef(null);
   const [colorMode, setColorMode] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -444,6 +453,7 @@ function App() {
     }
     return MODEL_OPTIONS[0].id;
   });
+
   const endpoint = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
@@ -472,10 +482,131 @@ function App() {
   );
   const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
   const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
+
   const handleRequestLogin = useCallback(() => {
     setAuthDialogOpen(true);
     setAuthStatus({ state: 'idle', message: '' });
   }, []);
+
+  const createEntryId = () =>
+    `entry-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+  const executePrompt = async ({ promptText, reuseEntryId = null } = {}) => {
+    const trimmed = (promptText || '').trim();
+    if (!trimmed || isGenerating) return;
+
+    const entryId = reuseEntryId || createEntryId();
+    const timestamp = new Date().toISOString();
+    const modelLabel = selectedModelOption.label;
+
+    setSessionEntries((previous) => {
+      if (reuseEntryId) {
+        return previous.map((entry) =>
+          entry.id === entryId
+            ? {
+                ...entry,
+                prompt: trimmed,
+                status: 'pending',
+                error: null,
+                responseSummary: '',
+                createdAt: timestamp,
+                modelLabel
+              }
+            : entry
+        );
+      }
+      return [
+        ...previous,
+        {
+          id: entryId,
+          prompt: trimmed,
+          status: 'pending',
+          createdAt: timestamp,
+          modelId: selectedModelOption.id,
+          modelLabel,
+          error: null,
+          responseSummary: ''
+        }
+      ];
+    });
+
+    if (!reuseEntryId) {
+      setComposerValue('');
+    }
+
+    setIsGenerating(true);
+    setSessionStatus({ state: 'loading', message: 'Generating tool…' });
+
+    try {
+      const modelConfig = {
+        provider: selectedModelOption.provider,
+        model: selectedModelOption.model
+      };
+      const previousCode = hasGenerated ? toolCode : undefined;
+      const result = await generateTool(trimmed, endpoint, previousCode, modelConfig);
+
+      setToolCode(result);
+      setSessionEntries((previous) =>
+        previous.map((entry) =>
+          entry.id === entryId
+            ? {
+                ...entry,
+                status: 'success',
+                responseSummary: summarizeCodeBundle(result),
+                error: null
+              }
+            : entry
+        )
+      );
+      setSessionStatus({ state: 'success', message: 'Tool updated. Review the preview.' });
+      setSaveDraft((draft) => ({
+        title: draft.title || trimmed.slice(0, 80),
+        summary: draft.summary
+      }));
+    } catch (error) {
+      console.error('Generation error:', error);
+      const message = error?.message || 'Failed to generate tool.';
+      setSessionEntries((previous) =>
+        previous.map((entry) =>
+          entry.id === entryId
+            ? {
+                ...entry,
+                status: 'error',
+                error: message
+              }
+            : entry
+        )
+      );
+      setSessionStatus({ state: 'error', message });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handlePromptSubmit = () => {
+    executePrompt({ promptText: composerValue });
+  };
+
+  const handleRetryEntry = (entry) => {
+    executePrompt({ promptText: entry?.prompt || '', reuseEntryId: entry?.id });
+  };
+
+  const handleUsePrompt = (promptText) => {
+    setComposerValue(promptText);
+    composerRef.current?.focus();
+  };
+
+  const handleResetSession = () => {
+    setSessionEntries([]);
+    setToolCode({ html: '', css: '', js: '' });
+    setComposerValue(DEFAULT_PROMPT);
+    setSessionStatus({
+      state: 'idle',
+      message: 'Describe the tool you want to build and send it when ready.'
+    });
+    setSaveStatus({ state: 'idle', message: '' });
+    setSaveDraft({ title: '', summary: '' });
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -488,7 +619,7 @@ function App() {
 
     const loadRemix = async () => {
       try {
-        setStatusMessage('Loading shared tool for remix…');
+        setSessionStatus({ state: 'loading', message: 'Loading shared tool for remix…' });
         const origin = window.location.origin || '';
         const isLocalOrigin =
           origin.includes('localhost') || origin.includes('127.') || origin.includes('0.0.0.0');
@@ -525,8 +656,20 @@ function App() {
         const css = data.css || '';
         const js = data.js || '';
         setToolCode({ html, css, js });
-        setHistory([{ type: 'remix', prompt: '', code: { html, css, js } }]);
-        setIterationPrompt('');
+        setSessionEntries([
+          {
+            id: createEntryId(),
+            prompt: data.prompt || 'Remixed from shared tool',
+            status: 'success',
+            createdAt: new Date().toISOString(),
+            responseSummary: 'Loaded shared bundle.',
+            modelLabel:
+              data.model_provider && data.model_name
+                ? `${data.model_provider} · ${data.model_name}`
+                : selectedModelOption.label,
+            error: null
+          }
+        ]);
         if (data.theme) {
           setSelectedTheme(data.theme);
         }
@@ -536,23 +679,28 @@ function App() {
         if (data.model_provider && data.model_name) {
           const match = MODEL_OPTIONS.find(
             (option) =>
-              option.provider === data.model_provider &&
-              option.model === data.model_name
+              option.provider === data.model_provider && option.model === data.model_name
           );
           if (match) {
             setModelId(match.id);
           }
         }
-        setPrompt(''); // Prompt intentionally left blank for privacy
-        setSaveTitle(data.title ? `${data.title} (Remix)` : 'Remixed Questit tool');
-        setSaveSummary(data.public_summary || '');
+        setSaveDraft({
+          title: data.title || data.prompt?.slice(0, 80) || '',
+          summary: data.public_summary || ''
+        });
+        setSessionStatus({
+          state: 'success',
+          message: 'Shared tool loaded. Iterate or publish as needed.'
+        });
+        setComposerValue('');
         setActiveView('workbench');
-        setStatusMessage('Loaded shared tool. Remix and save your own version.');
-        setErrorMessage('');
-        setSaveStatus({ state: 'idle', message: '' });
       } catch (error) {
         console.error('Failed to load remix tool:', error);
-        setErrorMessage(error?.message || 'Unable to load shared tool for remix.');
+        setSessionStatus({
+          state: 'error',
+          message: error?.message || 'Unable to load shared tool for remix.'
+        });
       } finally {
         params.delete('remix');
         const nextSearch = params.toString();
@@ -563,7 +711,7 @@ function App() {
 
     loadRemix();
     return undefined;
-  }, []);
+  }, [selectedModelOption.label]);
 
   const updateToolActionStatus = useCallback((toolId, updates) => {
     setToolActionStatus((previous) => {
@@ -634,8 +782,7 @@ function App() {
       setAuthStatus({ state: 'idle', message: '' });
       setSaveStatus({ state: 'idle', message: '' });
       setAuthEmail('');
-      setSaveTitle('');
-      setSaveSummary('');
+      handleResetSession();
       setMyTools([]);
       setMyToolsError('');
       setIsLoadingMyTools(false);
@@ -678,31 +825,48 @@ function App() {
       const css = toolRecord.css || '';
       const js = toolRecord.js || '';
       setToolCode({ html, css, js });
-      setHistory([{ type: 'initial', prompt: toolRecord.prompt || '', code: { html, css, js } }]);
-      setIterationPrompt('');
-      setSelectedTheme(toolRecord.theme || DEFAULT_THEME_KEY);
+      const modelLabelFromRecord =
+        toolRecord.model_provider && toolRecord.model_name
+          ? `${toolRecord.model_provider} · ${toolRecord.model_name}`
+          : selectedModelOption.label;
+
+      setSessionEntries([
+        {
+          id: createEntryId(),
+          prompt: toolRecord.prompt || 'Loaded from Supabase',
+          status: 'success',
+          createdAt: toolRecord.updated_at || new Date().toISOString(),
+          responseSummary: 'Loaded saved bundle.',
+          modelLabel: modelLabelFromRecord,
+          error: null
+        }
+      ]);
+      setSessionStatus({
+        state: 'success',
+        message: 'Loaded saved tool into the workbench.'
+      });
+      setComposerValue('');
+      setSaveDraft({
+        title: toolRecord.title || '',
+        summary: toolRecord.public_summary || ''
+      });
+      if (toolRecord.theme) {
+        setSelectedTheme(toolRecord.theme);
+      }
       if (toolRecord.color_mode) {
         setColorMode(toolRecord.color_mode);
       }
-      setPrompt(toolRecord.prompt || DEFAULT_PROMPT);
-      setSaveTitle(toolRecord.title || '');
-      setSaveSummary(toolRecord.public_summary || '');
       if (toolRecord.model_provider && toolRecord.model_name) {
         const match = MODEL_OPTIONS.find(
           (option) =>
-            option.provider === toolRecord.model_provider &&
-            option.model === toolRecord.model_name
+            option.provider === toolRecord.model_provider && option.model === toolRecord.model_name
         );
         if (match) {
           setModelId(match.id);
         }
       }
       setActiveView('workbench');
-      setStatusMessage('Loaded saved tool into the workbench.');
-      setErrorMessage('');
       setSaveStatus({ state: 'idle', message: '' });
-      setAuthDialogOpen(false);
-
       updateToolActionStatus(toolId, { loading: false, error: '' });
     } catch (error) {
       console.error('Failed to load saved tool:', error);
@@ -746,7 +910,7 @@ function App() {
       const publishPayload = {
         id: toolRecord.id,
         title: toolRecord.title,
-        public_summary: toolRecord.public_summary || saveSummary || '',
+        public_summary: toolRecord.public_summary || saveDraft.summary || '',
         theme: toolRecord.theme || selectedTheme || DEFAULT_THEME_KEY,
         color_mode: toolRecord.color_mode || colorMode || resolvedMode,
         model_provider: toolRecord.model_provider || selectedModelOption.provider,
@@ -775,7 +939,7 @@ function App() {
     }
   };
 
-  const handleSaveTool = async () => {
+  const handleOpenSaveDialog = () => {
     if (!user) {
       handleRequestLogin();
       return;
@@ -787,13 +951,34 @@ function App() {
       });
       return;
     }
-    if (!hasGenerated) return;
+    if (!hasGenerated) {
+      setSaveStatus({
+        state: 'error',
+        message: 'Generate a tool before saving.'
+      });
+      return;
+    }
 
-    const title = saveTitle.trim() || `Tool ${new Date().toLocaleString()}`;
-    const summary = saveSummary.trim();
+    const latestPrompt = sessionEntries.at(-1)?.prompt || composerValue || DEFAULT_PROMPT;
+    setSaveDraft((draft) => ({
+      title: draft.title || latestPrompt.slice(0, 80),
+      summary: draft.summary || ''
+    }));
+    setSaveStatus({ state: 'idle', message: '' });
+    setSaveDialogOpen(true);
+  };
+
+  const handleSaveTool = async ({ title, summary }) => {
+    if (!user || !hasSupabaseConfig) {
+      setSaveStatus({
+        state: 'error',
+        message: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+      });
+      return;
+    }
+
     setSaveStatus({ state: 'loading', message: 'Saving to Supabase…' });
-
-    const sourcePrompt = history[0]?.prompt || prompt || null;
+    const sourcePrompt = sessionEntries[0]?.prompt || composerValue || null;
 
     const { error } = await supabase.from('user_tools').insert({
       user_id: user.id,
@@ -814,6 +999,8 @@ function App() {
       return;
     }
 
+    setSaveDialogOpen(false);
+    setSaveDraft({ title, summary });
     setMyToolsRefreshKey((value) => value + 1);
     setSaveStatus({ state: 'success', message: 'Tool saved to Supabase.' });
   };
@@ -911,74 +1098,6 @@ function App() {
     };
   }, [activeView, myToolsRefreshKey, user]);
 
-  const handleGenerate = async (event) => {
-    event?.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
-
-    setActiveAction('generate');
-    setIsGenerating(true);
-    setErrorMessage('');
-    setStatusMessage('');
-
-    try {
-      const modelConfig = {
-        provider: selectedModelOption.provider,
-        model: selectedModelOption.model
-      };
-      const result = await generateTool(prompt.trim(), endpoint, undefined, modelConfig);
-      setToolCode(result);
-      setHistory([{ type: 'initial', prompt: prompt.trim(), code: result }]);
-      setIterationPrompt('');
-      setSaveTitle(prompt.trim().slice(0, 60));
-      setSaveSummary('');
-      setSaveStatus({ state: 'idle', message: '' });
-      setStatusMessage('Tool generated. Review the preview below.');
-    } catch (error) {
-      console.error('Generation error:', error);
-      setErrorMessage(error?.message || 'Failed to generate tool.');
-      setStatusMessage('');
-      setToolCode({ html: '', css: '', js: '' });
-      setHistory([]);
-      setSaveStatus({ state: 'idle', message: '' });
-    } finally {
-      setActiveAction(null);
-      setIsGenerating(false);
-    }
-  };
-
-  const handleIterate = async (event) => {
-    event?.preventDefault();
-    if (!iterationPrompt.trim() || !hasGenerated || isGenerating) return;
-
-    setActiveAction('iterate');
-    setIsGenerating(true);
-    setErrorMessage('');
-    setStatusMessage('');
-
-    try {
-      const modelConfig = {
-        provider: selectedModelOption.provider,
-        model: selectedModelOption.model
-      };
-      const updated = await generateTool(iterationPrompt.trim(), endpoint, toolCode, modelConfig);
-      setToolCode(updated);
-      setHistory((previous) => [
-        ...previous,
-        { type: 'iteration', prompt: iterationPrompt.trim(), code: updated }
-      ]);
-      setIterationPrompt('');
-      setSaveStatus({ state: 'idle', message: '' });
-      setStatusMessage('Iteration applied. Preview updated.');
-    } catch (error) {
-      console.error('Iteration error:', error);
-      setErrorMessage(error?.message || 'Failed to apply iteration.');
-      setStatusMessage('');
-    } finally {
-      setActiveAction(null);
-      setIsGenerating(false);
-    }
-  };
-
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="questit-aurora" />
@@ -994,303 +1113,215 @@ function App() {
 
         {activeView === 'workbench' ? (
           <div className="space-y-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <Card className="border border-primary/30 shadow-lg shadow-primary/10">
-            <CardHeader className="space-y-1.5">
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                Generate
-              </CardTitle>
-              <CardDescription>
-                Describe the tool you want to build and send it to the Questit AI proxy.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <form onSubmit={handleGenerate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="model-select">Model</Label>
-                  <Select value={modelId} onValueChange={setModelId}>
-                    <SelectTrigger id="model-select" className="w-full">
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MODEL_OPTIONS.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="prompt">Prompt</Label>
-                  <Textarea
-                    id="prompt"
-                    value={prompt}
-                    onChange={(event) => setPrompt(event.target.value)}
-                    placeholder="Describe the tool you want to build…"
-                    className="min-h-[140px] resize-y"
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+              <Card className="border border-primary/30 bg-card shadow-lg shadow-primary/10">
+                <CardHeader className="space-y-4">
+                  <div className="space-y-1.5">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Sparkles className="h-5 w-5 text-primary" aria-hidden />
+                      Prompt &amp; History
+                    </CardTitle>
+                    <CardDescription>
+                      Drive generation and iterations from a single thread.
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="composer-model">Model</Label>
+                      <Select value={modelId} onValueChange={setModelId}>
+                        <SelectTrigger id="composer-model" className="w-[220px]">
+                          <SelectValue placeholder="Select a model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MODEL_OPTIONS.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {sessionEntries.length ? (
+                      <Badge variant="secondary" className="w-fit">
+                        Steps: {sessionEntries.length}
+                      </Badge>
+                    ) : null}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <PromptTimeline
+                    entries={sessionEntries}
+                    onUsePrompt={handleUsePrompt}
+                    onRetry={handleRetryEntry}
                   />
-                </div>
-                <Button type="submit" disabled={isGenerating} className="w-full sm:w-auto">
-                  {isGenerating && activeAction === 'generate' ? 'Generating…' : 'Generate Tool'}
-                </Button>
-              </form>
+                  <PromptComposer
+                    ref={composerRef}
+                    value={composerValue}
+                    onChange={setComposerValue}
+                    onSubmit={handlePromptSubmit}
+                    disabled={isGenerating}
+                    isWorking={isGenerating}
+                    status={sessionStatus}
+                    onReset={handleResetSession}
+                    canReset={sessionEntries.length > 0 || hasGenerated}
+                    placeholder="Describe the tool you want to build…"
+                  />
+                </CardContent>
+              </Card>
 
-              {statusMessage && (
-                <Alert className="border border-primary/40 bg-primary/10 text-primary">
-                  <AlertDescription className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" aria-hidden />
-                    <span>{statusMessage}</span>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {errorMessage && (
-                <Alert variant="destructive" className="border-destructive/40">
-                  <AlertDescription className="flex items-start gap-2">
-                    <AlertCircle className="mt-0.5 h-4 w-4" aria-hidden />
-                    <span>{errorMessage}</span>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {hasGenerated && (
-                <div className="space-y-4">
-                  <Separator />
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      <RefreshCcw className="h-4 w-4 text-primary" aria-hidden />
-                      Iterate
+              <div className="space-y-6">
+                <Card className="overflow-hidden border border-primary/30 bg-card shadow-lg shadow-primary/10">
+                  <CardHeader className="space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <FileCode className="h-5 w-5 text-primary" aria-hidden />
+                          Preview
+                        </CardTitle>
+                        <CardDescription>Rendered output from the latest AI response.</CardDescription>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Give follow-up instructions to evolve the current tool. The existing HTML, CSS, and JavaScript are sent back so updates stay contextual.
-                    </p>
-                  </div>
-                  <form onSubmit={handleIterate} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="iteration">Update instructions</Label>
-                      <Textarea
-                        id="iteration"
-                        value={iterationPrompt}
-                        onChange={(event) => setIterationPrompt(event.target.value)}
-                        placeholder="For example: add keyboard shortcuts and a dark theme toggle."
-                        className="min-h-[120px] resize-y"
-                      />
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Palette className="h-4 w-4 text-primary" aria-hidden />
+                          Theme
+                        </span>
+                        <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select theme" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {THEME_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <ModeIndicator className="h-4 w-4 text-primary" aria-hidden />
+                          Mode
+                        </span>
+                        <Select value={colorMode} onValueChange={setColorMode}>
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COLOR_MODE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {hasGenerated ? (
+                        <Badge variant="secondary" className="w-fit">
+                          Live
+                        </Badge>
+                      ) : null}
                     </div>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="relative overflow-hidden rounded-xl border border-dashed border-primary/30 bg-muted/40">
+                      {iframeDoc ? (
+                        <iframe
+                          title="Questit preview"
+                          sandbox="allow-scripts allow-same-origin"
+                          srcDoc={iframeDoc}
+                          className="min-h-[360px] w-full rounded-xl bg-background"
+                        />
+                      ) : (
+                        <div className="flex min-h-[360px] items-center justify-center text-sm text-muted-foreground">
+                          Generated tool will appear here.
+                        </div>
+                      )}
+                    </div>
+
+                    {hasGenerated ? (
+                      <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground">Save to Supabase</p>
+                          <p className="text-xs text-muted-foreground">
+                            Persist the current bundle to your Supabase project.
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                          {user ? (
+                            <Badge variant="secondary" className="justify-center sm:justify-start">
+                              {userLabel}
+                            </Badge>
+                          ) : (
+                            <Button variant="secondary" size="sm" onClick={handleRequestLogin}>
+                              Sign in
+                            </Button>
+                          )}
+                          <Button onClick={handleOpenSaveDialog} disabled={!user || saveStatus.state === 'loading'}>
+                            {saveStatus.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
                       <p className="text-xs text-muted-foreground">
-                        {history.length > 1
-                          ? `Iterations applied: ${history.length - 1}`
-                          : 'No iterations applied yet.'}
+                        Generate a tool to preview and save.
                       </p>
-                      <Button type="submit" variant="secondary" disabled={isGenerating || !iterationPrompt.trim()} className="sm:w-auto">
-                        {isGenerating && activeAction === 'iterate' ? 'Applying…' : 'Apply Update'}
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    )}
+                    {saveStatus.message ? (
+                      <p
+                        className={`text-xs ${
+                          saveStatus.state === 'error'
+                            ? 'text-destructive'
+                            : saveStatus.state === 'success'
+                              ? 'text-emerald-500'
+                              : 'text-muted-foreground'
+                        }`}
+                      >
+                        {saveStatus.message}
+                      </p>
+                    ) : null}
+                  </CardContent>
+                </Card>
 
-          <Card className="overflow-hidden border border-primary/30 bg-card shadow-lg shadow-primary/10">
-            <CardHeader className="space-y-2 pb-2">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileCode className="h-5 w-5 text-primary" aria-hidden />
-                Preview
-              </CardTitle>
-              <div className="flex flex-col gap-3 text-left sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Palette className="h-4 w-4 text-primary" aria-hidden />
-                    <span>Theme</span>
-                  </div>
-                  <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {THEME_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ModeIndicator className="h-4 w-4 text-primary" aria-hidden />
-                    <span>Mode</span>
-                  </div>
-                  <Select value={colorMode} onValueChange={setColorMode}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Select mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COLOR_MODE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {hasGenerated ? <Badge variant="secondary" className="sm:self-center">Live</Badge> : null}
+                {hasGenerated ? (
+                  <Card className="border border-primary/20 shadow-md">
+                    <CardHeader className="space-y-1.5">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <FileCode className="h-5 w-5 text-primary" aria-hidden />
+                        Generated code
+                      </CardTitle>
+                      <CardDescription>Review the HTML, CSS, and JavaScript bundles.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="html" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 bg-muted/70">
+                          <TabsTrigger value="html">HTML</TabsTrigger>
+                          <TabsTrigger value="css">CSS</TabsTrigger>
+                          <TabsTrigger value="js">JavaScript</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="html">
+                          <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
+                            {toolCode.html || '// No HTML returned'}
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="css">
+                          <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
+                            {toolCode.css || '// No CSS returned'}
+                          </pre>
+                        </TabsContent>
+                        <TabsContent value="js">
+                          <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
+                            {toolCode.js || '// No JS returned'}
+                          </pre>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             </div>
-            <CardDescription>Rendered output from the latest AI response.</CardDescription>
-            </CardHeader>
-          <CardContent>
-            <div className="relative overflow-hidden rounded-xl border border-dashed border-primary/30 bg-muted/40">
-              {iframeDoc ? (
-                <iframe
-                  title="Questit preview"
-                    sandbox="allow-scripts allow-same-origin"
-                    srcDoc={iframeDoc}
-                    className="min-h-[360px] w-full rounded-xl bg-background"
-                  />
-                ) : (
-                  <div className="flex min-h-[360px] items-center justify-center text-sm text-muted-foreground">
-                    Generated tool will appear here.
-                  </div>
-                )}
-              </div>
-              {hasGenerated && (
-                <div className="mt-6 space-y-3 rounded-lg border border-primary/20 bg-muted/30 p-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Save to Supabase</p>
-                      <p className="text-xs text-muted-foreground">
-                        Persist the generated code bundle to your Supabase project.
-                      </p>
-                    </div>
-                    {user ? (
-                      <Badge variant="secondary" className="w-fit">
-                        {userLabel}
-                      </Badge>
-                    ) : (
-                      <Button variant="secondary" onClick={handleRequestLogin}>
-                        Log in to save
-                      </Button>
-                    )}
-                  </div>
-
-                  {user ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="save-title">Tool name</Label>
-                        <Input
-                          id="save-title"
-                          value={saveTitle}
-                          onChange={(event) => setSaveTitle(event.target.value)}
-                          placeholder="Give this tool a descriptive name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="save-summary">Public summary (optional)</Label>
-                        <Textarea
-                          id="save-summary"
-                          value={saveSummary}
-                          onChange={(event) => setSaveSummary(event.target.value)}
-                          placeholder="Short description shown on shared pages (prompt stays private)"
-                          className="min-h-[90px] resize-y"
-                        />
-                      </div>
-                      {saveStatus.message && (
-                        <p
-                          className={`text-sm ${
-                            saveStatus.state === 'error'
-                              ? 'text-destructive'
-                              : saveStatus.state === 'success'
-                                ? 'text-emerald-500'
-                                : 'text-muted-foreground'
-                          }`}
-                        >
-                          {saveStatus.message}
-                        </p>
-                      )}
-                      <Button onClick={handleSaveTool} disabled={saveStatus.state === 'loading'}>
-                        {saveStatus.state === 'loading' ? 'Saving…' : 'Save to Supabase'}
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Sign in to sync your generated tools with Supabase.
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {hasGenerated && (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)]">
-            <Card className="border border-primary/20 shadow-md">
-              <CardHeader className="space-y-1.5">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileCode className="h-5 w-5 text-primary" aria-hidden />
-                  Generated code
-                </CardTitle>
-                <CardDescription>Review the HTML, CSS, and JavaScript bundles.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="html" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 bg-muted/70">
-                    <TabsTrigger value="html">HTML</TabsTrigger>
-                    <TabsTrigger value="css">CSS</TabsTrigger>
-                    <TabsTrigger value="js">JavaScript</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="html">
-                    <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                      {toolCode.html || '// No HTML returned'}
-                    </pre>
-                  </TabsContent>
-                  <TabsContent value="css">
-                    <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                      {toolCode.css || '// No CSS returned'}
-                    </pre>
-                  </TabsContent>
-                  <TabsContent value="js">
-                    <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                      {toolCode.js || '// No JS returned'}
-                    </pre>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-
-            <Card className="border border-primary/20 shadow-md">
-              <CardHeader className="space-y-1.5">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <HistoryIcon className="h-5 w-5 text-primary" aria-hidden />
-                  Session history
-                </CardTitle>
-                <CardDescription>Prompts sent during this workbench session.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {history.map((entry, index) => {
-                  const isInitial = entry.type === 'initial';
-                  const label = isInitial ? 'Initial prompt' : `Iteration ${index}`;
-                  return (
-                    <div
-                      key={`${entry.type}-${index}`}
-                      className="space-y-2 rounded-xl border border-primary/20 bg-muted/40 p-4"
-                    >
-                      <Badge variant={isInitial ? 'default' : 'secondary'} className="px-2 py-0.5">
-                        {label}
-                      </Badge>
-                      <p className="text-sm leading-relaxed text-muted-foreground">{entry.prompt}</p>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </div>
-        )}
           </div>
         ) : (
           <section className="space-y-6">
@@ -1324,126 +1355,109 @@ function App() {
             </div>
 
             {!hasSupabaseConfig ? (
-              <Alert variant="destructive" className="border-destructive/40">
-                <AlertDescription className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-4 w-4" aria-hidden />
-                  <span>
-                    Configure Supabase environment variables to view saved tools.
-                  </span>
-                </AlertDescription>
-              </Alert>
+              <Card className="border border-primary/20 bg-muted/40">
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                  Supabase environment variables are not configured. Set <code>VITE_SUPABASE_URL</code>{' '}
+                  and <code>VITE_SUPABASE_ANON_KEY</code> to enable saving and viewing tools.
+                </CardContent>
+              </Card>
             ) : !user ? (
               <Card className="border border-primary/20 bg-muted/40">
-                <CardHeader className="space-y-2">
-                  <CardTitle className="text-lg">Sign in to view your tools</CardTitle>
-                  <CardDescription>
-                    Use a magic link to access the tools stored in your Supabase project.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={handleRequestLogin}>
+                <CardContent className="py-8 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Sign in with a magic link to view your saved tools.
+                  </p>
+                  <Button className="mt-4" onClick={handleRequestLogin}>
                     Send magic link
                   </Button>
                 </CardContent>
               </Card>
-            ) : isLoadingMyTools ? (
-              <Card className="border border-primary/20 bg-muted/40">
-                <CardContent className="flex items-center gap-3 py-10">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
-                  <span className="text-sm text-muted-foreground">Loading saved tools…</span>
-                </CardContent>
-              </Card>
-            ) : myToolsError ? (
-              <Alert variant="destructive" className="border-destructive/40">
-                <AlertDescription className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-4 w-4" aria-hidden />
-                  <span>{myToolsError}</span>
-                </AlertDescription>
-              </Alert>
-            ) : myTools.length === 0 ? (
-              <Card className="border border-dashed border-primary/30 bg-background/60">
-                <CardContent className="space-y-3 py-10 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No saved tools yet. Generate a tool in the workbench and save it to Supabase.
-                  </p>
-                </CardContent>
-              </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {myTools.map((tool) => {
-                  const createdAt = tool?.created_at ? new Date(tool.created_at) : null;
-                  const isValidDate = createdAt && !Number.isNaN(createdAt.getTime());
-                  const createdDateLabel = isValidDate ? createdAt.toLocaleDateString() : '—';
-                  const createdDateTimeLabel = isValidDate
-                    ? createdAt.toLocaleString()
-                    : 'Unknown save time';
-                  const status = toolActionStatus[tool.id] || {};
+              <div className="grid gap-6 lg:grid-cols-2">
+                {myToolsError ? (
+                  <Card className="border border-destructive/30 bg-destructive/10 text-destructive">
+                    <CardContent className="py-6 text-sm">{myToolsError}</CardContent>
+                  </Card>
+                ) : null}
 
+                {isLoadingMyTools && myTools.length === 0 ? (
+                  <Card className="border border-primary/30 bg-muted/40">
+                    <CardContent className="flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden />
+                      Loading your saved tools…
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {myTools.length === 0 && !isLoadingMyTools ? (
+                  <Card className="border border-primary/20 bg-muted/30">
+                    <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                      You have not saved any tools yet. Generate one in the workbench and save it to
+                      see it here.
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {myTools.map((tool) => {
+                  const status = toolActionStatus[tool.id] || {};
                   return (
-                    <Card key={tool.id} className="border border-primary/20 bg-background/80">
+                    <Card key={tool.id} className="border border-primary/20 bg-card shadow-sm">
                       <CardHeader className="space-y-2">
-                        <CardTitle className="flex items-center justify-between text-lg">
-                          <span>{tool.title || 'Untitled tool'}</span>
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {createdDateLabel}
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription className="text-xs text-muted-foreground">
-                          Saved {createdDateTimeLabel}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {tool.prompt ? (
-                          <div className="space-y-1">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              Prompt
-                            </p>
-                            <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/80">
-                              {tool.prompt}
-                            </p>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <CardTitle className="text-lg">
+                              {tool.title || 'Untitled Questit Tool'}
+                            </CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">
+                              Saved on{' '}
+                              {new Date(tool.created_at || tool.updated_at).toLocaleString()}
+                            </CardDescription>
                           </div>
-                        ) : null}
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="secondary" className="px-2 py-0.5">
-                            Theme: {tool.theme || 'default'}
-                          </Badge>
-                          <Badge variant="secondary" className="px-2 py-0.5">
-                            Mode: {tool.color_mode || 'system'}
+                          <Badge variant="outline" className="text-xs font-medium uppercase tracking-wide">
+                            {tool.model_provider ? `${tool.model_provider}` : 'Model'}
                           </Badge>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 pt-2">
+                        {tool.public_summary ? (
+                          <p className="text-sm text-muted-foreground">{tool.public_summary}</p>
+                        ) : null}
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span>{tool.theme ? `Theme: ${tool.theme}` : 'Default theme'}</span>
+                          <span>•</span>
+                          <span>{tool.color_mode ? `Mode: ${tool.color_mode}` : 'Mode: light'}</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="default"
                             onClick={() => handleLoadSavedTool(tool.id)}
-                            disabled={Boolean(status.loading) || Boolean(status.publishing)}
+                            disabled={!!status.loading}
                           >
                             {status.loading ? (
                               <>
-                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                                 Loading…
                               </>
                             ) : (
-                              <>
-                                <FileCode className="h-4 w-4" aria-hidden />
-                                Load in workbench
-                              </>
+                              'Load in workbench'
                             )}
                           </Button>
                           <Button
                             size="sm"
                             variant="secondary"
                             onClick={() => handlePublishSavedTool(tool.id)}
-                            disabled={Boolean(status.publishing) || Boolean(status.loading)}
+                            disabled={!!status.publishing}
                           >
                             {status.publishing ? (
                               <>
-                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                                 Publishing…
                               </>
                             ) : (
                               <>
-                                <Share2 className="h-4 w-4" aria-hidden />
+                                <Share2 className="mr-2 h-4 w-4" aria-hidden />
                                 Publish share link
                               </>
                             )}
@@ -1478,6 +1492,16 @@ function App() {
             )}
           </section>
         )}
+
+        <SaveToolDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          initialTitle={saveDraft.title || sessionEntries[0]?.prompt?.slice(0, 80) || ''}
+          initialSummary={saveDraft.summary || ''}
+          onSubmit={handleSaveTool}
+          status={saveStatus}
+        />
+
         <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -1523,7 +1547,6 @@ function App() {
       <footer className="relative mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-10">
         <div className="space-y-10">
           <WorkbenchHero onNavigateDocs={handleOpenDocs} />
-          {/* Future: feature grid / roadmap summary can live here */}
         </div>
       </footer>
     </div>

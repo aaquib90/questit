@@ -716,8 +716,9 @@ function escapeHtmlAttr(value) {
 
 function escapeJsonForScript(jsonString) {
   return String(jsonString ?? '')
-    .replace(/<\//g, '<\\/')
-    .replace(/<!--/g, '<\\!--');
+    .replace(/</g, '\\u003C')
+    .replace(/>/g, '\\u003E')
+    .replace(/&/g, '\\u0026');
 }
 
 function buildUserWorkerScript(tool, assetBaseUrl) {

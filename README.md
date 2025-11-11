@@ -20,6 +20,7 @@ Questit is a Cloudflare-first platform for generating lightweight micro-tools fr
 - Generated tools can now be iterated via follow-up prompts inside the workbench; the UI sends the current HTML/CSS/JS bundle back to the proxy so updates stay contextual.
 - Generated tools are scoped to **browser-only execution** for now; prompts and adapters enforce client-friendly libraries (e.g., pdf.js) and surface graceful fallbacks when a task needs heavier compute.
 - The workbench now offers **model selection** between OpenAI GPT-4o mini and Google Gemini 2.5 Flash (with a legacy 1.5 option), with automatic routing through the edge proxy.
+- Shared tools now render through a **versioned share shell bundle** (`/share-shell/v1/`) so layout/auth fixes cascade across old and new links, and published URLs use the canonical `/tools/<slug>/` path instead of per-subdomain workers.
 - The legacy harness at `public/test.html` is available for quick local testing (`python3 -m http.server 8000` → `http://localhost:8000/public/test.html`).
 - Cloudflare Pages hosts the simplified React workbench (`web/`), while the existing Workers (AI proxy, GitHub proxy, package, publish, self-test, dispatch) remain deployed for staging and production.
 - Publish/self-test flows still rely on the Worker APIs, but the UI currently focuses on generation + preview. Additional guardrails (repo selection, auto-publish) will be reintroduced iteratively.
@@ -52,6 +53,13 @@ const publishResult = await publishTool(questit.currentTool);
 // Returns: { name: 'tool-xyz', namespace: '...' }
 // Accessible at: https://tool-xyz.questit.cc/
 ```
+
+## Shared Tool Delivery
+
+- Publish worker now emits a minimal HTML wrapper that loads the versioned bundle at `https://questit.cc/share-shell/v1/share.{css,js}` and embeds the tool payload as JSON.  
+- Client-side shell (`web/public/share-shell/v1`) applies theming, renders metadata, injects the tool code, and handles remix/auth headers.  
+- Set `SHARE_SHELL_BASE_URL` on the publish worker (`questit-publish-prod` / `questit-publish-staging`) to override the asset origin per environment.  
+- Existing share slugs can be rewritten in-place by calling `POST /api/tools/publish` with the original `share_slug`; see `docs/share-shell-migration.md` for the step-by-step backfill.
 
 ## API Endpoints
 
