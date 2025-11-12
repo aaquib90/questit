@@ -246,7 +246,7 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
     });
   }
 
-  const selectedModel = model || options?.model || 'claude-4.5-haiku';
+  const selectedModel = model || options?.model || 'claude-3-5-haiku-20241022';
   const userContent = input || '';
   if (!userContent.trim()) {
     return new Response('Prompt content required for Anthropic request', {
@@ -274,10 +274,6 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
 
   if (system) {
     payload.system = system;
-  }
-
-  if (options?.response_format?.type === 'json_object') {
-    payload.response_format = { type: 'json_object' };
   }
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {

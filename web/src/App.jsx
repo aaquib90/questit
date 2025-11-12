@@ -301,10 +301,10 @@ const MODEL_OPTIONS = [
     model: 'gemini-2.5-flash'
   },
   {
-    id: 'anthropic:claude-4.5-haiku',
-    label: 'Anthropic · Claude 4.5 Haiku',
+    id: 'anthropic:claude-3-5-haiku-20241022',
+    label: 'Anthropic · Claude 3.5 Haiku (2024-10-22)',
     provider: 'anthropic',
-    model: 'claude-4.5-haiku'
+    model: 'claude-3-5-haiku-20241022'
   },
   {
     id: 'openai:gpt-4o-mini',
