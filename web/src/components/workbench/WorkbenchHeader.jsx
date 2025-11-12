@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 
 const VIEW_TABS = [
   { id: 'workbench', label: 'Workbench' },
-  { id: 'my-tools', label: 'My Tools' }
+  { id: 'my-tools', label: 'My Tools' },
+  { id: 'creator-portal', label: 'Creator Portal' }
 ];
 
 export function WorkbenchHeader({

@@ -31,6 +31,7 @@ import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
 import PromptComposer from '@/components/workbench/PromptComposer.jsx';
 import PromptTimeline from '@/components/workbench/PromptTimeline.jsx';
 import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
+import CreatorPortal from '@/components/account/CreatorPortal.jsx';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -1081,7 +1082,7 @@ function App() {
   }, [colorMode, resolvedMode, selectedTheme]);
 
   useEffect(() => {
-    if (activeView !== 'my-tools') return undefined;
+    if (!['my-tools', 'creator-portal'].includes(activeView)) return undefined;
     if (!hasSupabaseConfig || !user) {
       setIsLoadingMyTools(false);
       return undefined;
@@ -1342,7 +1343,9 @@ function App() {
               </Tabs>
             </div>
           </div>
-        ) : (
+        ) : null}
+
+        {activeView === 'my-tools' ? (
           <section className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -1529,8 +1532,26 @@ function App() {
               </div>
             )}
           </section>
-        )}
+        ) : null}
 
+        {activeView === 'creator-portal' ? (
+          <CreatorPortal
+            user={user}
+            userLabel={userLabel}
+            onLogin={handleRequestLogin}
+            onRefreshTools={handleRefreshMyTools}
+            isLoadingTools={isLoadingMyTools}
+            toolsError={myToolsError}
+            hasSupabaseConfig={hasSupabaseConfig}
+            myTools={myTools}
+            selectedTheme={selectedTheme}
+            colorMode={colorMode}
+            selectedModelLabel={selectedModelOption.label}
+            sessionEntries={sessionEntries}
+            onUsePrompt={handleUsePrompt}
+            onOpenDocs={handleOpenDocs}
+          />
+        ) : null}
         <SaveToolDialog
           open={saveDialogOpen}
           onOpenChange={setSaveDialogOpen}
