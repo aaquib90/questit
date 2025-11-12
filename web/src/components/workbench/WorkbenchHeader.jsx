@@ -19,7 +19,7 @@ export function WorkbenchHeader({
     <header className="questit-glass flex flex-col gap-4 rounded-3xl border border-border/60 p-4 shadow-xl sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-2">
-          <span className="questit-logo text-3xl text-primary">Questit</span>
+          <span className="questit-logo">Questit</span>
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
             Workspace
           </p>
