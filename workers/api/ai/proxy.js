@@ -56,6 +56,9 @@ export default {
       case 'google':
       case 'google-gemini':
         return handleGemini({ system, input, options, corsHeaders, env, model });
+      case 'anthropic':
+      case 'claude':
+        return handleAnthropic({ system, input, options, corsHeaders, env, model });
       default:
         return new Response(`Unsupported provider: ${provider}`, {
           status: 400,
@@ -227,6 +230,103 @@ async function handleGemini({ system, input, options, corsHeaders, env, model })
   }
 
   return new Response(content, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json'
+    }
+  });
+}
+
+async function handleAnthropic({ system, input, options, corsHeaders, env, model }) {
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return new Response('ANTHROPIC_API_KEY not configured', {
+      status: 500,
+      headers: corsHeaders
+    });
+  }
+
+  const selectedModel = model || options?.model || 'claude-4.5-haiku';
+  const userContent = input || '';
+  if (!userContent.trim()) {
+    return new Response('Prompt content required for Anthropic request', {
+      status: 400,
+      headers: corsHeaders
+    });
+  }
+
+  const payload = {
+    model: selectedModel,
+    max_tokens: options?.max_tokens ?? 4096,
+    temperature: typeof options?.temperature === 'number' ? options.temperature : 0.2,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: userContent
+          }
+        ]
+      }
+    ]
+  };
+
+  if (system) {
+    payload.system = system;
+  }
+
+  if (options?.response_format?.type === 'json_object') {
+    payload.response_format = { type: 'json_object' };
+  }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return new Response(text, {
+      status: res.status,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (parseError) {
+    const fallbackText = await res.text().catch(() => '');
+    return new Response(fallbackText || 'Invalid response from Anthropic', {
+      status: 502,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
+
+  let aggregatedText = '';
+  if (Array.isArray(data?.content)) {
+    aggregatedText = data.content
+      .filter((part) => part && part.type === 'text' && typeof part.text === 'string')
+      .map((part) => part.text)
+      .join('\n')
+      .trim();
+  }
+
+  const responseBody = aggregatedText || JSON.stringify(data);
+
+  return new Response(responseBody, {
     headers: {
       ...corsHeaders,
       'Content-Type': 'application/json'
