@@ -132,6 +132,13 @@ export async function generateTool(
       return attemptParse(trimmed);
     } catch {
       const simplified = trimmed
+        .replace(/:\s*`([^`\\]*(?:\\.[^`\\]*)*)`/g, (_match, content) => {
+          const normalized = content
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\r?\n/g, '\\n');
+          return `: "${normalized}"`;
+        })
         .replace(/,\s*([}\]])/g, '$1') // drop trailing commas
         .replace(/:\s*'([^']*)'/g, ': "$1"') // convert single quotes to double
         .replace(/\\(?!["\\/bfnrtu])/g, '\\\\'); // escape stray backslashes
