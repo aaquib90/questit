@@ -1122,7 +1122,7 @@ function App() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="questit-aurora" />
-      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6 lg:px-10">
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:gap-10 lg:px-10 lg:py-12">
         <WorkbenchHeader
           activeView={activeView}
           onSelectView={setActiveView}
@@ -1150,7 +1150,7 @@ function App() {
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="composer-model">Model</Label>
                       <Select value={modelId} onValueChange={setModelId}>
-                        <SelectTrigger id="composer-model" className="w-[220px]">
+                        <SelectTrigger id="composer-model" className="w-full sm:w-[220px]">
                           <SelectValue placeholder="Select a model" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1214,7 +1214,7 @@ function App() {
                               Theme
                             </span>
                             <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                              <SelectTrigger className="w-[200px]">
+                              <SelectTrigger className="w-full sm:w-[200px]">
                                 <SelectValue placeholder="Select theme" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1232,7 +1232,7 @@ function App() {
                               Mode
                             </span>
                             <Select value={colorMode} onValueChange={setColorMode}>
-                              <SelectTrigger className="w-[180px]">
+                              <SelectTrigger className="w-full sm:w-[180px]">
                                 <SelectValue placeholder="Select mode" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1344,7 +1344,7 @@ function App() {
           </div>
         ) : (
           <section className="space-y-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight text-foreground">My Tools</h2>
                 <p className="text-sm text-muted-foreground">
@@ -1392,7 +1392,7 @@ function App() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 {myToolsError ? (
                   <Card className="border border-destructive/30 bg-destructive/10 text-destructive">
                     <CardContent className="py-6 text-sm">{myToolsError}</CardContent>
@@ -1422,8 +1422,8 @@ function App() {
                   return (
                     <Card key={tool.id} className="border border-primary/20 bg-card shadow-sm">
                       <CardHeader className="space-y-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
+                        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
+                          <div className="w-full">
                             <CardTitle className="text-lg">
                               {tool.title || 'Untitled Questit Tool'}
                             </CardTitle>
@@ -1432,7 +1432,7 @@ function App() {
                               {new Date(tool.created_at || tool.updated_at).toLocaleString()}
                             </CardDescription>
                           </div>
-                          <Badge variant="outline" className="text-xs font-medium uppercase tracking-wide">
+                          <Badge variant="outline" className="whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide">
                             {tool.model_provider ? `${tool.model_provider}` : 'Model'}
                           </Badge>
                         </div>
@@ -1447,12 +1447,13 @@ function App() {
                           <span>{tool.color_mode ? `Mode: ${tool.color_mode}` : 'Mode: light'}</span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           <Button
                             size="sm"
                             variant="default"
                             onClick={() => handleLoadSavedTool(tool.id)}
                             disabled={!!status.loading}
+                            className="w-full sm:w-auto"
                           >
                             {status.loading ? (
                               <>
@@ -1468,6 +1469,7 @@ function App() {
                             variant="secondary"
                             onClick={() => handlePublishSavedTool(tool.id)}
                             disabled={!!status.publishing}
+                            className="w-full sm:w-auto"
                           >
                             {status.publishing ? (
                               <>
@@ -1483,14 +1485,14 @@ function App() {
                           </Button>
                         </div>
                         {status.shareUrl ? (
-                          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+                          <div className="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30 sm:flex-row sm:items-center sm:gap-2">
                             {status.linkCopied ? (
                               <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                                 <Check className="h-4 w-4" aria-hidden />
                                 Link copied to clipboard
                               </div>
                             ) : (
-                              <div className="flex flex-1 items-center justify-between gap-2">
+                              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <a
                                   href={status.shareUrl}
                                   target="_blank"
@@ -1503,7 +1505,7 @@ function App() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-7 gap-1.5 px-2 text-xs"
+                                  className="h-8 gap-1.5 px-2 text-xs sm:h-7"
                                   onClick={() => handleCopyShareLink(status.shareUrl, tool.id)}
                                 >
                                   <Copy className="h-3 w-3" aria-hidden />
@@ -1539,7 +1541,7 @@ function App() {
         />
 
         <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-full max-w-md gap-6 p-6 sm:p-8">
             <DialogHeader>
               <DialogTitle>Sign in to Questit</DialogTitle>
               <DialogDescription>
@@ -1581,7 +1583,7 @@ function App() {
         </Dialog>
       </main>
       <footer className="relative mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-10">
-        <div className="space-y-10">
+        <div className="space-y-8 sm:space-y-10">
           <WorkbenchHero onNavigateDocs={handleOpenDocs} />
         </div>
       </footer>

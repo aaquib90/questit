@@ -130,7 +130,7 @@ export async function generateTool(
 
     try {
       return attemptParse(trimmed);
-    } catch (error) {
+    } catch {
       const simplified = trimmed
         .replace(/,\s*([}\]])/g, '$1') // drop trailing commas
         .replace(/:\s*'([^']*)'/g, ': "$1"') // convert single quotes to double

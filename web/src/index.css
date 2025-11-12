@@ -75,7 +75,17 @@
   }
 
   body {
-    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    @apply min-h-screen overflow-x-hidden bg-background font-sans text-foreground antialiased;
+  }
+
+  iframe,
+  img,
+  video {
+    max-width: 100%;
+  }
+
+  iframe {
+    border: none;
   }
 }
 

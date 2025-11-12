@@ -54,7 +54,7 @@ const PromptComposer = forwardRef(function PromptComposer(
   return (
     <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Badge variant={badgeVariant} className="text-xs font-medium">
             {statusState === 'loading'
               ? 'Generating…'
@@ -100,12 +100,12 @@ const PromptComposer = forwardRef(function PromptComposer(
             <AlertDescription>{statusMessage}</AlertDescription>
           </Alert>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <Button
             type="submit"
             size="lg"
             disabled={disabled || isWorking || !value?.trim()}
-            className="gap-2 shrink-0"
+            className="w-full gap-2 sm:w-auto"
           >
             <Sparkles className={`h-4 w-4 ${isWorking ? 'animate-spin' : ''}`} aria-hidden />
             {isWorking ? 'Generating…' : 'Send to Questit'}
@@ -117,7 +117,7 @@ const PromptComposer = forwardRef(function PromptComposer(
               variant="outline"
               onClick={onSave}
               disabled={!user || saveStatus?.state === 'loading'}
-              className="gap-2 shrink-0"
+              className="w-full gap-2 sm:w-auto"
             >
               <Database className="h-4 w-4" aria-hidden />
               {saveStatus?.state === 'loading' ? 'Saving…' : 'Save to Supabase'}

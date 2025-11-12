@@ -34,7 +34,7 @@ function SaveToolDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="w-full max-w-lg gap-6 p-6 sm:p-8">
         <DialogHeader className="space-y-1.5">
           <DialogTitle>Save to Supabase</DialogTitle>
           <DialogDescription>
