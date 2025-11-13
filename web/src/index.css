@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Rubik+80s+Fade&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,11 +35,14 @@
     --radius: 0.75rem;
     --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-    --atmosphere-base: linear-gradient(135deg, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.78) 28%, hsl(var(--primary) / 0.18) 85%);
-    --atmosphere-accent: radial-gradient(120% 80% at 12% 18%, hsl(var(--primary) / 0.24), transparent 60%);
-    --atmosphere-highlight: radial-gradient(140% 90% at 88% 12%, hsl(var(--accent) / 0.22), transparent 70%);
-    --atmosphere-shadow: radial-gradient(120% 80% at 50% 100%, hsl(var(--muted) / 0.18), transparent 80%);
-    --atmosphere-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+    --surface: 0 0% 100%;
+    --surface-muted: 210 40% 98%;
+    --surface-subtle: 210 40% 96%;
+    --line-soft: 214 31% 91%;
+    --shadow-soft: 0 20px 40px -20px hsl(222 47% 11% / 0.16);
+    --shadow-hard: 0 24px 60px -32px hsl(222 47% 11% / 0.22);
+    --section-gap: clamp(3rem, 6vw, 4.5rem);
+    --section-gap-tight: clamp(2rem, 4vw, 3rem);
   }
 
   .dark {
@@ -73,11 +74,12 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 152 90% 44%;
 
-    --atmosphere-base: linear-gradient(135deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.82) 35%, hsl(var(--primary) / 0.22) 80%);
-    --atmosphere-accent: radial-gradient(120% 80% at 15% 20%, hsl(var(--primary) / 0.35), transparent 60%);
-    --atmosphere-highlight: radial-gradient(140% 90% at 88% 16%, hsl(var(--accent) / 0.32), transparent 68%);
-    --atmosphere-shadow: radial-gradient(140% 95% at 50% 100%, hsl(var(--muted) / 0.32), transparent 85%);
-    --atmosphere-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
+    --surface: 222 47% 15%;
+    --surface-muted: 217 33% 18%;
+    --surface-subtle: 217 24% 22%;
+    --line-soft: 222 28% 28%;
+    --shadow-soft: 0 20px 40px -20px hsl(210 40% 2% / 0.5);
+    --shadow-hard: 0 24px 60px -32px hsl(210 40% 2% / 0.6);
   }
 }
 
@@ -88,6 +90,36 @@
 
   body {
     @apply min-h-screen overflow-x-hidden bg-background font-sans text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+    line-height: 1.05;
+  }
+
+  h2 {
+    font-size: clamp(2rem, 3vw, 2.75rem);
+    line-height: 1.1;
+  }
+
+  h3 {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.2;
+  }
+
+  h4 {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    line-height: 1.25;
   }
 
   iframe,
@@ -101,80 +133,71 @@
   }
 }
 
-.questit-logo {
-  font-family: 'Rubik 80s Fade', cursive;
-  letter-spacing: 0.04em;
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
-  color: hsl(var(--primary));
-  text-shadow:
-    0 12px 30px hsl(var(--primary) / 0.35),
-    0 2px 6px hsl(var(--primary) / 0.45);
-}
-
-.questit-aurora {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: var(--atmosphere-accent), var(--atmosphere-highlight), var(--atmosphere-shadow);
-  filter: blur(90px);
-  transform: scale(1.08);
-  opacity: 0.85;
-  z-index: -2;
-}
-
-.questit-aurora::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, hsl(var(--background) / 0.12), hsl(var(--background)));
-}
-
-.questit-glass {
-  background: linear-gradient(135deg, hsl(var(--background) / 0.85) 0%, hsl(var(--background) / 0.65) 60%);
-  border: 1px solid hsl(var(--primary) / 0.08);
-  box-shadow: 0 24px 60px -35px hsl(var(--primary) / 0.6);
-  backdrop-filter: blur(24px);
-}
-
-.questit-atmosphere {
-  position: relative;
-  background-color: hsl(var(--background));
-  background-image: var(--atmosphere-base), var(--atmosphere-accent), var(--atmosphere-highlight), var(--atmosphere-shadow);
-  background-size: 180% 180%, 140% 140%, 150% 150%, 160% 160%;
-  background-position: center, 12% 18%, 84% 12%, 50% 100%;
-  background-repeat: no-repeat;
-  overflow: hidden;
-}
-
-.questit-atmosphere::before {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  background-image: var(--atmosphere-noise);
-  background-size: 320px 320px;
-  opacity: 0.25;
-  mix-blend-mode: soft-light;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.questit-atmosphere::after {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background: radial-gradient(65% 55% at 50% 10%, hsl(var(--background) / 0.28), transparent 70%);
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: -2;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .questit-atmosphere {
-    background-position: center;
-    background-size: cover;
+@layer components {
+  .questit-shell {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: clamp(1.5rem, 4vw, 3rem);
+    padding-right: clamp(1.5rem, 4vw, 3rem);
   }
 
-  .questit-atmosphere::before {
-    opacity: 0.16;
+  .questit-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+    padding-top: var(--section-gap);
+    padding-bottom: var(--section-gap);
+  }
+
+  .questit-section--tight {
+    gap: var(--section-gap-tight);
+    padding-top: var(--section-gap-tight);
+    padding-bottom: var(--section-gap-tight);
+  }
+
+  .questit-surface {
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--line-soft) / 0.4);
+    border-radius: calc(var(--radius) * 1.6);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .questit-surface-muted {
+    background: hsl(var(--surface-muted));
+    border: 1px solid hsl(var(--line-soft) / 0.35);
+    border-radius: calc(var(--radius) * 1.6);
+  }
+
+  .questit-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--line-soft) / 0.6);
+    background: hsl(var(--surface) / 0.7);
+    padding: 0.45rem 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .questit-chip:hover {
+    border-color: hsl(var(--ring));
+    background: hsl(var(--primary) / 0.08);
+    color: hsl(var(--primary));
+  }
+
+  .questit-pill-tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .questit-logo {
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    letter-spacing: -0.04em;
+    color: hsl(var(--foreground));
   }
 }

@@ -1,25 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Sparkles,
-  RefreshCcw,
-  Loader2,
-  FileCode,
-  Palette,
-  Moon,
-  Sun,
-  Monitor,
-  Share2,
-  ExternalLink,
-  Check,
-  Copy
-} from 'lucide-react';
+import { RefreshCcw, Loader2, Share2, ExternalLink, Check, Copy } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
@@ -28,352 +13,24 @@ import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
 import WorkbenchHero from '@/components/workbench/WorkbenchHero.jsx';
 import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
-import PromptComposer from '@/components/workbench/PromptComposer.jsx';
-import PromptTimeline from '@/components/workbench/PromptTimeline.jsx';
 import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
+import {
+  buildIframeHTML,
+  COLOR_MODE_OPTIONS,
+  DEFAULT_THEME_KEY,
+  THEME_OPTIONS,
+  useThemeManager
+} from '@/lib/themeManager.js';
+import { useModelManager } from '@/lib/modelManager.js';
+import { Section, Shell } from '@/components/layout';
+import LandingPage from '@/components/landing/LandingPage.jsx';
+import WorkbenchSidebar from '@/components/workbench/WorkbenchSidebar.jsx';
+import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
+import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
+import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
-
-const BASE_THEME_VARS = {
-  '--background': '0 0% 100%',
-  '--foreground': '222.2 47.4% 11.2%',
-  '--card': '0 0% 100%',
-  '--card-foreground': '222.2 47.4% 11.2%',
-  '--popover': '0 0% 100%',
-  '--popover-foreground': '222.2 47.4% 11.2%',
-  '--primary': '160 84% 39.4%',
-  '--primary-foreground': '152 81% 96%',
-  '--secondary': '151 81% 92%',
-  '--secondary-foreground': '164 86% 22%',
-  '--muted': '210 40% 96.1%',
-  '--muted-foreground': '215.4 16.3% 46.9%',
-  '--accent': '151 81% 92%',
-  '--accent-foreground': '164 86% 22%',
-  '--destructive': '0 84.2% 60.2%',
-  '--destructive-foreground': '0 0% 98%',
-  '--border': '214 31.8% 91.4%',
-  '--input': '214 31.8% 91.4%',
-  '--ring': '160 84% 39.4%',
-  '--radius': '0.75rem',
-  '--font-sans': "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-};
-
-const BASE_DARK_THEME_VARS = {
-  '--background': '222.2 47.4% 11.2%',
-  '--foreground': '210 40% 98%',
-  '--card': '217.2 32.6% 17.5%',
-  '--card-foreground': '210 40% 98%',
-  '--popover': '217.2 32.6% 17.5%',
-  '--popover-foreground': '210 40% 98%',
-  '--primary': '152 90% 44%',
-  '--primary-foreground': '160 84% 12%',
-  '--secondary': '217.2 32.6% 17.5%',
-  '--secondary-foreground': '210 40% 98%',
-  '--muted': '217.2 32.6% 17.5%',
-  '--muted-foreground': '215 20.2% 65.1%',
-  '--accent': '217.2 32.6% 17.5%',
-  '--accent-foreground': '210 40% 98%',
-  '--destructive': '0 62.8% 30.6%',
-  '--destructive-foreground': '0 85.7% 97.3%',
-  '--border': '217.2 32.6% 17.5%',
-  '--input': '217.2 32.6% 17.5%',
-  '--ring': '152 90% 44%',
-  '--radius': '0.75rem',
-  '--font-sans': "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-};
-
-const THEME_PRESETS = {
-  emerald: {
-    label: 'Emerald',
-    overrides: {},
-    darkOverrides: {
-      '--primary': '152 90% 44%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '152 90% 44%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '152 90% 44%'
-    }
-  },
-  sky: {
-    label: 'Sky',
-    overrides: {
-      '--primary': '199 89% 55%',
-      '--primary-foreground': '198 100% 97%',
-      '--secondary': '199 94% 90%',
-      '--secondary-foreground': '200 84% 24%',
-      '--accent': '199 94% 90%',
-      '--accent-foreground': '200 84% 24%',
-      '--ring': '199 89% 55%',
-      '--muted': '199 85% 94%',
-      '--muted-foreground': '204 16% 38%',
-      '--border': '198 58% 88%',
-      '--input': '198 58% 88%'
-    },
-    darkOverrides: {
-      '--primary': '199 89% 55%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '199 89% 55%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '199 89% 55%'
-    }
-  },
-  violet: {
-    label: 'Violet',
-    overrides: {
-      '--primary': '262 84% 60%',
-      '--primary-foreground': '270 100% 97%',
-      '--secondary': '261 89% 94%',
-      '--secondary-foreground': '264 70% 24%',
-      '--accent': '261 89% 94%',
-      '--accent-foreground': '264 70% 24%',
-      '--ring': '262 84% 60%',
-      '--muted': '261 89% 95%',
-      '--muted-foreground': '265 20% 42%',
-      '--border': '263 46% 88%',
-      '--input': '263 46% 88%'
-    },
-    darkOverrides: {
-      '--primary': '262 84% 60%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '262 84% 60%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '262 84% 60%'
-    }
-  },
-  amber: {
-    label: 'Amber',
-    overrides: {
-      '--primary': '37 92% 55%',
-      '--primary-foreground': '48 96% 90%',
-      '--secondary': '37 100% 88%',
-      '--secondary-foreground': '32 75% 25%',
-      '--accent': '37 100% 88%',
-      '--accent-foreground': '32 75% 25%',
-      '--ring': '37 92% 55%',
-      '--muted': '42 100% 94%',
-      '--muted-foreground': '30 15% 35%',
-      '--border': '37 68% 85%',
-      '--input': '37 68% 85%'
-    },
-    darkOverrides: {
-      '--primary': '37 92% 55%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '37 92% 55%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '37 92% 55%'
-    }
-  },
-  rose: {
-    label: 'Rose',
-    overrides: {
-      '--primary': '349.7 89.2% 60.2%',
-      '--primary-foreground': '355.7 100% 97.3%',
-      '--secondary': '355.6 100% 94.7%',
-      '--secondary-foreground': '345.3 82.7% 40.8%',
-      '--accent': '355.6 100% 94.7%',
-      '--accent-foreground': '345.3 82.7% 40.8%',
-      '--ring': '349.7 89.2% 60.2%',
-      '--muted': '355.7 100% 97.3%',
-      '--muted-foreground': '343.4 79.7% 34.7%',
-      '--border': '352.7 96.1% 90%',
-      '--input': '352.7 96.1% 90%'
-    },
-    darkOverrides: {
-      '--primary': '349.7 89.2% 60.2%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '349.7 89.2% 60.2%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '349.7 89.2% 60.2%'
-    }
-  },
-  cyan: {
-    label: 'Cyan',
-    overrides: {
-      '--primary': '188.7 94.5% 42.7%',
-      '--primary-foreground': '183.2 100% 96.3%',
-      '--secondary': '185.1 95.9% 90.4%',
-      '--secondary-foreground': '192.9 82.3% 31%',
-      '--accent': '185.1 95.9% 90.4%',
-      '--accent-foreground': '192.9 82.3% 31%',
-      '--ring': '188.7 94.5% 42.7%',
-      '--muted': '183.2 100% 96.3%',
-      '--muted-foreground': '191.6 91.4% 36.5%',
-      '--border': '186.2 93.5% 81.8%',
-      '--input': '186.2 93.5% 81.8%'
-    },
-    darkOverrides: {
-      '--primary': '188.7 94.5% 42.7%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '188.7 94.5% 42.7%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '188.7 94.5% 42.7%'
-    }
-  },
-  indigo: {
-    label: 'Indigo',
-    overrides: {
-      '--primary': '238.7 83.5% 66.7%',
-      '--primary-foreground': '225.9 100% 96.7%',
-      '--secondary': '226.5 100% 93.9%',
-      '--secondary-foreground': '244.5 57.9% 50.6%',
-      '--accent': '226.5 100% 93.9%',
-      '--accent-foreground': '244.5 57.9% 50.6%',
-      '--ring': '238.7 83.5% 66.7%',
-      '--muted': '225.9 100% 96.7%',
-      '--muted-foreground': '243.4 75.4% 58.6%',
-      '--border': '228 96.5% 88.8%',
-      '--input': '228 96.5% 88.8%'
-    },
-    darkOverrides: {
-      '--primary': '238.7 83.5% 66.7%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '238.7 83.5% 66.7%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '238.7 83.5% 66.7%'
-    }
-  },
-  lime: {
-    label: 'Lime',
-    overrides: {
-      '--primary': '83.7 80.5% 44.3%',
-      '--primary-foreground': '78.3 92% 95.1%',
-      '--secondary': '79.6 89.1% 89.2%',
-      '--secondary-foreground': '85.9 78.4% 27.3%',
-      '--accent': '79.6 89.1% 89.2%',
-      '--accent-foreground': '85.9 78.4% 27.3%',
-      '--ring': '83.7 80.5% 44.3%',
-      '--muted': '78.3 92% 95.1%',
-      '--muted-foreground': '87.6 61.2% 20.2%',
-      '--border': '80.9 88.5% 79.6%',
-      '--input': '80.9 88.5% 79.6%'
-    },
-    darkOverrides: {
-      '--primary': '83.7 80.5% 44.3%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '83.7 80.5% 44.3%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '83.7 80.5% 44.3%'
-    }
-  },
-  slate: {
-    label: 'Slate',
-    overrides: {
-      '--primary': '215.4 16.3% 46.9%',
-      '--primary-foreground': '210 40% 98%',
-      '--secondary': '214.3 31.8% 91.4%',
-      '--secondary-foreground': '217.2 32.6% 17.5%',
-      '--accent': '214.3 31.8% 91.4%',
-      '--accent-foreground': '217.2 32.6% 17.5%',
-      '--ring': '215.4 16.3% 46.9%',
-      '--muted': '210 40% 96.1%',
-      '--muted-foreground': '215.3 19.3% 34.5%',
-      '--border': '212.7 26.8% 83.9%',
-      '--input': '212.7 26.8% 83.9%'
-    },
-    darkOverrides: {
-      '--primary': '215.4 16.3% 46.9%',
-      '--primary-foreground': '210 40% 98%',
-      '--accent': '215.4 16.3% 46.9%',
-      '--accent-foreground': '210 40% 98%',
-      '--ring': '215.4 16.3% 46.9%'
-    }
-  }
-};
-
-const DEFAULT_THEME_KEY = 'emerald';
-const THEME_OPTIONS = Object.entries(THEME_PRESETS).map(([value, config]) => ({
-  value,
-  label: config.label
-}));
-const COLOR_MODE_STORAGE_KEY = 'questit-color-mode';
-const COLOR_MODE_OPTIONS = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' }
-];
-
-const MODEL_OPTIONS = [
-  {
-    id: 'gemini:2.5-flash',
-    label: 'Google · Gemini 2.5 Flash',
-    provider: 'gemini',
-    model: 'gemini-2.5-flash'
-  },
-  {
-    id: 'anthropic:claude-3-5-haiku-20241022',
-    label: 'Anthropic · Claude 3.5 Haiku (2024-10-22)',
-    provider: 'anthropic',
-    model: 'claude-3-5-haiku-20241022'
-  },
-  {
-    id: 'openai:gpt-4o-mini',
-    label: 'OpenAI · GPT-4o mini',
-    provider: 'openai',
-    model: 'gpt-4o-mini'
-  },
-  {
-    id: 'gemini:1.5-flash',
-    label: 'Google · Gemini 1.5 Flash (Legacy)',
-    provider: 'gemini',
-    model: 'gemini-1.5-flash'
-  }
-];
-
-function resolveThemeVars(themeKey = DEFAULT_THEME_KEY) {
-  const preset = THEME_PRESETS[themeKey] ?? THEME_PRESETS[DEFAULT_THEME_KEY];
-  const lightVars = { ...BASE_THEME_VARS, ...preset.overrides };
-  const darkVars = { ...BASE_DARK_THEME_VARS, ...(preset.darkOverrides ?? {}) };
-  return { lightVars, darkVars };
-}
-
-function buildThemeCss(themeKey = DEFAULT_THEME_KEY) {
-  const { lightVars, darkVars } = resolveThemeVars(themeKey);
-  const toDeclarations = (vars) =>
-    Object.entries(vars)
-      .map(([token, value]) => `${token}: ${value};`)
-      .join('\n');
-
-  return `
-:root {
-${toDeclarations(lightVars)}
-}
-
-.dark {
-${toDeclarations(darkVars)}
-}
-
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-`;
-}
-
-function buildIframeHTML({ html = '', css = '', js = '' }, themeKey = DEFAULT_THEME_KEY, mode = 'light') {
-  const themeCss = buildThemeCss(themeKey);
-  const htmlClass = mode === 'dark' ? ' class="dark"' : '';
-  return `<!doctype html>
-<html${htmlClass}>
-<head>
-<meta charset="utf-8"/>
-<style>${themeCss}
-${css || ''}</style>
-</head>
-<body>
-${html || '<p>No HTML returned.</p>'}
-<script type="module">
-${js || ''}
-</script>
-</body>
-</html>`;
-}
 
 function resolveApiBase(endpoint) {
   if (!endpoint) return 'https://questit.cc/api';
@@ -422,7 +79,6 @@ function App() {
   });
   const [toolCode, setToolCode] = useState({ html: '', css: '', js: '' });
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState(DEFAULT_THEME_KEY);
   const [user, setUser] = useState(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [authEmail, setAuthEmail] = useState('');
@@ -437,47 +93,50 @@ function App() {
   const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
   const [toolActionStatus, setToolActionStatus] = useState({});
   const composerRef = useRef(null);
-  const [colorMode, setColorMode] = useState(() => {
-    if (typeof window === 'undefined') return 'system';
-    try {
-      return localStorage.getItem(COLOR_MODE_STORAGE_KEY) || 'system';
-    } catch {
-      return 'system';
-    }
-  });
-  const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-  const [modelId, setModelId] = useState(() => {
-    if (typeof window === 'undefined') return MODEL_OPTIONS[0].id;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const paramModel = params.get('model');
-      if (paramModel && MODEL_OPTIONS.some((option) => option.id === paramModel)) {
-        return paramModel;
+  const { selectedTheme, setSelectedTheme, colorMode, setColorMode, resolvedMode } =
+    useThemeManager(DEFAULT_THEME_KEY);
+  const { modelId, setModelId, selectedModelOption, options: modelOptions } = useModelManager();
+
+  const scrollToComposer = useCallback(() => {
+    const node = composerRef.current || document.getElementById('questit-composer');
+    if (node && typeof node.scrollIntoView === 'function') {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof node.focus === 'function') {
+        node.focus();
       }
-    } catch {
-      // ignore
     }
-    return MODEL_OPTIONS[0].id;
-  });
+  }, []);
+
+  const handleLandingStart = useCallback(() => {
+    setActiveView('workbench');
+    setTimeout(() => {
+      scrollToComposer();
+    }, 50);
+  }, [scrollToComposer]);
+
+  const handleLandingTemplateSelect = useCallback(
+    (prompt) => {
+      if (!prompt) return;
+      setActiveView('workbench');
+      setComposerValue(prompt);
+      setSessionStatus({ state: 'idle', message: '' });
+      setTimeout(() => {
+        scrollToComposer();
+      }, 50);
+    },
+    [scrollToComposer]
+  );
 
   const endpoint = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
   }, []);
   const apiBase = useMemo(() => resolveApiBase(endpoint), [endpoint]);
-  const selectedModelOption = useMemo(
-    () => MODEL_OPTIONS.find((option) => option.id === modelId) || MODEL_OPTIONS[0],
-    [modelId]
-  );
   const handleOpenDocs = useCallback(() => {
     window.open('https://github.com/aaquib90/questit#readme', '_blank', 'noopener,noreferrer');
   }, []);
   const { html: currentHtml, css: currentCss, js: currentJs } = toolCode;
   const hasGenerated = Boolean(currentHtml || currentCss || currentJs);
-  const resolvedMode = colorMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : colorMode;
   const iframeDoc = useMemo(
     () =>
       hasGenerated
@@ -489,8 +148,43 @@ function App() {
         : '',
     [currentCss, currentHtml, currentJs, hasGenerated, resolvedMode, selectedTheme]
   );
-  const ModeIndicator = colorMode === 'system' ? Monitor : resolvedMode === 'dark' ? Moon : Sun;
   const userLabel = user?.email || user?.user_metadata?.full_name || 'Signed in';
+  const sessionStepCount = sessionEntries.length;
+  const hasHistory = sessionStepCount > 0;
+  const sessionState = sessionStatus?.state || 'idle';
+  const sessionStateLabel =
+    sessionState === 'loading'
+      ? 'Generating…'
+      : sessionState === 'success'
+        ? 'Ready'
+        : sessionState === 'error'
+          ? 'Needs attention'
+          : 'Idle';
+  const sessionStateClass =
+    sessionState === 'error'
+      ? 'text-destructive'
+      : sessionState === 'success'
+        ? 'text-emerald-500'
+        : sessionState === 'loading'
+          ? 'text-primary'
+          : 'text-muted-foreground';
+
+  const scopeGate = useMemo(() => scopeGateRequest(composerValue || ''), [composerValue]);
+  const scopeDecision = scopeGate.decision;
+  const scopeReasons = scopeGate.reasons;
+  const scopeMetrics = scopeGate.metrics;
+  const scopeDecisionLabel =
+    scopeDecision === 'allow'
+      ? 'Within limits'
+      : scopeDecision === 'refine'
+        ? 'Refine your prompt'
+        : 'Out of scope';
+  const scopeDecisionClasses =
+    scopeDecision === 'allow'
+      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+      : scopeDecision === 'refine'
+        ? 'bg-amber-100 text-amber-700 border border-amber-200'
+        : 'bg-rose-100 text-rose-700 border border-rose-200';
 
   const handleRequestLogin = useCallback(() => {
     setAuthDialogOpen(true);
@@ -687,7 +381,7 @@ function App() {
           setColorMode(data.color_mode);
         }
         if (data.model_provider && data.model_name) {
-          const match = MODEL_OPTIONS.find(
+          const match = modelOptions.find(
             (option) =>
               option.provider === data.model_provider && option.model === data.model_name
           );
@@ -867,7 +561,7 @@ function App() {
         setColorMode(toolRecord.color_mode);
       }
       if (toolRecord.model_provider && toolRecord.model_name) {
-        const match = MODEL_OPTIONS.find(
+        const match = modelOptions.find(
           (option) =>
             option.provider === toolRecord.model_provider && option.model === toolRecord.model_name
         );
@@ -1059,35 +753,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const updatePreference = () => setSystemPrefersDark(media.matches);
-    updatePreference();
-    if (media.addEventListener) {
-      media.addEventListener('change', updatePreference);
-      return () => media.removeEventListener('change', updatePreference);
-    }
-    media.addListener(updatePreference);
-    return () => media.removeListener(updatePreference);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const root = document.documentElement;
-    root.classList.toggle('dark', resolvedMode === 'dark');
-    try {
-      localStorage.setItem(COLOR_MODE_STORAGE_KEY, colorMode);
-    } catch (storageError) {
-      console.warn('Failed to persist color mode preference:', storageError);
-    }
-    const { lightVars, darkVars } = resolveThemeVars(selectedTheme);
-    const activeVars = resolvedMode === 'dark' ? darkVars : lightVars;
-    Object.entries(activeVars).forEach(([token, value]) => {
-      root.style.setProperty(token, value);
-    });
-  }, [colorMode, resolvedMode, selectedTheme]);
-
-  useEffect(() => {
     if (!['my-tools', 'creator-portal'].includes(activeView)) return undefined;
     if (!hasSupabaseConfig || !user) {
       setIsLoadingMyTools(false);
@@ -1127,231 +792,84 @@ function App() {
   }, [activeView, myToolsRefreshKey, user]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background questit-atmosphere">
-      <div className="questit-aurora" />
-      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:gap-10 lg:px-10 lg:py-12">
-        <WorkbenchHeader
-          activeView={activeView}
-          onSelectView={setActiveView}
-          user={user}
-          userLabel={userLabel}
-          onLogin={handleRequestLogin}
-          onSignOut={handleSignOut}
-        />
+    <div className="min-h-screen bg-background text-foreground">
+      <Shell as="main" className="py-10 sm:py-12 lg:py-16">
+        <div className="flex flex-col gap-8 lg:gap-10">
+          {activeView === 'workbench' ? (
+            <LandingPage
+              onStart={handleLandingStart}
+              onSeeTemplates={handleLandingStart}
+              onSelectTemplate={handleLandingTemplateSelect}
+            />
+          ) : null}
 
-        {activeView === 'workbench' ? (
-          <div className="space-y-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-              <Card className="border border-primary/30 bg-card shadow-lg shadow-primary/10">
-                <CardHeader className="space-y-4">
-                  <div className="space-y-1.5">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                      Prompt
-                    </CardTitle>
-                    <CardDescription>
-                      Describe what you want and generate a tool.
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="composer-model">Model</Label>
-                      <Select value={modelId} onValueChange={setModelId}>
-                        <SelectTrigger id="composer-model" className="w-full sm:w-[220px]">
-                          <SelectValue placeholder="Select a model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MODEL_OPTIONS.map((option) => (
-                            <SelectItem key={option.id} value={option.id}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {sessionEntries.length ? (
-                      <Badge variant="secondary" className="w-fit">
-                        Steps: {sessionEntries.length}
-                      </Badge>
-                    ) : null}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <PromptComposer
-                    ref={composerRef}
-                    value={composerValue}
-                    onChange={setComposerValue}
-                    onSubmit={handlePromptSubmit}
-                    disabled={isGenerating}
-                    isWorking={isGenerating}
-                    status={sessionStatus}
-                    onReset={handleResetSession}
-                    canReset={sessionEntries.length > 0 || hasGenerated}
-                    onSave={handleOpenSaveDialog}
-                    hasGenerated={hasGenerated}
-                    user={user}
-                    saveStatus={saveStatus}
-                    placeholder="Describe the tool you want to build…"
-                  />
-                </CardContent>
-              </Card>
+          <WorkbenchHeader
+            activeView={activeView}
+            onSelectView={setActiveView}
+            user={user}
+            userLabel={userLabel}
+            onLogin={handleRequestLogin}
+            onSignOut={handleSignOut}
+          />
 
-              <Tabs defaultValue="preview" className="w-full">
-                <TabsList className="mb-4 grid w-full grid-cols-2 bg-muted/70">
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
-                  <TabsTrigger value="history">History</TabsTrigger>
-                </TabsList>
-                <TabsContent value="preview">
-                  <div className="space-y-6">
-                    <Card className="overflow-hidden border border-primary/30 bg-card shadow-lg shadow-primary/10">
-                      <CardHeader className="space-y-3">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                              <FileCode className="h-5 w-5 text-primary" aria-hidden />
-                              Preview
-                            </CardTitle>
-                            <CardDescription>Rendered output from the latest AI response.</CardDescription>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex flex-col gap-1">
-                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Palette className="h-4 w-4 text-primary" aria-hidden />
-                              Theme
-                            </span>
-                            <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                              <SelectTrigger className="w-full sm:w-[200px]">
-                                <SelectValue placeholder="Select theme" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {THEME_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <ModeIndicator className="h-4 w-4 text-primary" aria-hidden />
-                              Mode
-                            </span>
-                            <Select value={colorMode} onValueChange={setColorMode}>
-                              <SelectTrigger className="w-full sm:w-[180px]">
-                                <SelectValue placeholder="Select mode" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {COLOR_MODE_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {hasGenerated ? (
-                            <Badge variant="secondary" className="w-fit">
-                              Live
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="relative overflow-hidden rounded-xl border border-dashed border-primary/30 bg-muted/40">
-                          {iframeDoc ? (
-                            <iframe
-                              title="Questit preview"
-                              sandbox="allow-scripts allow-same-origin"
-                              srcDoc={iframeDoc}
-                              className="min-h-[360px] w-full rounded-xl bg-background"
-                            />
-                          ) : (
-                            <div className="flex min-h-[360px] items-center justify-center text-sm text-muted-foreground">
-                              Generated tool will appear here.
-                            </div>
-                          )}
-                        </div>
-                        {saveStatus.message ? (
-                          <p
-                            className={`text-xs ${
-                              saveStatus.state === 'error'
-                                ? 'text-destructive'
-                                : saveStatus.state === 'success'
-                                  ? 'text-emerald-500'
-                                  : 'text-muted-foreground'
-                            }`}
-                          >
-                            {saveStatus.message}
-                          </p>
-                        ) : null}
-                      </CardContent>
-                    </Card>
+          {activeView === 'workbench' ? (
+            <div className="space-y-8">
+              <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)_minmax(0,360px)]">
+                <WorkbenchSidebar
+                  modelId={modelId}
+                  setModelId={setModelId}
+                  modelOptions={modelOptions}
+                  onResetSession={handleResetSession}
+                  canReset={hasHistory || hasGenerated}
+                  sessionStateLabel={sessionStateLabel}
+                  sessionStateClass={sessionStateClass}
+                  sessionStepCount={sessionStepCount}
+                  selectedModelLabel={selectedModelOption.label}
+                  selectedTheme={selectedTheme}
+                  colorMode={colorMode}
+                  resolvedMode={resolvedMode}
+                  scopeDecisionLabel={scopeDecisionLabel}
+                  scopeDecisionClasses={scopeDecisionClasses}
+                  scopeReasons={scopeReasons}
+                  scopeMetrics={scopeMetrics}
+                />
 
-                    {hasGenerated ? (
-                      <Card className="border border-primary/20 shadow-md">
-                        <CardHeader className="space-y-1.5">
-                          <CardTitle className="flex items-center gap-2 text-lg">
-                            <FileCode className="h-5 w-5 text-primary" aria-hidden />
-                            Generated code
-                          </CardTitle>
-                          <CardDescription>Review the HTML, CSS, and JavaScript bundles.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Tabs defaultValue="html" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 bg-muted/70">
-                              <TabsTrigger value="html">HTML</TabsTrigger>
-                              <TabsTrigger value="css">CSS</TabsTrigger>
-                              <TabsTrigger value="js">JavaScript</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="html">
-                              <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                                {toolCode.html || '// No HTML returned'}
-                              </pre>
-                            </TabsContent>
-                            <TabsContent value="css">
-                              <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                                {toolCode.css || '// No CSS returned'}
-                              </pre>
-                            </TabsContent>
-                            <TabsContent value="js">
-                              <pre className="max-h-[320px] overflow-auto rounded-lg bg-slate-950/95 p-4 text-sm text-primary-foreground">
-                                {toolCode.js || '// No JS returned'}
-                              </pre>
-                            </TabsContent>
-                          </Tabs>
-                        </CardContent>
-                      </Card>
-                    ) : null}
-                  </div>
-                </TabsContent>
-                <TabsContent value="history">
-                  <Card className="border border-primary/30 bg-card shadow-lg shadow-primary/10">
-                    <CardHeader className="space-y-2">
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Sparkles className="h-5 w-5 text-primary" aria-hidden />
-                        Prompt History
-                      </CardTitle>
-                      <CardDescription>
-                        Review previous prompts and statuses. Reuse or retry as needed.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <PromptTimeline
-                        entries={sessionEntries}
-                        onUsePrompt={handleUsePrompt}
-                        onRetry={handleRetryEntry}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                <WorkbenchComposerPanel
+                  ref={composerRef}
+                  composerValue={composerValue}
+                  setComposerValue={setComposerValue}
+                  onSubmit={handlePromptSubmit}
+                  isGenerating={isGenerating}
+                  sessionStatus={sessionStatus}
+                  hasHistory={hasHistory}
+                  hasGenerated={hasGenerated}
+                  onResetSession={handleResetSession}
+                  onSaveTool={handleOpenSaveDialog}
+                  user={user}
+                  saveStatus={saveStatus}
+                  sessionEntries={sessionEntries}
+                  onUsePrompt={handleUsePrompt}
+                  onRetryEntry={handleRetryEntry}
+                />
+
+                <WorkbenchInspector
+                  hasGenerated={hasGenerated}
+                  selectedTheme={selectedTheme}
+                  setSelectedTheme={setSelectedTheme}
+                  themeOptions={THEME_OPTIONS}
+                  colorMode={colorMode}
+                  setColorMode={setColorMode}
+                  colorModeOptions={COLOR_MODE_OPTIONS}
+                  iframeDoc={iframeDoc}
+                  saveStatus={saveStatus}
+                  toolCode={toolCode}
+                />
+              </div>
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {activeView === 'my-tools' ? (
+          {activeView === 'my-tools' ? (
           <section className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -1540,7 +1058,7 @@ function App() {
           </section>
         ) : null}
 
-        {activeView === 'creator-portal' ? (
+          {activeView === 'creator-portal' ? (
           <CreatorPortal
             user={user}
             userLabel={userLabel}
@@ -1567,7 +1085,7 @@ function App() {
           status={saveStatus}
         />
 
-        <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+          <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
           <DialogContent className="w-full max-w-md gap-6 p-6 sm:p-8">
             <DialogHeader>
               <DialogTitle>Sign in to Questit</DialogTitle>
@@ -1607,13 +1125,14 @@ function App() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
-      </main>
-      <footer className="relative mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-10">
-        <div className="space-y-8 sm:space-y-10">
-          <WorkbenchHero onNavigateDocs={handleOpenDocs} />
+          </Dialog>
         </div>
-      </footer>
+      </Shell>
+      <Shell as="footer" className="pb-12 sm:pb-16 lg:pb-20">
+        <Section tight className="gap-8 sm:gap-10">
+          <WorkbenchHero onNavigateDocs={handleOpenDocs} />
+        </Section>
+      </Shell>
     </div>
   );
 }
