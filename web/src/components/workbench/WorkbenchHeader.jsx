@@ -21,7 +21,7 @@ export function WorkbenchHeader({
   return (
     <Surface as="header" className="flex flex-col gap-4 rounded-3xl border border-border/60 p-5 shadow-md sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1">
+        <div>
           <button
             type="button"
             onClick={() => onNavigateHome?.()}
@@ -29,9 +29,6 @@ export function WorkbenchHeader({
           >
             Questit
           </button>
-          <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
-            Workspace
-          </p>
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
           <nav
