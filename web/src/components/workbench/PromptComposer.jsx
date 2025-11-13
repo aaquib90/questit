@@ -109,13 +109,13 @@ const PromptComposer = forwardRef(function PromptComposer(
           >
             {isWorking ? (
               <span className="flex items-center justify-center">
-                <dotlottie-player
+                <dotlottie-wc
                   src="https://lottie.host/28e5f377-69df-4bc7-ae2c-d96bbe3469e6/5Z6zajkCOQ.lottie"
                   autoplay
                   loop
-                  style={{ width: '24px', height: '24px' }}
+                  class="block h-6 w-6"
                   aria-hidden="true"
-                />
+                ></dotlottie-wc>
               </span>
             ) : (
               <Sparkles className="h-4 w-4" aria-hidden />
