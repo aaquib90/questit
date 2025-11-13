@@ -154,12 +154,12 @@ function App() {
   const sessionState = sessionStatus?.state || 'idle';
   const sessionStateLabel =
     sessionState === 'loading'
-      ? 'Generating…'
+      ? 'Working on it…'
       : sessionState === 'success'
-        ? 'Ready'
+        ? 'All set'
         : sessionState === 'error'
-          ? 'Needs attention'
-          : 'Idle';
+          ? 'Needs a quick fix'
+          : 'Waiting';
   const sessionStateClass =
     sessionState === 'error'
       ? 'text-destructive'
@@ -175,10 +175,10 @@ function App() {
   const scopeMetrics = scopeGate.metrics;
   const scopeDecisionLabel =
     scopeDecision === 'allow'
-      ? 'Within limits'
+      ? 'Looks good'
       : scopeDecision === 'refine'
-        ? 'Refine your prompt'
-        : 'Out of scope';
+        ? 'May need a tweak'
+        : 'Too big for now';
   const scopeDecisionClasses =
     scopeDecision === 'allow'
       ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'

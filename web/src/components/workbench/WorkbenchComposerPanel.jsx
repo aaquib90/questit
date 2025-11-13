@@ -31,11 +31,10 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
       <Surface id="questit-composer" className="space-y-6 p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            What would you like to create?
+            Tell us about the tool you need
           </h2>
           <p className="text-sm text-muted-foreground">
-            Provide as much context as you can. Questit validates the scope, adapts source code, and runs a
-            static security scan automatically.
+            Use friendly, everyday language. Mention what you want it to do and any important buttons or lists. Questit fills in the rest.
           </p>
         </div>
         <PromptComposer
@@ -52,7 +51,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
           hasGenerated={hasGenerated}
           user={user}
           saveStatus={saveStatus}
-          placeholder="Describe the tool you want to build…"
+          placeholder="For example: “Help me plan weekly meals with a spot for groceries.”"
           className="mt-2"
         />
       </Surface>
@@ -60,7 +59,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
       <Surface muted className="overflow-hidden p-0">
         <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
           <h3 className="text-xs font-semibold uppercase tracking-[0.45em] text-muted-foreground">
-            Timeline
+            Conversation history
           </h3>
           {entryCount ? (
             <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
@@ -73,7 +72,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
             <PromptTimeline entries={sessionEntries} onUsePrompt={onUsePrompt} onRetry={onRetryEntry} />
           ) : (
             <p className="text-sm text-muted-foreground">
-              Your prompt history will appear here after you generate a tool.
+              Each time you ask Questit to adjust something, the conversation will be saved here so you can revisit it.
             </p>
           )}
         </div>
@@ -83,4 +82,3 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
 });
 
 export default WorkbenchComposerPanel;
-

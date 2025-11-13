@@ -29,7 +29,7 @@ export default function WorkbenchInspector({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Theme
+              Colours
             </span>
             <Select value={selectedTheme} onValueChange={setSelectedTheme}>
               <SelectTrigger className="w-full">
@@ -46,7 +46,7 @@ export default function WorkbenchInspector({
           </div>
           <div className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Mode
+              Light or dark
             </span>
             <Select value={colorMode} onValueChange={setColorMode}>
               <SelectTrigger className="w-full">
@@ -124,4 +124,3 @@ export default function WorkbenchInspector({
     </div>
   );
 }
-

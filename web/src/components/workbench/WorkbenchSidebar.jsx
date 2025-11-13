@@ -36,9 +36,9 @@ export default function WorkbenchSidebar({
       <Surface muted className="space-y-4 p-5">
         <div className="space-y-1">
           <span className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
-            Session
+            Your progress
           </span>
-          <p className="text-lg font-semibold text-foreground">Current build</p>
+          <p className="text-lg font-semibold text-foreground">Current tool</p>
         </div>
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-between">
@@ -46,13 +46,13 @@ export default function WorkbenchSidebar({
             <span className={cn('font-medium', sessionStateClass)}>{sessionStateLabel}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Steps</span>
+            <span className="text-muted-foreground">Updates so far</span>
             <Badge variant="secondary" className="rounded-full px-3 py-1">
               {sessionStepCount}
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Model</span>
+            <span className="text-muted-foreground">Helper</span>
             <span className="max-w-[140px] truncate text-right">{selectedModelLabel}</span>
           </div>
         </div>
@@ -70,9 +70,9 @@ export default function WorkbenchSidebar({
 
       <Surface muted className="space-y-3 p-5">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Model selection</h3>
+          <h3 className="text-sm font-semibold text-foreground">Choose your assistant</h3>
           <p className="text-xs text-muted-foreground">
-            Choose the provider powering new generations.
+            Pick the AI helper you prefer. Each one understands plain language.
           </p>
         </div>
         <Select value={modelId} onValueChange={setModelId}>
@@ -91,9 +91,9 @@ export default function WorkbenchSidebar({
 
       <Surface muted className="space-y-3 p-5">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Scope guidance</h3>
+          <h3 className="text-sm font-semibold text-foreground">Quick check</h3>
           <p className="text-xs text-muted-foreground">
-            Questit checks each prompt against lightweight limits before calling the AI.
+            Questit double-checks your request to be sure it’s a good fit. If something looks too large, we’ll suggest a tweak.
           </p>
         </div>
         <Badge className={cn('w-fit rounded-full px-3 py-1 text-xs font-medium', scopeDecisionClasses)}>
@@ -107,26 +107,26 @@ export default function WorkbenchSidebar({
           )}
         </ul>
         <div className="space-y-1 rounded-lg border border-border/40 bg-background/60 p-3 text-xs text-muted-foreground">
-          <ScopeMetric label="Files" value={scopeMetrics.predictedFileCount} />
-          <ScopeMetric label="Lines" value={scopeMetrics.predictedLoC.toLocaleString()} />
-          <ScopeMetric label="Bundle" value={`${(scopeMetrics.bundleBytes / 1024).toFixed(0)} KB`} />
+          <ScopeMetric label="Estimated size" value={`${scopeMetrics.predictedFileCount} parts`} />
+          <ScopeMetric label="How busy it is" value={`${scopeMetrics.predictedLoC.toLocaleString()} steps`} />
+          <ScopeMetric label="File size" value={`${(scopeMetrics.bundleBytes / 1024).toFixed(0)} KB`} />
           <ScopeMetric
-            label="Network?"
-            value={scopeMetrics.requiresNetwork ? 'Likely' : 'Not needed'}
+            label="Needs internet?"
+            value={scopeMetrics.requiresNetwork ? 'Probably' : 'No'}
           />
         </div>
       </Surface>
 
       <Surface muted className="space-y-3 p-5">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Save or publish</h3>
+          <h3 className="text-sm font-semibold text-foreground">Save or share</h3>
           <p className="text-xs text-muted-foreground">
-            Generate at least once to unlock Supabase save and publish actions.
+            Create the tool first, then you can save it for later or share with other people.
           </p>
         </div>
         <div className="space-y-1 text-xs text-muted-foreground">
-          <p>• Save to Supabase stores the latest code bundle.</p>
-          <p>• Publish deploys to Workers for Platforms with theming intact.</p>
+          <p>• “Save” keeps your tool in a private list.</p>
+          <p>• “Share” gives you a link anyone can open in their browser.</p>
         </div>
       </Surface>
     </div>

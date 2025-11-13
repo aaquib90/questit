@@ -14,62 +14,62 @@ import { Badge } from '@/components/ui/badge';
 import { PillTray, Section, Surface } from '@/components/layout';
 
 const FEATURE_PILLS = [
-  { icon: Sparkles, label: 'AI-orchestrated builders' },
-  { icon: Bolt, label: 'Runs on Cloudflare edge' },
-  { icon: ShieldCheck, label: 'Security scan & guardrails' },
-  { icon: Palette, label: 'Shadcn-aligned theming' }
+  { icon: Sparkles, label: 'Works with plain language' },
+  { icon: Bolt, label: 'Ready in just a few moments' },
+  { icon: ShieldCheck, label: 'Safe by default' },
+  { icon: Palette, label: 'Looks polished automatically' }
 ];
 
 const VALUE_CARDS = [
   {
     icon: Wand2,
-    title: 'Create in seconds',
+    title: 'Just tell us what you need',
     copy:
-      'Describe the outcome you want. Questit scopes the request, fetches starter code, and assembles a working tool instantly.'
+      'Type a short request the same way you would message a friend. Questit understands everyday language and fills in the details for you.'
   },
   {
     icon: Layers,
-    title: 'Iterate with context',
+    title: 'Make quick tweaks',
     copy:
-      'Send follow-up prompts that keep state. Each revision understands prior feedback, so refinements stack without rework.'
+      'Need a small change? Ask in a sentence. Updates build on what you already have, so nothing is lost or overwritten.'
   },
   {
     icon: Timer,
-    title: 'Publish when ready',
+    title: 'Share when you’re happy',
     copy:
-      'Ship to Cloudflare Workers for Platforms with a click, or share the sandboxed preview to collect feedback before launch.'
+      'When things look right, send the tool to family, coworkers, or friends with a single button. No installs or tech setup required.'
   }
 ];
 
 const TEMPLATE_CHIPS = [
   {
     label: 'Shopping List',
-    description: 'Track what you need to buy this week.',
-    prompt: 'Create a simple shopping list where I can add, reorder, and check off items.'
+    description: 'Keep track of items to buy with easy checkmarks.',
+    prompt: 'Make a simple shopping list where I can add and check off items, with big buttons that work on my phone.'
   },
   {
     label: 'Mood Journal',
-    description: 'Log daily feelings with quick prompts.',
+    description: 'A gentle space to note how you feel each day.',
     prompt:
-      'Build a mood journal that lets me pick an emoji for how I feel, add a short note, and view a weekly timeline.'
+      'Create a friendly mood journal where I tap an emoji to choose how I feel and write a quick note. Show a seven-day view.'
   },
   {
     label: 'Recipe Scaler',
-    description: 'Adjust servings with smart math.',
+    description: 'Adjust recipes when cooking for more or fewer people.',
     prompt:
-      'Make a recipe scaler that recalculates ingredient amounts when I change the number of servings.'
+      'Build a recipe helper where I enter ingredients and it adjusts amounts when I change the number of servings.'
   },
   {
     label: 'Standup Notes',
-    description: 'Summarise yesterday / today / blockers.',
+    description: 'Simple daily planner for work or family check-ins.',
     prompt:
-      'Generate a lightweight team standup tracker with sections for yesterday, today, and blockers, plus export to Markdown.'
+      'Make a daily planner with sections for what we finished, what’s next, and anything blocking us. Include a print button.'
   },
   {
     label: 'Content Planner',
-    description: 'Plan posts with status tracking.',
+    description: 'Organise posts or ideas in one tidy place.',
     prompt:
-      'Draft a social content planner that tracks platform, copy, assets, and approval status with inline editing.'
+      'Create a friendly content planner with columns for title, platform, due date, and a simple switch for ready or not yet.'
   }
 ];
 
@@ -150,16 +150,16 @@ function LandingPage({
         <div className="flex flex-col gap-10 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">
             <Badge variant="outline" className="w-fit rounded-full px-3 py-1 text-xs font-medium">
-              Generate, iterate, publish
+              No coding. No downloads.
             </Badge>
-            <h1>Turn ideas into working micro-tools, without leaving the browser.</h1>
+            <h1>Describe what you want. We build the little tool for you.</h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Questit finds the right starter snippets, adapts them with AI, and deploys to the edge in
-              minutes. Explain the problem once and keep iterating until it is ready to share.
+              Questit turns plain language into handy mini-apps you can use on any phone, tablet, or computer.
+              No tech background needed—just share your idea in your own words.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button size="lg" onClick={onStart} className="gap-2">
-                Start creating
+                Try Questit now
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Button>
               <Button
@@ -168,7 +168,7 @@ function LandingPage({
                 onClick={onSeeTemplates}
                 className="gap-2 border-dashed"
               >
-                Browse starter templates
+                See ready-made ideas
               </Button>
             </div>
             <PillTray>
@@ -185,34 +185,33 @@ function LandingPage({
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                    Prompt
+                    Your request
                   </p>
                   <p className="text-sm font-medium text-foreground">
-                    “Draft a budgeting dashboard for freelance designers.”
+                    “Help me track my monthly spending in a simple table.”
                   </p>
                 </div>
                 <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
-                  12s to generate
+                  Ready in under a minute
                 </Badge>
               </div>
               <div className="grid gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Preview
+                  Sneak peek
                 </span>
                 <div className="grid gap-2 rounded-lg border border-border/60 bg-background p-3 text-sm shadow-inner">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Status</span>
-                    <span className="font-medium text-emerald-500">All checks passed</span>
+                    <span className="font-medium text-emerald-500">Looks good</span>
                   </div>
                   <div className="rounded-md border border-border/50 bg-surface p-3 text-sm leading-relaxed shadow-sm">
-                    Income vs expenses, category breakdowns, and quick self-test hooks appear instantly.
-                    Tweak the prompt and the preview updates with history intact.
+                    Totals and helpful hints appear automatically. Tap the button again to adjust anything you like.
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Scoped to 4 files • Security scan clean</span>
-                <span className="font-medium text-primary">Publish to Workers →</span>
+                <span>Auto-checked for safety</span>
+                <span className="font-medium text-primary">Share with friends →</span>
               </div>
             </div>
           </Surface>
@@ -271,7 +270,7 @@ function LandingPage({
                 <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden />
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
-              <span className="text-xs text-muted-foreground/80">Prefills the composer</span>
+              <span className="text-xs text-muted-foreground/80">Fills in the request for you</span>
             </button>
           ))}
         </div>
