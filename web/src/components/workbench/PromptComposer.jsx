@@ -107,7 +107,19 @@ const PromptComposer = forwardRef(function PromptComposer(
             disabled={disabled || isWorking || !value?.trim()}
             className="w-full gap-2 sm:w-auto"
           >
-            <Sparkles className={`h-4 w-4 ${isWorking ? 'animate-spin' : ''}`} aria-hidden />
+            {isWorking ? (
+              <span className="flex items-center justify-center">
+                <dotlottie-player
+                  src="https://lottie.host/28e5f377-69df-4bc7-ae2c-d96bbe3469e6/5Z6zajkCOQ.lottie"
+                  autoplay
+                  loop
+                  style={{ width: '24px', height: '24px' }}
+                  aria-hidden="true"
+                />
+              </span>
+            ) : (
+              <Sparkles className="h-4 w-4" aria-hidden />
+            )}
             {isWorking ? 'Generating…' : 'Send to Questit'}
           </Button>
           {hasGenerated && onSave ? (

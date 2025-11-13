@@ -1127,7 +1127,7 @@ function App() {
   }, [activeView, myToolsRefreshKey, user]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+    <div className="relative min-h-screen overflow-hidden bg-background questit-atmosphere">
       <div className="questit-aurora" />
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:gap-10 lg:px-10 lg:py-12">
         <WorkbenchHeader

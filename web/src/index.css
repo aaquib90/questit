@@ -36,6 +36,12 @@
 
     --radius: 0.75rem;
     --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    --atmosphere-base: linear-gradient(135deg, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.78) 28%, hsl(var(--primary) / 0.18) 85%);
+    --atmosphere-accent: radial-gradient(120% 80% at 12% 18%, hsl(var(--primary) / 0.24), transparent 60%);
+    --atmosphere-highlight: radial-gradient(140% 90% at 88% 12%, hsl(var(--accent) / 0.22), transparent 70%);
+    --atmosphere-shadow: radial-gradient(120% 80% at 50% 100%, hsl(var(--muted) / 0.18), transparent 80%);
+    --atmosphere-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   }
 
   .dark {
@@ -66,6 +72,12 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 152 90% 44%;
+
+    --atmosphere-base: linear-gradient(135deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.82) 35%, hsl(var(--primary) / 0.22) 80%);
+    --atmosphere-accent: radial-gradient(120% 80% at 15% 20%, hsl(var(--primary) / 0.35), transparent 60%);
+    --atmosphere-highlight: radial-gradient(140% 90% at 88% 16%, hsl(var(--accent) / 0.32), transparent 68%);
+    --atmosphere-shadow: radial-gradient(140% 95% at 50% 100%, hsl(var(--muted) / 0.32), transparent 85%);
+    --atmosphere-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
   }
 }
 
@@ -103,13 +115,10 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 20% 20%, hsl(var(--primary) / 0.18), transparent 55%),
-    radial-gradient(circle at 80% 0%, hsl(var(--accent) / 0.18), transparent 50%),
-    radial-gradient(circle at 50% 80%, hsl(var(--secondary) / 0.14), transparent 45%);
-  filter: blur(80px);
-  transform: scale(1.05);
-  opacity: 0.9;
+  background: var(--atmosphere-accent), var(--atmosphere-highlight), var(--atmosphere-shadow);
+  filter: blur(90px);
+  transform: scale(1.08);
+  opacity: 0.85;
   z-index: -2;
 }
 
@@ -117,7 +126,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, hsl(var(--background) / 0.15), hsl(var(--background)));
+  background: linear-gradient(180deg, hsl(var(--background) / 0.12), hsl(var(--background)));
 }
 
 .questit-glass {
@@ -125,4 +134,47 @@
   border: 1px solid hsl(var(--primary) / 0.08);
   box-shadow: 0 24px 60px -35px hsl(var(--primary) / 0.6);
   backdrop-filter: blur(24px);
+}
+
+.questit-atmosphere {
+  position: relative;
+  background-color: hsl(var(--background));
+  background-image: var(--atmosphere-base), var(--atmosphere-accent), var(--atmosphere-highlight), var(--atmosphere-shadow);
+  background-size: 180% 180%, 140% 140%, 150% 150%, 160% 160%;
+  background-position: center, 12% 18%, 84% 12%, 50% 100%;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.questit-atmosphere::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background-image: var(--atmosphere-noise);
+  background-size: 320px 320px;
+  opacity: 0.25;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.questit-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(65% 55% at 50% 10%, hsl(var(--background) / 0.28), transparent 70%);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: -2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .questit-atmosphere {
+    background-position: center;
+    background-size: cover;
+  }
+
+  .questit-atmosphere::before {
+    opacity: 0.16;
+  }
 }
