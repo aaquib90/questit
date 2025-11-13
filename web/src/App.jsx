@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
-import WorkbenchHero from '@/components/workbench/WorkbenchHero.jsx';
 import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
 import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
@@ -23,7 +22,7 @@ import {
   useThemeManager
 } from '@/lib/themeManager.js';
 import { useModelManager } from '@/lib/modelManager.js';
-import { Section, Shell } from '@/components/layout';
+import { Shell } from '@/components/layout';
 import LandingPage from '@/components/landing/LandingPage.jsx';
 import WorkbenchSidebar from '@/components/workbench/WorkbenchSidebar.jsx';
 import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
@@ -807,11 +806,6 @@ function App() {
             onSignOut={handleSignOut}
           />
         </Shell>
-        <Shell as="footer" className="pb-12 sm:pb-16 lg:pb-20">
-          <Section tight className="gap-8 sm:gap-10">
-            <WorkbenchHero onNavigateDocs={handleOpenDocs} />
-          </Section>
-        </Shell>
         <SaveToolDialog
           open={saveDialogOpen}
           onOpenChange={setSaveDialogOpen}
@@ -1193,11 +1187,6 @@ function App() {
           </DialogContent>
           </Dialog>
         </div>
-      </Shell>
-      <Shell as="footer" className="pb-12 sm:pb-16 lg:pb-20">
-        <Section tight className="gap-8 sm:gap-10">
-          <WorkbenchHero onNavigateDocs={handleOpenDocs} />
-        </Section>
       </Shell>
     </div>
   );
