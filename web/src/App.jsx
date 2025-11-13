@@ -865,7 +865,6 @@ function App() {
                   toolCode={toolCode}
                 />
               </div>
-              </div>
             </div>
           ) : null}
 
