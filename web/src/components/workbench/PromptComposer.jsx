@@ -105,22 +105,24 @@ const PromptComposer = forwardRef(function PromptComposer(
             type="submit"
             size="lg"
             disabled={disabled || isWorking || !value?.trim()}
-            className="w-full gap-2 sm:w-auto"
+            className={`w-full gap-2 sm:w-auto ${isWorking ? 'px-3 py-2 sm:px-6' : ''}`}
           >
             {isWorking ? (
-              <span className="flex items-center justify-center">
+              <span className="flex w-full items-center justify-center">
                 <dotlottie-wc
                   src="https://lottie.host/28e5f377-69df-4bc7-ae2c-d96bbe3469e6/5Z6zajkCOQ.lottie"
                   autoplay
                   loop
-                  class="block h-6 w-6"
+                  style={{ width: '120px', height: '36px' }}
                   aria-hidden="true"
-                ></dotlottie-wc>
+                />
               </span>
             ) : (
-              <Sparkles className="h-4 w-4" aria-hidden />
+              <>
+                <Sparkles className="h-4 w-4" aria-hidden />
+                Send to Questit
+              </>
             )}
-            {isWorking ? 'Generating…' : 'Send to Questit'}
           </Button>
           {hasGenerated && onSave ? (
             <Button
