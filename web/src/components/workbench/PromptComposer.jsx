@@ -110,7 +110,7 @@ const PromptComposer = forwardRef(function PromptComposer(
             {isWorking ? (
               <span className="flex w-full items-center justify-center">
                 <dotlottie-wc
-                  src="https://lottie.host/28e5f377-69df-4bc7-ae2c-d96bbe3469e6/5Z6zajkCOQ.lottie"
+                  src="https://lottie.host/7b8b54f7-dcc8-4549-aa32-19988b014a4e/Ckwogyk8A0.lottie"
                   autoplay
                   loop
                   style={{ width: '120px', height: '36px' }}
