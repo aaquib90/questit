@@ -75,9 +75,77 @@ const TEMPLATE_CHIPS = [
 
 const TRUSTED_LOGOS = ['OpenAI', 'Supabase', 'Vercel', 'Cursor', 'Cloudflare'];
 
-function LandingPage({ onStart, onSeeTemplates, onSelectTemplate }) {
+function LandingPage({
+  onStart,
+  onSeeTemplates,
+  onSelectTemplate,
+  onNavigate,
+  onLogin,
+  onSignOut,
+  user,
+  userLabel
+}) {
+  const isAuthenticated = Boolean(user);
+
   return (
     <div className="space-y-16 lg:space-y-20">
+      <div className="questit-landing-header flex flex-col gap-6 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => onNavigate?.('landing')}
+          className="questit-logo border-none bg-transparent p-0 text-left outline-none transition hover:opacity-90"
+        >
+          Questit
+        </button>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full px-4 text-sm"
+            onClick={() => onNavigate?.('workbench')}
+          >
+            Workbench
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full px-4 text-sm"
+            onClick={() => onNavigate?.('my-tools')}
+            disabled={!isAuthenticated}
+          >
+            My Tools
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full px-4 text-sm"
+            onClick={() => onNavigate?.('creator-portal')}
+            disabled={!isAuthenticated}
+          >
+            Creator Portal
+          </Button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">
+                {userLabel}
+              </Badge>
+              <Button variant="outline" size="sm" className="rounded-full px-4 text-sm" onClick={onSignOut}>
+                Sign out
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              className="rounded-full px-5 text-sm"
+              onClick={onLogin}
+            >
+              Log in
+            </Button>
+          )}
+        </div>
+      </div>
+
       <Section className="gap-14 lg:gap-16">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">

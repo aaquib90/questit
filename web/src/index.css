@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik+80s+Fade&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -195,9 +197,12 @@
   }
 
   .questit-logo {
-    font-weight: 700;
-    font-size: clamp(1.5rem, 3vw, 2.25rem);
-    letter-spacing: -0.04em;
-    color: hsl(var(--foreground));
+    font-family: 'Rubik 80s Fade', cursive;
+    letter-spacing: 0.04em;
+    font-size: clamp(1.8rem, 3vw, 2.75rem);
+    color: hsl(var(--primary));
+    text-shadow:
+      0 12px 30px hsl(var(--primary) / 0.35),
+      0 2px 6px hsl(var(--primary) / 0.45);
   }
 }

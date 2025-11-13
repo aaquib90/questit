@@ -15,13 +15,20 @@ export function WorkbenchHeader({
   user,
   userLabel,
   onLogin,
-  onSignOut
+  onSignOut,
+  onNavigateHome
 }) {
   return (
     <Surface as="header" className="flex flex-col gap-4 rounded-3xl border border-border/60 p-5 shadow-md sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
-          <span className="questit-logo">Questit</span>
+          <button
+            type="button"
+            onClick={() => onNavigateHome?.()}
+            className="questit-logo relative -ml-1 cursor-pointer border-none bg-transparent p-0 text-left outline-none transition hover:opacity-90"
+          >
+            Questit
+          </button>
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
             Workspace
           </p>

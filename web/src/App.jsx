@@ -185,6 +185,7 @@ function App() {
       : scopeDecision === 'refine'
         ? 'bg-amber-100 text-amber-700 border border-amber-200'
         : 'bg-rose-100 text-rose-700 border border-rose-200';
+  const isLanding = activeView === 'landing';
 
   const handleRequestLogin = useCallback(() => {
     setAuthDialogOpen(true);
@@ -791,18 +792,83 @@ function App() {
     };
   }, [activeView, myToolsRefreshKey, user]);
 
+  if (isLanding) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Shell as="main" className="py-12 sm:py-14 lg:py-16">
+          <LandingPage
+            user={user}
+            userLabel={userLabel}
+            onNavigate={setActiveView}
+            onStart={handleLandingStart}
+            onSeeTemplates={handleLandingStart}
+            onSelectTemplate={handleLandingTemplateSelect}
+            onLogin={handleRequestLogin}
+            onSignOut={handleSignOut}
+          />
+        </Shell>
+        <Shell as="footer" className="pb-12 sm:pb-16 lg:pb-20">
+          <Section tight className="gap-8 sm:gap-10">
+            <WorkbenchHero onNavigateDocs={handleOpenDocs} />
+          </Section>
+        </Shell>
+        <SaveToolDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          initialTitle={saveDraft.title || sessionEntries[0]?.prompt?.slice(0, 80) || ''}
+          initialSummary={saveDraft.summary || ''}
+          onSubmit={handleSaveTool}
+          status={saveStatus}
+        />
+        <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+          <DialogContent className="w-full max-w-md gap-6 p-6 sm:p-8">
+            <DialogHeader>
+              <DialogTitle>Sign in to Questit</DialogTitle>
+              <DialogDescription>
+                We’ll email you a magic link so you can save tools to Supabase.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="auth-email">Email address</Label>
+                <Input
+                  id="auth-email"
+                  type="email"
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              {authStatus.message && (
+                <p
+                  className={`text-sm ${
+                    authStatus.state === 'error'
+                      ? 'text-destructive'
+                      : authStatus.state === 'success'
+                        ? 'text-emerald-500'
+                        : 'text-muted-foreground'
+                  }`}
+                >
+                  {authStatus.message}
+                </p>
+              )}
+              <DialogFooter>
+                <Button type="submit" disabled={authStatus.state === 'loading'}>
+                  {authStatus.state === 'loading' ? 'Sending…' : 'Send magic link'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Shell as="main" className="py-10 sm:py-12 lg:py-16">
         <div className="flex flex-col gap-8 lg:gap-10">
-          {activeView === 'workbench' ? (
-            <LandingPage
-              onStart={handleLandingStart}
-              onSeeTemplates={handleLandingStart}
-              onSelectTemplate={handleLandingTemplateSelect}
-            />
-          ) : null}
-
           <WorkbenchHeader
             activeView={activeView}
             onSelectView={setActiveView}
@@ -810,6 +876,7 @@ function App() {
             userLabel={userLabel}
             onLogin={handleRequestLogin}
             onSignOut={handleSignOut}
+            onNavigateHome={() => setActiveView('landing')}
           />
 
           {activeView === 'workbench' ? (
