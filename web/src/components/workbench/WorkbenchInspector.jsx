@@ -1,5 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Surface } from '@/components/layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -8,12 +7,6 @@ import PromptTimeline from '@/components/workbench/PromptTimeline.jsx';
 
 export default function WorkbenchInspector({
   hasGenerated,
-  selectedTheme,
-  setSelectedTheme,
-  themeOptions,
-  colorMode,
-  setColorMode,
-  colorModeOptions,
   iframeDoc,
   saveStatus,
   toolCode,
@@ -121,42 +114,6 @@ export default function WorkbenchInspector({
           )}
         </TabsContent>
         <TabsContent value="settings" className="space-y-6 p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Colours
-              </span>
-              <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select theme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {themeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Light or dark
-              </span>
-              <Select value={colorMode} onValueChange={setColorMode}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {colorModeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
           <WorkbenchSidebar {...sidebarProps} />
         </TabsContent>
       </Tabs>

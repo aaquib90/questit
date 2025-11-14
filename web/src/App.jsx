@@ -26,6 +26,8 @@ import { Shell } from '@/components/layout';
 import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
 import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
+import TemplatesView from '@/components/templates/TemplatesView.jsx';
+import { TEMPLATE_COLLECTIONS } from '@/data/templates.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -268,6 +270,39 @@ function App() {
     setComposerValue(promptText);
     setActiveView('workbench');
     composerRef.current?.focus();
+  };
+
+  const handleApplyTemplate = (template) => {
+    if (!template) return;
+    const promptText = template.prompt || '';
+    const createdAt = new Date().toISOString();
+    const templateEntry = {
+      id: createEntryId(),
+      prompt: promptText,
+      status: 'draft',
+      createdAt,
+      responseSummary: `Template “${template.title}” loaded. Adjust the prompt or generate when you're ready.`,
+      modelLabel: selectedModelOption.label,
+      templateId: template.id
+    };
+
+    setComposerValue(promptText);
+    setSessionEntries([templateEntry]);
+    setToolCode({
+      html: template.preview?.html || '',
+      css: template.preview?.css || '',
+      js: template.preview?.js || ''
+    });
+    setSessionStatus({
+      state: 'success',
+      message: `Template “${template.title}” is ready in the workbench. Ask Questit for any tweaks.`
+    });
+    setSaveStatus({ state: 'idle', message: '' });
+    setSaveDraft({ title: template.title || '', summary: template.summary || '' });
+    setActiveView('workbench');
+    setTimeout(() => {
+      composerRef.current?.focus();
+    }, 80);
   };
 
   const handleResetSession = () => {
@@ -776,8 +811,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Shell as="main" className="py-10 sm:py-12 lg:py-16">
-        <div className="flex flex-col gap-8 lg:gap-10">
+      <Shell as="main" className="py-6 sm:py-8 lg:py-10">
+        <div className="flex flex-col gap-6 lg:gap-8">
           <WorkbenchHeader
             activeView={activeView}
             onSelectView={setActiveView}
@@ -786,7 +821,20 @@ function App() {
             onLogin={handleRequestLogin}
             onSignOut={handleSignOut}
             onNavigateHome={() => setActiveView('workbench')}
+            selectedTheme={selectedTheme}
+            onThemeChange={setSelectedTheme}
+            themeOptions={THEME_OPTIONS}
+            colorMode={colorMode}
+            onColorModeChange={setColorMode}
+            colorModeOptions={COLOR_MODE_OPTIONS}
           />
+
+          {activeView === 'templates' ? (
+            <TemplatesView
+              collections={TEMPLATE_COLLECTIONS}
+              onApplyTemplate={handleApplyTemplate}
+            />
+          ) : null}
 
           {activeView === 'workbench' ? (
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
@@ -809,12 +857,6 @@ function App() {
 
                   <WorkbenchInspector
                     hasGenerated={hasGenerated}
-                    selectedTheme={selectedTheme}
-                    setSelectedTheme={setSelectedTheme}
-                    themeOptions={THEME_OPTIONS}
-                    colorMode={colorMode}
-                    setColorMode={setColorMode}
-                    colorModeOptions={COLOR_MODE_OPTIONS}
                     iframeDoc={iframeDoc}
                     saveStatus={saveStatus}
                     toolCode={toolCode}

@@ -25,7 +25,7 @@ const BASE_THEME_VARS = {
   '--ring': '160 84% 39.4%',
   '--radius': '0.75rem',
   '--font-sans':
-    "'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    "'Zalando Sans', 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 };
 
 const BASE_DARK_THEME_VARS = {
@@ -259,8 +259,7 @@ export const THEME_OPTIONS = Object.entries(THEME_PRESETS).map(([value, config])
 
 export const COLOR_MODE_OPTIONS = [
   { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' }
+  { value: 'dark', label: 'Dark' }
 ];
 
 export function resolveThemeVars(themeKey = DEFAULT_THEME_KEY) {
@@ -278,6 +277,7 @@ export function buildThemeCss(themeKey = DEFAULT_THEME_KEY) {
       .join('\n');
 
   return `
+@import url('https://fonts.cdnfonts.com/css/zalando-sans');
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 :root {
 ${toDeclarations(lightVars)}
@@ -335,36 +335,16 @@ export function useThemeManager(initialTheme = DEFAULT_THEME_KEY) {
   });
 
   const [colorMode, setColorMode] = useState(() => {
-    if (typeof window === 'undefined') return 'system';
+    if (typeof window === 'undefined') return 'light';
     try {
-      return localStorage.getItem(COLOR_MODE_STORAGE_KEY) || 'system';
+      const stored = localStorage.getItem(COLOR_MODE_STORAGE_KEY);
+      return stored === 'dark' ? 'dark' : 'light';
     } catch {
-      return 'system';
+      return 'light';
     }
   });
 
-  const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  const resolvedMode = useMemo(
-    () => (colorMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : colorMode),
-    [colorMode, systemPrefersDark]
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const updatePreference = () => setSystemPrefersDark(media.matches);
-    updatePreference();
-    if (media.addEventListener) {
-      media.addEventListener('change', updatePreference);
-      return () => media.removeEventListener('change', updatePreference);
-    }
-    media.addListener(updatePreference);
-    return () => media.removeListener(updatePreference);
-  }, []);
+  const resolvedMode = useMemo(() => colorMode, [colorMode]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
