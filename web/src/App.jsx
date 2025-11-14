@@ -24,7 +24,6 @@ import {
 import { useModelManager } from '@/lib/modelManager.js';
 import { Shell } from '@/components/layout';
 import LandingPage from '@/components/landing/LandingPage.jsx';
-import WorkbenchSidebar from '@/components/workbench/WorkbenchSidebar.jsx';
 import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
 import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
@@ -874,59 +873,58 @@ function App() {
           />
 
           {activeView === 'workbench' ? (
-            <div className="space-y-8">
-              <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)_minmax(0,360px)]">
-                <WorkbenchSidebar
-                  modelId={modelId}
-                  setModelId={setModelId}
-                  modelOptions={modelOptions}
-                  onResetSession={handleResetSession}
-                  canReset={hasHistory || hasGenerated}
-                  sessionStateLabel={sessionStateLabel}
-                  sessionStateClass={sessionStateClass}
-                  sessionStepCount={sessionStepCount}
-                  selectedModelLabel={selectedModelOption.label}
-                  selectedTheme={selectedTheme}
-                  colorMode={colorMode}
-                  resolvedMode={resolvedMode}
-                  scopeDecisionLabel={scopeDecisionLabel}
-                  scopeDecisionClasses={scopeDecisionClasses}
-                  scopeReasons={scopeReasons}
-                  scopeMetrics={scopeMetrics}
-                />
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+                  <div className="flex flex-col gap-6">
+                    <WorkbenchComposerPanel
+                      ref={composerRef}
+                      composerValue={composerValue}
+                      setComposerValue={setComposerValue}
+                      onSubmit={handlePromptSubmit}
+                      isGenerating={isGenerating}
+                      sessionStatus={sessionStatus}
+                      hasHistory={hasHistory}
+                      hasGenerated={hasGenerated}
+                      onResetSession={handleResetSession}
+                      onSaveTool={handleOpenSaveDialog}
+                      user={user}
+                      saveStatus={saveStatus}
+                    />
+                  </div>
 
-                <WorkbenchComposerPanel
-                  ref={composerRef}
-                  composerValue={composerValue}
-                  setComposerValue={setComposerValue}
-                  onSubmit={handlePromptSubmit}
-                  isGenerating={isGenerating}
-                  sessionStatus={sessionStatus}
-                  hasHistory={hasHistory}
-                  hasGenerated={hasGenerated}
-                  onResetSession={handleResetSession}
-                  onSaveTool={handleOpenSaveDialog}
-                  user={user}
-                  saveStatus={saveStatus}
-                  sessionEntries={sessionEntries}
-                  onUsePrompt={handleUsePrompt}
-                  onRetryEntry={handleRetryEntry}
-                />
-
-                <WorkbenchInspector
-                  hasGenerated={hasGenerated}
-                  selectedTheme={selectedTheme}
-                  setSelectedTheme={setSelectedTheme}
-                  themeOptions={THEME_OPTIONS}
-                  colorMode={colorMode}
-                  setColorMode={setColorMode}
-                  colorModeOptions={COLOR_MODE_OPTIONS}
-                  iframeDoc={iframeDoc}
-                  saveStatus={saveStatus}
-                  toolCode={toolCode}
-                />
-              </div>
-            </div>
+                  <WorkbenchInspector
+                    hasGenerated={hasGenerated}
+                    selectedTheme={selectedTheme}
+                    setSelectedTheme={setSelectedTheme}
+                    themeOptions={THEME_OPTIONS}
+                    colorMode={colorMode}
+                    setColorMode={setColorMode}
+                    colorModeOptions={COLOR_MODE_OPTIONS}
+                    iframeDoc={iframeDoc}
+                    saveStatus={saveStatus}
+                    toolCode={toolCode}
+                    sidebarProps={{
+                      modelId,
+                      setModelId,
+                      modelOptions,
+                      onResetSession: handleResetSession,
+                      canReset: hasHistory || hasGenerated,
+                      sessionStateLabel,
+                      sessionStateClass,
+                      sessionStepCount,
+                      selectedModelLabel: selectedModelOption.label,
+                      selectedTheme,
+                      colorMode,
+                      resolvedMode,
+                      scopeDecisionLabel,
+                      scopeDecisionClasses,
+                      scopeReasons,
+                      scopeMetrics
+                    }}
+                    sessionEntries={sessionEntries}
+                    onUsePrompt={handleUsePrompt}
+                    onRetryEntry={handleRetryEntry}
+                  />
+                </div>
           ) : null}
 
           {activeView === 'my-tools' ? (
