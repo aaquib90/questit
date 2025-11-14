@@ -25,7 +25,7 @@ const BASE_THEME_VARS = {
   '--ring': '160 84% 39.4%',
   '--radius': '0.75rem',
   '--font-sans':
-    "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    "'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 };
 
 const BASE_DARK_THEME_VARS = {
@@ -50,7 +50,7 @@ const BASE_DARK_THEME_VARS = {
   '--ring': '152 90% 44%',
   '--radius': '0.75rem',
   '--font-sans':
-    "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    "'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 };
 
 const THEME_PRESETS = {
@@ -278,6 +278,7 @@ export function buildThemeCss(themeKey = DEFAULT_THEME_KEY) {
       .join('\n');
 
   return `
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 :root {
 ${toDeclarations(lightVars)}
 }
@@ -293,7 +294,12 @@ ${toDeclarations(darkVars)}
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: hsl(var(--background));
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(120% 120% at 15% 20%, hsl(var(--primary) / 0.14), transparent),
+    radial-gradient(140% 140% at 85% 10%, hsl(var(--accent) / 0.12), transparent),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background) / 0.95) 48%, hsl(var(--background)) 100%);
+  background-attachment: fixed;
   color: hsl(var(--foreground));
 }
 `;
@@ -397,4 +403,3 @@ export function getColorModeOptions() {
 export function getThemeOptions() {
   return THEME_OPTIONS;
 }
-
