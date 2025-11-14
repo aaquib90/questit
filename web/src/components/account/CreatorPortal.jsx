@@ -5,7 +5,6 @@ import {
   Layers,
   Monitor,
   Palette,
-  RefreshCcw,
   ShieldCheck,
   Sparkles,
   Users,
@@ -27,8 +26,6 @@ function CreatorPortal({
   user,
   userLabel,
   onLogin,
-  onRefreshTools,
-  isLoadingTools,
   toolsError,
   hasSupabaseConfig,
   myTools = [],
@@ -126,15 +123,6 @@ function CreatorPortal({
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button
                 size="lg"
-                className="w-full gap-2 sm:w-auto"
-                onClick={onRefreshTools}
-                disabled={isLoadingTools || !hasSupabaseConfig}
-              >
-                <RefreshCcw className={isLoadingTools ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} aria-hidden />
-                {isLoadingTools ? 'Syncing saved tools…' : 'Sync saved tools'}
-              </Button>
-              <Button
-                size="lg"
                 variant="outline"
                 className="gap-2 w-full sm:w-auto"
                 onClick={onOpenDocs}
@@ -204,12 +192,9 @@ function CreatorPortal({
       ) : null}
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 bg-muted/70">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 bg-muted/70">
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="automation">Automation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -285,30 +270,6 @@ function CreatorPortal({
           </div>
         </TabsContent>
 
-        <TabsContent value="team">
-          <Card className="border border-border/70 bg-card">
-            <CardHeader className="space-y-1.5">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Users className="h-4 w-4 text-primary" aria-hidden />
-                Team workspace
-              </CardTitle>
-              <CardDescription>
-                Upcoming collaborative features streamline review, publishing, and remixing across
-                teammates.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              <p>
-                Shared folders, reviewer roles, and per-tool permissions are on the roadmap. Invite
-                collaborators to preview updates as they ship.
-              </p>
-              <Button variant="outline" className="w-full sm:w-auto" disabled>
-                Team invites coming soon
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="billing">
           <Card className="border border-border/70 bg-card">
             <CardHeader className="space-y-1.5">
@@ -342,84 +303,7 @@ function CreatorPortal({
           </Card>
         </TabsContent>
 
-        <TabsContent value="templates" className="space-y-6">
-          <Card className="border border-border/70 bg-card">
-            <CardHeader className="space-y-1.5">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BookOpen className="h-4 w-4 text-primary" aria-hidden />
-                Prompt templates
-              </CardTitle>
-              <CardDescription>
-                Save high-signal prompts from recent sessions and jump back into the workbench.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentPrompts.length ? (
-                recentPrompts.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-xl border border-border/70 bg-background/80 p-4 shadow-sm"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="space-y-1">
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                          {new Date(entry.createdAt || Date.now()).toLocaleString()}
-                        </span>
-                        <p className="text-sm leading-relaxed text-foreground">
-                          {entry.prompt}
-                        </p>
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="mt-2 w-full sm:mt-0 sm:w-auto"
-                        onClick={() => onUsePrompt?.(entry.prompt)}
-                      >
-                        Open in workbench
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Prompt history is empty. Generate a tool to start capturing reusable templates.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="automation">
-          <Card className="border border-border/70 bg-card">
-            <CardHeader className="space-y-1.5">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Zap className="h-4 w-4 text-primary" aria-hidden />
-                Automation studio
-              </CardTitle>
-              <CardDescription>
-                Wires upcoming workflows that auto-publish, run self-tests, and notify your team.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              <div className="flex flex-col gap-3 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-primary">
-                <span className="text-xs font-semibold uppercase tracking-wide">
-                  In development
-                </span>
-                <p className="text-sm text-primary">
-                  Scheduled publish windows, regression guardrails, and PostHog webhooks are on the
-                  roadmap. Stay tuned — the portal will light up as features land.
-                </p>
-              </div>
-              <p>
-                Want to influence the roadmap? Share what automations would unblock your workflow
-                from the workbench.
-              </p>
-              <Button variant="outline" className="w-full sm:w-auto" onClick={onOpenDocs}>
-                Share feedback
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Automation tab removed per latest design */}
       </Tabs>
     </section>
   );

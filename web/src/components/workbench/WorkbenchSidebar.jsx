@@ -79,53 +79,7 @@ export default function WorkbenchSidebar({
         </div>
       </Surface>
 
-      <Surface muted className="space-y-3 p-5">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Save or share</h3>
-          <p className="text-xs text-muted-foreground">
-            Create the tool first, then you can save it for later or share with other people.
-          </p>
-        </div>
-        <div className="space-y-1 text-xs text-muted-foreground">
-          <p>• “Save” keeps your tool in a private list.</p>
-          <p>• “Share” gives you a link anyone can open in their browser.</p>
-        </div>
-      </Surface>
-
-      <Surface muted className="space-y-4 p-5">
-        <div className="space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
-            Your progress
-          </span>
-          <p className="text-lg font-semibold text-foreground">Current tool</p>
-        </div>
-        <div className="space-y-3 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Status</span>
-            <span className={cn('font-medium', sessionStateClass)}>{sessionStateLabel}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Updates so far</span>
-            <Badge variant="secondary" className="rounded-full px-3 py-1">
-              {sessionStepCount}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Helper</span>
-            <span className="max-w-[140px] truncate text-right">{selectedModelLabel}</span>
-          </div>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="justify-start px-0 text-sm text-muted-foreground transition hover:text-foreground"
-          onClick={onResetSession}
-          disabled={!canReset}
-        >
-          Reset session
-        </Button>
-      </Surface>
+      {/* Progress summary surface removed per latest design */}
     </div>
   );
 }

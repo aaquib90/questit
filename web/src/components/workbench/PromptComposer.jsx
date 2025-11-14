@@ -3,15 +3,7 @@ import { Sparkles, RotateCcw, Database } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-const statusVariantMap = {
-  idle: 'secondary',
-  loading: 'secondary',
-  success: 'default',
-  error: 'destructive'
-};
 
 const PromptComposer = forwardRef(function PromptComposer(
   {
@@ -49,21 +41,10 @@ const PromptComposer = forwardRef(function PromptComposer(
 
   const statusState = status?.state || 'idle';
   const statusMessage = status?.message || '';
-  const badgeVariant = statusVariantMap[statusState] || 'secondary';
-
   return (
     <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge variant={badgeVariant} className="text-xs font-medium">
-            {statusState === 'loading'
-              ? 'Generating…'
-              : statusState === 'success'
-                ? 'Ready'
-                : statusState === 'error'
-                  ? 'Needs attention'
-                  : 'Idle'}
-          </Badge>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {canReset ? (
             <Button
               type="button"

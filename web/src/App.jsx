@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCcw, Loader2, Share2, ExternalLink, Check, Copy } from 'lucide-react';
+import { Loader2, Share2, ExternalLink, Check, Copy } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -89,7 +89,6 @@ function App() {
   const [myTools, setMyTools] = useState([]);
   const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
   const [myToolsError, setMyToolsError] = useState('');
-  const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
   const [toolActionStatus, setToolActionStatus] = useState({});
   const composerRef = useRef(null);
   const { selectedTheme, setSelectedTheme, colorMode, setColorMode, resolvedMode } =
@@ -514,10 +513,6 @@ function App() {
     }
   };
 
-  const handleRefreshMyTools = () => {
-    setMyToolsRefreshKey((value) => value + 1);
-  };
-
   const handleLoadSavedTool = async (toolId) => {
     if (!user) {
       handleRequestLogin();
@@ -807,7 +802,7 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [activeView, myToolsRefreshKey, user]);
+  }, [activeView, user]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -891,26 +886,6 @@ function App() {
                   Review the tools you have saved to Supabase.
                 </p>
               </div>
-              {user && hasSupabaseConfig ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefreshMyTools}
-                  disabled={isLoadingMyTools}
-                >
-                  {isLoadingMyTools ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      Refreshing
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCcw className="h-4 w-4" aria-hidden />
-                      Refresh
-                    </>
-                  )}
-                </Button>
-              ) : null}
             </div>
 
             {!hasSupabaseConfig ? (
@@ -1072,23 +1047,21 @@ function App() {
         ) : null}
 
           {activeView === 'creator-portal' ? (
-          <CreatorPortal
-            user={user}
-            userLabel={userLabel}
-            onLogin={handleRequestLogin}
-            onRefreshTools={handleRefreshMyTools}
-            isLoadingTools={isLoadingMyTools}
-            toolsError={myToolsError}
-            hasSupabaseConfig={hasSupabaseConfig}
-            myTools={myTools}
-            selectedTheme={selectedTheme}
-            colorMode={colorMode}
-            selectedModelLabel={selectedModelOption.label}
-            sessionEntries={sessionEntries}
-            onUsePrompt={handleUsePrompt}
-            onOpenDocs={handleOpenDocs}
-          />
-        ) : null}
+            <CreatorPortal
+              user={user}
+              userLabel={userLabel}
+              onLogin={handleRequestLogin}
+              toolsError={myToolsError}
+              hasSupabaseConfig={hasSupabaseConfig}
+              myTools={myTools}
+              selectedTheme={selectedTheme}
+              colorMode={colorMode}
+              selectedModelLabel={selectedModelOption.label}
+              sessionEntries={sessionEntries}
+              onUsePrompt={handleUsePrompt}
+              onOpenDocs={handleOpenDocs}
+            />
+          ) : null}
         <SaveToolDialog
           open={saveDialogOpen}
           onOpenChange={setSaveDialogOpen}
