@@ -6,7 +6,7 @@ const AccordionContext = createContext(null);
 const AccordionItemContext = createContext(null);
 
 export function Accordion({ type = 'single', collapsible = false, defaultValue = null, className, children }) {
-  const [openValue, setOpenValue] = useState(defaultValue || null);
+  const [openValue, setOpenValue] = useState(defaultValue ?? null);
 
   const value = useMemo(
     () => ({
@@ -47,13 +47,27 @@ export function AccordionTrigger({ children, className }) {
 
   const toggle = () => {
     if (accordion.type === 'single') {
-      if (isOpen && accordion.collapsible) {
-        accordion.setOpenValue(null);
+      if (isOpen) {
+        if (accordion.collapsible) {
+          accordion.setOpenValue(null);
+        }
       } else {
         accordion.setOpenValue(item.itemValue);
       }
+    } else {
+      accordion.setOpenValue((prev) => {
+        const set = new Set(Array.isArray(prev) ? prev : []);
+        if (set.has(item.itemValue)) {
+          set.delete(item.itemValue);
+        } else {
+          set.add(item.itemValue);
+        }
+        return Array.from(set);
+      });
     }
   };
+
+  const indicator = isOpen ? '▾' : '▸';
 
   return (
     <button
@@ -66,7 +80,7 @@ export function AccordionTrigger({ children, className }) {
       aria-expanded={isOpen}
     >
       <span>{children}</span>
-      <span className={cn('transition-transform', isOpen ? 'rotate-90' : 'rotate-0')}>›</span>
+      <span className="text-muted-foreground transition">{indicator}</span>
     </button>
   );
 }
@@ -79,18 +93,19 @@ export function AccordionContent({ children, className }) {
     throw new Error('AccordionContent must be used within AccordionItem inside Accordion');
   }
 
-  const isOpen = accordion.openValue === item.itemValue;
+  let isOpen = false;
+  if (accordion.type === 'single') {
+    isOpen = accordion.openValue === item.itemValue;
+  } else {
+    const list = Array.isArray(accordion.openValue) ? accordion.openValue : [];
+    isOpen = list.includes(item.itemValue);
+  }
 
-  return (
-    <div
-      className={cn(
-        'overflow-hidden px-4 pb-4 text-sm text-muted-foreground transition-all duration-200 ease-in-out',
-        isOpen ? 'max-h-[1000px]' : 'max-h-0'
-      )}
-    >
-      <div className={cn('pt-2', className)}>{children}</div>
-    </div>
-  );
+  if (!isOpen) {
+    return null;
+  }
+
+  return <div className={cn('px-4 pb-4 text-sm text-muted-foreground', className)}>{children}</div>;
 }
 
 export default {
