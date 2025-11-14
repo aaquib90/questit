@@ -1,14 +1,4 @@
-import {
-  ArrowRight,
-  CreditCard,
-  Layers,
-  Monitor,
-  Palette,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  Zap
-} from 'lucide-react';
+import { ArrowRight, CreditCard, ShieldCheck, Users, Zap } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +50,6 @@ function CreatorPortal({
     );
   }
 
-  const totalSavedTools = myTools.length;
   const lastSession = sessionEntries.at(-1) ?? null;
   const recentPrompts = sessionEntries.slice(-5).reverse();
 
@@ -72,40 +61,13 @@ function CreatorPortal({
     user.user_metadata?.full_name ||
     (user.email ? user.email.split('@')[0] : userLabel || 'Creator');
 
-  const metrics = [
-    {
-      label: 'Saved micro-tools',
-      value: totalSavedTools,
-      hint: hasSupabaseConfig ? 'Synced from Supabase' : 'Enable Supabase to start syncing',
-      icon: Layers
-    },
-    {
-      label: 'Latest model',
-      value: selectedModelLabel,
-      hint: lastSession?.modelLabel ? `Used in: ${lastSession.modelLabel}` : 'Model picker default',
-      icon: Sparkles
-    },
-    {
-      label: 'Active theme',
-      value: formatTokenLabel(selectedTheme),
-      hint: 'Applied to workbench + share shell',
-      icon: Palette
-    },
-    {
-      label: 'Color mode',
-      value: formatTokenLabel(colorMode),
-      hint: 'System preference respected',
-      icon: Monitor
-    }
-  ];
-
   return (
     <section className="space-y-8">
       <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-background/70 via-background/60 to-primary/10 p-6 shadow-[0_45px_140px_-60px_rgba(56,189,248,0.55)] backdrop-blur-xl sm:p-8 lg:p-10">
         <div className="absolute -left-24 top-1/2 h-[420px] w-[420px] -translate-y-1/2 rounded-full bg-primary/15 blur-3xl" />
         <div className="absolute -right-32 -top-20 h-[360px] w-[360px] rounded-full bg-accent/10 blur-3xl" />
 
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="relative flex flex-col gap-6">
           <div className="space-y-4">
             <Badge className="w-fit rounded-full bg-primary/15 px-3 py-1 text-primary">
               Creator portal
@@ -121,34 +83,6 @@ function CreatorPortal({
             </div>
           </div>
 
-          <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/20 bg-background/70 p-6 shadow-lg backdrop-blur">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-lg font-semibold uppercase text-primary">
-                {displayName.slice(0, 2)}
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">{userLabel}</p>
-                <span className="text-xs text-muted-foreground">Last sign-in: {lastSignIn}</span>
-              </div>
-            </div>
-            <Separator className="bg-border/60" />
-            <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>Status</span>
-                <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-[11px] uppercase tracking-wide">
-                  {hasSupabaseConfig ? 'Supabase linked' : 'Supabase pending'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Plan</span>
-                <span className="font-medium text-foreground">Edge Starter (Free)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Workspace tools</span>
-                <span className="font-medium text-foreground">{totalSavedTools}</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
