@@ -8,6 +8,7 @@ import { flattenTemplates } from '@/data/templates.js';
 
 import TemplateCard from './TemplateCard.jsx';
 import TemplatePreviewDialog from './TemplatePreviewDialog.jsx';
+import TemplateCarousel from './TemplateCarousel.jsx';
 
 const PHONE_FRIENDLY_FLAG = 'Phone-friendly';
 
@@ -36,11 +37,16 @@ function filterTemplates(collections, { query, category, phoneOnly }) {
     .filter((collection) => collection.templates.length > 0);
 }
 
-export default function TemplatesView({ collections, onApplyTemplate }) {
+export default function TemplatesView({
+  collections,
+  onApplyTemplate,
+  externalPreviewTemplate = null,
+  onPreviewChange
+}) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [phoneOnly, setPhoneOnly] = useState(false);
-  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [previewTemplate, setPreviewTemplate] = useState(externalPreviewTemplate);
 
   const flatTemplates = useMemo(() => flattenTemplates(collections), [collections]);
   const templateOfTheDay = flatTemplates[0];
@@ -56,6 +62,7 @@ export default function TemplatesView({ collections, onApplyTemplate }) {
 
   const handlePreview = (template) => {
     setPreviewTemplate(template);
+    onPreviewChange?.(template);
   };
 
   const clearFilters = () => {
@@ -133,7 +140,7 @@ export default function TemplatesView({ collections, onApplyTemplate }) {
             >
               Reset filters
             </Button>
-            <span className="ml-auto text-xs text-muted-foreground">
+            <span className="ml-auto text-xs text-muted-foreground" role="status" aria-live="polite">
               Showing {filteredCollections.reduce((sum, collection) => sum + collection.templates.length, 0)}{' '}
               {filteredCollections.length === 1 ? 'template' : 'templates'}
             </span>
@@ -148,16 +155,7 @@ export default function TemplatesView({ collections, onApplyTemplate }) {
               <h2 className="text-2xl font-semibold text-foreground">{collection.title}</h2>
               <p className="text-sm text-muted-foreground">{collection.description}</p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {collection.templates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  template={{ ...template, collectionTitle: collection.title }}
-                  onPreview={handlePreview}
-                  onUse={handleApply}
-                />
-              ))}
-            </div>
+            <TemplateCarousel collection={collection} onPreview={handlePreview} onUse={handleApply} />
           </section>
         ))}
         {!filteredCollections.length ? (
@@ -169,7 +167,12 @@ export default function TemplatesView({ collections, onApplyTemplate }) {
 
       <TemplatePreviewDialog
         open={Boolean(previewTemplate)}
-        onOpenChange={(isOpen) => (isOpen ? null : setPreviewTemplate(null))}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setPreviewTemplate(null);
+            onPreviewChange?.(null);
+          }
+        }}
         template={previewTemplate}
       />
     </div>

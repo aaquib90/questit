@@ -27,7 +27,14 @@ import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPane
 import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
 import TemplatesView from '@/components/templates/TemplatesView.jsx';
-import { TEMPLATE_COLLECTIONS } from '@/data/templates.js';
+import { TEMPLATE_COLLECTIONS, getTemplateById } from '@/data/templates.js';
+import SyncBanner from '@/components/workbench/SyncBanner.jsx';
+import Landing from '@/components/landing/Landing.jsx';
+// LeftRail removed from workbench two-column layout
+import DebugBottomSheet from '@/components/workbench/DebugBottomSheet.jsx';
+import { trackEvent } from '@/lib/utils.js';
+import PrePromptPreview from '@/components/workbench/PrePromptPreview.jsx';
+import GeneratingAnimation from '@/components/workbench/GeneratingAnimation.jsx';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -76,6 +83,7 @@ function App() {
     state: 'idle',
     message: ''
   });
+  const [templatesPreview, setTemplatesPreview] = useState(null);
   const [toolCode, setToolCode] = useState({ html: '', css: '', js: '' });
   const [isGenerating, setIsGenerating] = useState(false);
   const [user, setUser] = useState(null);
@@ -258,6 +266,7 @@ function App() {
   };
 
   const handlePromptSubmit = () => {
+    trackEvent('generate_clicked', { hasHistory, model: selectedModelOption.id });
     executePrompt({ promptText: composerValue });
   };
 
@@ -273,6 +282,7 @@ function App() {
 
   const handleApplyTemplate = (template) => {
     if (!template) return;
+    trackEvent('template_applied', { id: template.id, title: template.title });
     const promptText = template.prompt || '';
     const createdAt = new Date().toISOString();
     const templateEntry = {
@@ -318,6 +328,18 @@ function App() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
+    // Deep-link: /templates/:slug opens the template detail modal
+    const { pathname } = window.location;
+    const templateMatch = pathname.match(/^\/templates\/([^/]+)\/?$/i);
+    if (templateMatch && templateMatch[1]) {
+      const slug = decodeURIComponent(templateMatch[1]);
+      const template = getTemplateById(slug, TEMPLATE_COLLECTIONS);
+      if (template) {
+        setActiveView('templates');
+        setTemplatesPreview(template);
+      }
+    }
+
     const params = new URLSearchParams(window.location.search);
     const remixSlug = params.get('remix');
     if (!remixSlug) return undefined;
@@ -823,56 +845,99 @@ function App() {
             onColorModeChange={setColorMode}
             colorModeOptions={COLOR_MODE_OPTIONS}
           />
+          <SyncBanner
+            state={sessionState}
+            message={sessionStatus.message}
+            className="mx-auto w-full max-w-5xl"
+          />
 
           {activeView === 'templates' ? (
             <TemplatesView
               collections={TEMPLATE_COLLECTIONS}
               onApplyTemplate={handleApplyTemplate}
+              externalPreviewTemplate={templatesPreview}
+              onPreviewChange={setTemplatesPreview}
             />
           ) : null}
 
           {activeView === 'workbench' ? (
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-stretch">
-                  <WorkbenchComposerPanel
-                    ref={composerRef}
-                    composerValue={composerValue}
-                    setComposerValue={setComposerValue}
-                    onSubmit={handlePromptSubmit}
-                    isGenerating={isGenerating}
-                    sessionStatus={sessionStatus}
-                    hasHistory={hasHistory}
-                    hasGenerated={hasGenerated}
-                    onResetSession={handleResetSession}
-                    onSaveTool={handleOpenSaveDialog}
-                    user={user}
-                    saveStatus={saveStatus}
-                  />
-
-                  <WorkbenchInspector
-                    hasGenerated={hasGenerated}
-                    iframeDoc={iframeDoc}
-                    saveStatus={saveStatus}
-                    toolCode={toolCode}
-                    sidebarProps={{
-                      modelId,
-                      setModelId,
-                      modelOptions,
-                      onResetSession: handleResetSession,
-                      canReset: hasHistory || hasGenerated,
-                      sessionStateLabel,
-                      sessionStateClass,
-                      sessionStepCount,
-                      selectedModelLabel: selectedModelOption.label,
-                      scopeDecisionLabel,
-                      scopeDecisionClasses,
-                      scopeReasons,
-                      scopeMetrics
+            !hasHistory && !hasGenerated ? (
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start">
+                <WorkbenchComposerPanel
+                  ref={composerRef}
+                  composerValue={composerValue}
+                  setComposerValue={setComposerValue}
+                  onSubmit={handlePromptSubmit}
+                  isGenerating={isGenerating}
+                  sessionStatus={sessionStatus}
+                  hasHistory={hasHistory}
+                  hasGenerated={hasGenerated}
+                  onResetSession={handleResetSession}
+                  onSaveTool={handleOpenSaveDialog}
+                  user={user}
+                  saveStatus={saveStatus}
+                  modelId={modelId}
+                  setModelId={setModelId}
+                  modelOptions={modelOptions}
+                />
+                {isGenerating ? (
+                  <GeneratingAnimation />
+                ) : (
+                  <PrePromptPreview
+                    onUsePrompt={(promptText) => {
+                      setComposerValue(promptText);
+                      setTimeout(() => composerRef.current?.focus(), 50);
                     }}
-                    sessionEntries={sessionEntries}
-                    onUsePrompt={handleUsePrompt}
-                    onRetryEntry={handleRetryEntry}
                   />
-                </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start">
+                <WorkbenchComposerPanel
+                  ref={composerRef}
+                  composerValue={composerValue}
+                  setComposerValue={setComposerValue}
+                  onSubmit={handlePromptSubmit}
+                  isGenerating={isGenerating}
+                  sessionStatus={sessionStatus}
+                  hasHistory={hasHistory}
+                  hasGenerated={hasGenerated}
+                  onResetSession={handleResetSession}
+                  onSaveTool={handleOpenSaveDialog}
+                  user={user}
+                  saveStatus={saveStatus}
+                  modelId={modelId}
+                  setModelId={setModelId}
+                  modelOptions={modelOptions}
+                />
+                <WorkbenchInspector
+                  hasGenerated={hasGenerated}
+                  iframeDoc={iframeDoc}
+                  saveStatus={saveStatus}
+                  toolCode={toolCode}
+                  isGenerating={isGenerating}
+                  onReset={handleResetSession}
+                  sidebarProps={{
+                    modelId,
+                    setModelId,
+                    modelOptions,
+                    onResetSession: handleResetSession,
+                    canReset: hasHistory || hasGenerated,
+                    sessionStateLabel,
+                    sessionStateClass,
+                    sessionStepCount,
+                    selectedModelLabel: selectedModelOption.label,
+                    scopeDecisionLabel,
+                    scopeDecisionClasses,
+                    scopeReasons,
+                    scopeMetrics
+                  }}
+                  sessionEntries={sessionEntries}
+                  onUsePrompt={handleUsePrompt}
+                  onRetryEntry={handleRetryEntry}
+                />
+              </div>
+            )
           ) : null}
 
           {activeView === 'my-tools' ? (
@@ -1112,6 +1177,10 @@ function App() {
           </Dialog>
         </div>
       </Shell>
+      <DebugBottomSheet
+        scope={{ decision: scopeDecision, reasons: scopeReasons, metrics: scopeMetrics }}
+        session={{ state: sessionState, steps: sessionStepCount, user: user ? 'signed-in' : 'guest' }}
+      />
     </div>
   );
 }

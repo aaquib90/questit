@@ -2,6 +2,52 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/layout';
 
+const TONES = {
+	emerald: {
+		border: 'hover:border-emerald-300',
+		shadow: 'hover:shadow-emerald-200/60',
+		chip: 'group-hover:bg-emerald-50 group-hover:text-emerald-700',
+		button: 'group-hover:border-emerald-300 group-hover:text-emerald-700'
+	},
+	sky: {
+		border: 'hover:border-sky-300',
+		shadow: 'hover:shadow-sky-200/60',
+		chip: 'group-hover:bg-sky-50 group-hover:text-sky-700',
+		button: 'group-hover:border-sky-300 group-hover:text-sky-700'
+	},
+	violet: {
+		border: 'hover:border-violet-300',
+		shadow: 'hover:shadow-violet-200/60',
+		chip: 'group-hover:bg-violet-50 group-hover:text-violet-700',
+		button: 'group-hover:border-violet-300 group-hover:text-violet-700'
+	},
+	amber: {
+		border: 'hover:border-amber-300',
+		shadow: 'hover:shadow-amber-200/60',
+		chip: 'group-hover:bg-amber-50 group-hover:text-amber-700',
+		button: 'group-hover:border-amber-300 group-hover:text-amber-700'
+	},
+	rose: {
+		border: 'hover:border-rose-300',
+		shadow: 'hover:shadow-rose-200/60',
+		chip: 'group-hover:bg-rose-50 group-hover:text-rose-700',
+		button: 'group-hover:border-rose-300 group-hover:text-rose-700'
+	},
+	indigo: {
+		border: 'hover:border-indigo-300',
+		shadow: 'hover:shadow-indigo-200/60',
+		chip: 'group-hover:bg-indigo-50 group-hover:text-indigo-700',
+		button: 'group-hover:border-indigo-300 group-hover:text-indigo-700'
+	}
+};
+
+function pickToneFromId(id = '') {
+	const keys = Object.keys(TONES);
+	let sum = 0;
+	for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i);
+	return keys[sum % keys.length];
+}
+
 export default function TemplateCard({ template, onPreview, onUse }) {
   const {
     title,
@@ -16,8 +62,20 @@ export default function TemplateCard({ template, onPreview, onUse }) {
   const popularityLabel =
     popularity > 1000 ? 'Most popular' : popularity > 800 ? 'Trending' : 'New favourite';
 
+  const toneKey = pickToneFromId(template?.id || title || 't');
+  const tone = TONES[toneKey];
+
   return (
-    <Surface muted className="flex h-full flex-col justify-between gap-4 p-5">
+    <Surface
+      muted
+      className={[
+        'group flex h-full flex-col justify-between gap-4 rounded-2xl p-5 transition-all',
+        'hover:-translate-y-0.5 hover:bg-background',
+        'border border-border/50 shadow-sm',
+        tone.border,
+        tone.shadow
+      ].join(' ')}
+    >
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -33,7 +91,14 @@ export default function TemplateCard({ template, onPreview, onUse }) {
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {audience.map((label) => (
-            <Badge key={label} variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">
+            <Badge
+              key={label}
+              variant="secondary"
+              className={[
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                tone.chip
+              ].join(' ')}
+            >
               {label}
             </Badge>
           ))}
@@ -58,13 +123,17 @@ export default function TemplateCard({ template, onPreview, onUse }) {
           </div>
         ) : null}
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button shape="pill" className="w-full px-5 sm:w-auto" onClick={() => onUse?.(template)}>
+          <Button
+            shape="pill"
+            className="w-full px-5 sm:w-auto"
+            onClick={() => onUse?.(template)}
+          >
             Use this template
           </Button>
           <Button
             variant="outline"
             shape="pill"
-            className="w-full px-5 sm:w-auto"
+            className={['w-full px-5 sm:w-auto transition-colors', tone.button].join(' ')}
             onClick={() => onPreview?.(template)}
           >
             See how it looks
