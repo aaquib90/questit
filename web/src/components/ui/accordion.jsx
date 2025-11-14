@@ -67,8 +67,6 @@ export function AccordionTrigger({ children, className }) {
     }
   };
 
-  const indicator = isOpen ? '▾' : '▸';
-
   return (
     <button
       type="button"
@@ -80,7 +78,9 @@ export function AccordionTrigger({ children, className }) {
       aria-expanded={isOpen}
     >
       <span>{children}</span>
-      <span className="text-muted-foreground transition">{indicator}</span>
+      <span className={cn('transition-transform text-muted-foreground', isOpen ? 'rotate-90' : 'rotate-0')}>
+        ❯
+      </span>
     </button>
   );
 }
@@ -101,11 +101,17 @@ export function AccordionContent({ children, className }) {
     isOpen = list.includes(item.itemValue);
   }
 
-  if (!isOpen) {
-    return null;
-  }
-
-  return <div className={cn('px-4 pb-4 text-sm text-muted-foreground', className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        'overflow-hidden px-4 transition-all duration-200 ease-in-out',
+        isOpen ? 'max-h-[1000px] pb-4' : 'max-h-0 pb-0'
+      )}
+      aria-hidden={!isOpen}
+    >
+      <div className={cn('pt-2 text-sm text-muted-foreground', className)}>{children}</div>
+    </div>
+  );
 }
 
 export default {
