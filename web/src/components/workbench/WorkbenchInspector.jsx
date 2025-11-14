@@ -38,42 +38,6 @@ export default function WorkbenchInspector({
               </Badge>
             ) : null}
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Colours
-              </span>
-              <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select theme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {themeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Light or dark
-              </span>
-              <Select value={colorMode} onValueChange={setColorMode}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {colorModeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
           <div className="relative overflow-hidden rounded-xl border border-dashed border-primary/30 bg-muted/40">
             {iframeDoc ? (
               <iframe
@@ -149,7 +113,43 @@ export default function WorkbenchInspector({
             </p>
           )}
         </TabsContent>
-        <TabsContent value="settings" className="p-6">
+        <TabsContent value="settings" className="space-y-6 p-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Colours
+              </span>
+              <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  {themeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Light or dark
+              </span>
+              <Select value={colorMode} onValueChange={setColorMode}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorModeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <WorkbenchSidebar {...sidebarProps} />
         </TabsContent>
       </Tabs>
