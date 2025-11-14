@@ -23,7 +23,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
     <Surface id="questit-composer" className="space-y-6 p-6">
       <div className="space-y-2">
         <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Tell us about the tool you need
+          Tell us what you need
         </h2>
         <p className="text-sm text-muted-foreground">
           Use friendly, everyday language. Mention what you want it to do and any important buttons or lists. Questit fills in the rest.

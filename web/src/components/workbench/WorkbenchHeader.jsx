@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Menu as MenuIcon } from 'lucide-react';
+import { Menu as MenuIcon, User, LogOut } from 'lucide-react';
 
 import BrandLogo from '@/components/layout/BrandLogo.jsx';
 import { Surface } from '@/components/layout';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,7 +19,6 @@ export function WorkbenchHeader({
   activeView,
   onSelectView,
   user,
-  userLabel,
   onLogin,
   onSignOut,
   onNavigateHome,
@@ -79,9 +77,28 @@ export function WorkbenchHeader({
                 Menu
               </Button>
               {user ? (
-                <Button variant="ghost" size="sm" className="text-sm" onClick={onSignOut}>
-                  Sign out
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={() => onSelectView('creator-portal')}
+                    aria-label="My Account"
+                    title="My Account"
+                  >
+                    <User className="h-4 w-4" aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={onSignOut}
+                    aria-label="Sign out"
+                    title="Sign out"
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden />
+                  </Button>
+                </>
               ) : (
                 <Button variant="outline" size="sm" shape="pill" className="px-4 text-sm" onClick={onLogin}>
                   Log in
@@ -146,11 +163,25 @@ export function WorkbenchHeader({
             <div className="hidden items-center gap-2 lg:flex">
               {user ? (
                 <>
-                  <Badge variant="secondary" className="hidden rounded-full px-3 py-1 text-xs font-medium sm:inline-flex">
-                    {userLabel}
-                  </Badge>
-                  <Button variant="ghost" size="sm" className="text-sm" onClick={onSignOut}>
-                    Sign out
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={() => onSelectView('creator-portal')}
+                    aria-label="My Account"
+                    title="My Account"
+                  >
+                    <User className="h-4 w-4" aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={onSignOut}
+                    aria-label="Sign out"
+                    title="Sign out"
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden />
                   </Button>
                 </>
               ) : (
@@ -228,16 +259,24 @@ export function WorkbenchHeader({
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">Account</p>
               {user ? (
                 <>
-                  <div className="rounded-2xl border border-border/60 bg-background/80 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signed in as</p>
-                    <p className="text-lg font-semibold">{userLabel}</p>
-                  </div>
-                  <Button variant="ghost" size="lg" className="justify-center text-base" onClick={handleSignOut}>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-start gap-3 text-base"
+                    onClick={() => {
+                      handleNavigate('creator-portal');
+                    }}
+                  >
+                    <User className="h-5 w-5" aria-hidden />
+                    My Account
+                  </Button>
+                  <Button variant="ghost" size="lg" className="w-full justify-start gap-3 text-base" onClick={handleSignOut}>
+                    <LogOut className="h-5 w-5" aria-hidden />
                     Sign out
                   </Button>
                 </>
               ) : (
-                <Button variant="default" size="lg" className="justify-center text-base" onClick={handleLogin}>
+                <Button variant="default" size="lg" className="w-full justify-center text-base" onClick={handleLogin}>
                   Log in
                 </Button>
               )}

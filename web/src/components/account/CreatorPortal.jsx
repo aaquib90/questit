@@ -99,45 +99,42 @@ function CreatorPortal({
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-            <Card className="border border-border/70 bg-card">
-              <CardHeader className="space-y-1.5">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
-                  Identity & security
-                </CardTitle>
-                <CardDescription>
-                  Manage the credentials tied to your Questit creator workspace.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Email</span>
-                  <p className="font-medium text-foreground">{user.email}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Workspace label</span>
-                  <p className="font-medium text-foreground">{userLabel}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Supabase linkage</span>
-                  <p className="font-medium text-foreground">
-                    {hasSupabaseConfig
-                      ? 'Ready — magic link sign-ins and saved tools are available.'
-                      : 'Connect Supabase environment variables to enable saving tools and portal insights.'}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={onOpenDocs}
-                >
-                  Review integration guide
-                </Button>
-              </CardContent>
-            </Card>
-
-          </div>
+          <Card className="border border-border/70 bg-card">
+            <CardHeader className="space-y-1.5">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="h-4 w-4 text-primary" aria-hidden />
+                Identity & security
+              </CardTitle>
+              <CardDescription>
+                Manage the credentials tied to your Questit creator workspace.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="space-y-1">
+                <span className="text-muted-foreground">Email</span>
+                <p className="font-medium text-foreground">{user.email}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-muted-foreground">Workspace label</span>
+                <p className="font-medium text-foreground">{userLabel}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-muted-foreground">Supabase linkage</span>
+                <p className="font-medium text-foreground">
+                  {hasSupabaseConfig
+                    ? 'Ready — magic link sign-ins and saved tools are available.'
+                    : 'Connect Supabase environment variables to enable saving tools and portal insights.'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={onOpenDocs}
+              >
+                Review integration guide
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="billing">
