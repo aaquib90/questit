@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  BookOpen,
   CreditCard,
   Layers,
   Monitor,
@@ -120,18 +119,6 @@ function CreatorPortal({
                 tools built for creators who ship micro-apps at the edge.
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button
-                size="lg"
-                variant="outline"
-                className="gap-2 w-full sm:w-auto"
-                onClick={onOpenDocs}
-              >
-                <BookOpen className="h-4 w-4" aria-hidden />
-                View playbook
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Button>
-            </div>
           </div>
 
           <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-primary/20 bg-background/70 p-6 shadow-lg backdrop-blur">
@@ -165,26 +152,6 @@ function CreatorPortal({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map(({ label, value, hint, icon }) => {
-          const MetricIcon = icon;
-          return (
-            <Card key={label} className="border border-border/70 bg-card">
-              <CardHeader className="space-y-1.5">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <MetricIcon className="h-4 w-4 text-primary" aria-hidden />
-                  {label}
-                </CardTitle>
-                <CardDescription>{hint}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold text-foreground">{value || '—'}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
       {toolsError ? (
         <Alert variant="destructive" className="border border-destructive/40 bg-destructive/10">
           <AlertDescription>{toolsError}</AlertDescription>
@@ -192,7 +159,7 @@ function CreatorPortal({
       ) : null}
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 bg-muted/70">
+        <TabsList className="grid w-full grid-cols-2 bg-muted/70">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
@@ -236,37 +203,6 @@ function CreatorPortal({
               </CardContent>
             </Card>
 
-            <Card className="border border-border/70 bg-card">
-              <CardHeader className="space-y-1.5">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Layers className="h-4 w-4 text-primary" aria-hidden />
-                  Workspace defaults
-                </CardTitle>
-                <CardDescription>
-                  Current experience settings that apply to the workbench and shared shells.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Theme</span>
-                  <p className="font-medium text-foreground">{formatTokenLabel(selectedTheme)}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Color preference</span>
-                  <p className="font-medium text-foreground">{formatTokenLabel(colorMode)}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Model routing</span>
-                  <p className="font-medium text-foreground">{selectedModelLabel}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground">Recent prompt</span>
-                  <p className="font-medium text-foreground">
-                    {lastSession?.prompt?.slice(0, 80) || 'No prompts yet'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
