@@ -1,7 +1,8 @@
+import BrandLogo from '@/components/layout/BrandLogo.jsx';
+import { Surface } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Surface } from '@/components/layout';
 import { cn } from '@/lib/utils.js';
 
 const VIEW_TABS = [
@@ -28,19 +29,19 @@ export function WorkbenchHeader({
   }) {
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-br from-white/75 via-white/55 to-white/30 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.45)] blur-sm dark:from-slate-800/65 dark:via-slate-900/55 dark:to-slate-950/35 dark:shadow-[0_25px_60px_-35px_rgba(8,47,73,0.55)]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-br from-white/78 via-white/58 to-white/32 shadow-[0_42px_110px_-48px_rgba(15,23,42,0.45)] blur-sm dark:from-slate-800/70 dark:via-slate-900/58 dark:to-slate-950/38 dark:shadow-[0_42px_110px_-48px_rgba(8,47,73,0.6)]" />
       <Surface
         as="header"
         muted
-        className="relative flex flex-col gap-3 rounded-[28px] bg-white/90 px-4 py-4 backdrop-blur-md shadow-[0_18px_45px_-30px_rgba(15,23,42,0.35)] dark:bg-slate-900/82 dark:shadow-[0_18px_45px_-28px_rgba(8,47,73,0.55)] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4"
+        className="relative flex flex-col gap-3 rounded-[28px] bg-white/92 px-4 py-4 backdrop-blur-lg shadow-[0_28px_80px_-36px_rgba(15,23,42,0.38)] dark:bg-slate-900/84 dark:shadow-[0_28px_80px_-34px_rgba(8,47,73,0.62)] sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4"
       >
       <button
         type="button"
         onClick={() => onNavigateHome?.()}
-        className="questit-logo relative -ml-1 cursor-pointer border-none bg-transparent p-0 text-left outline-none transition hover:opacity-90"
-        data-word="Questit"
+        className="relative -ml-1 inline-flex items-center border-none bg-transparent p-0 text-left outline-none transition hover:opacity-90"
+        aria-label="Questit home"
       >
-        Questit
+        <BrandLogo className="h-9 w-auto" aria-hidden />
       </button>
       <nav
         aria-label="Workbench sections"

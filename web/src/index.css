@@ -42,8 +42,8 @@
     --surface-muted: 210 40% 98%;
     --surface-subtle: 210 40% 96%;
     --line-soft: 214 31% 91%;
-    --shadow-soft: 0 20px 40px -20px hsl(222 47% 11% / 0.16);
-    --shadow-hard: 0 24px 60px -32px hsl(222 47% 11% / 0.22);
+    --shadow-soft: 0 28px 64px -28px hsl(222 47% 11% / 0.22);
+    --shadow-hard: 0 36px 88px -30px hsl(222 47% 11% / 0.28);
     --section-gap: clamp(3rem, 6vw, 4.5rem);
     --section-gap-tight: clamp(2rem, 4vw, 3rem);
   }
@@ -81,8 +81,8 @@
     --surface-muted: 217 33% 18%;
     --surface-subtle: 217 24% 22%;
     --line-soft: 222 28% 28%;
-    --shadow-soft: 0 20px 40px -20px hsl(210 40% 2% / 0.5);
-    --shadow-hard: 0 24px 60px -32px hsl(210 40% 2% / 0.6);
+    --shadow-soft: 0 28px 60px -24px hsl(210 40% 2% / 0.54);
+    --shadow-hard: 0 34px 80px -28px hsl(210 40% 2% / 0.68);
   }
 }
 
@@ -176,6 +176,7 @@
     background: hsl(var(--surface-muted));
     border: 1px solid hsl(var(--line-soft) / 0.35);
     border-radius: calc(var(--radius) * 1.6);
+    box-shadow: 0 24px 72px -40px hsl(var(--line-soft) / 0.7);
   }
 
   .questit-chip {
@@ -203,35 +204,8 @@
     gap: 0.75rem;
   }
 
-  .questit-logo {
-    position: relative;
-    font-family: 'Rubik 80s Fade', cursive;
-    letter-spacing: 0.04em;
-    font-size: clamp(1.8rem, 3vw, 2.75rem);
-    color: color-mix(in srgb, hsl(var(--primary)) 75%, #0f172a 25%);
-    text-shadow:
-      0 1px 0 hsla(0, 0%, 100%, 0.65),
-      0 8px 24px hsla(var(--primary) / 0.35);
-    filter: drop-shadow(0 6px 18px rgba(15, 23, 42, 0.22));
-  }
-
-  .questit-logo::after {
-    content: attr(data-word);
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    color: transparent;
-    background: radial-gradient(circle at 22% 30%, hsl(var(--primary) / 0.4), transparent 70%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    opacity: 0.85;
-  }
-
-  .dark .questit-logo {
-    color: color-mix(in srgb, hsl(var(--primary)) 65%, white 35%);
-    text-shadow:
-      0 1px 0 hsla(210, 40%, 8%, 0.55),
-      0 10px 26px hsla(var(--primary) / 0.45);
-    filter: drop-shadow(0 4px 14px rgba(8, 47, 73, 0.4));
+  .brand-logo {
+    display: inline-block;
+    color: hsl(var(--primary));
   }
 }
