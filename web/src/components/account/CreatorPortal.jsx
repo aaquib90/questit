@@ -156,7 +156,13 @@ function CreatorPortal({
                 Usage-based billing with higher bundle limits, private share-shell branding, and team
                 seats is under active development. Join the waitlist to get early access.
               </p>
-              <Button variant="outline" className="w-full sm:w-auto" onClick={onOpenDocs}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                data-tally-open="b559Z7"
+                data-tally-emoji-text="👋"
+                data-tally-emoji-animation="wave"
+              >
                 Join billing waitlist
               </Button>
             </CardContent>
