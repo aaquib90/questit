@@ -20,7 +20,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
   ref
 ) {
   return (
-    <Surface id="questit-composer" className="space-y-6 p-6">
+    <Surface id="questit-composer" className="flex h-full flex-col space-y-6 p-6">
       <div className="space-y-2">
         <h2 className="text-xl font-semibold tracking-tight text-foreground">
           Tell us what you need

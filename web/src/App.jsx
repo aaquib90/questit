@@ -832,23 +832,21 @@ function App() {
           ) : null}
 
           {activeView === 'workbench' ? (
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-                  <div className="flex flex-col gap-6">
-                    <WorkbenchComposerPanel
-                      ref={composerRef}
-                      composerValue={composerValue}
-                      setComposerValue={setComposerValue}
-                      onSubmit={handlePromptSubmit}
-                      isGenerating={isGenerating}
-                      sessionStatus={sessionStatus}
-                      hasHistory={hasHistory}
-                      hasGenerated={hasGenerated}
-                      onResetSession={handleResetSession}
-                      onSaveTool={handleOpenSaveDialog}
-                      user={user}
-                      saveStatus={saveStatus}
-                    />
-                  </div>
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-stretch">
+                  <WorkbenchComposerPanel
+                    ref={composerRef}
+                    composerValue={composerValue}
+                    setComposerValue={setComposerValue}
+                    onSubmit={handlePromptSubmit}
+                    isGenerating={isGenerating}
+                    sessionStatus={sessionStatus}
+                    hasHistory={hasHistory}
+                    hasGenerated={hasGenerated}
+                    onResetSession={handleResetSession}
+                    onSaveTool={handleOpenSaveDialog}
+                    user={user}
+                    saveStatus={saveStatus}
+                  />
 
                   <WorkbenchInspector
                     hasGenerated={hasGenerated}

@@ -16,14 +16,14 @@ export default function WorkbenchInspector({
   onRetryEntry
 }) {
   return (
-    <Surface muted className="p-0">
-      <Tabs defaultValue="preview" className="w-full">
+    <Surface muted className="flex h-full flex-col p-0">
+      <Tabs defaultValue="preview" className="flex flex-1 flex-col w-full">
         <TabsList className="grid w-full grid-cols-3 bg-muted/70">
           <TabsTrigger value="preview">Tool Preview</TabsTrigger>
           <TabsTrigger value="history">Conversation History</TabsTrigger>
           <TabsTrigger value="settings">Tool Settings</TabsTrigger>
         </TabsList>
-        <TabsContent value="preview" className="p-6 space-y-5">
+        <TabsContent value="preview" className="flex flex-1 flex-col p-6 space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-foreground">Preview</h3>
             {hasGenerated ? (
@@ -96,7 +96,7 @@ export default function WorkbenchInspector({
             </Accordion>
           ) : null}
         </TabsContent>
-        <TabsContent value="history" className="space-y-4 p-6">
+        <TabsContent value="history" className="flex flex-1 flex-col space-y-4 p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-foreground">Conversation history</h3>
             {sessionEntries.length ? (
@@ -113,7 +113,7 @@ export default function WorkbenchInspector({
             </p>
           )}
         </TabsContent>
-        <TabsContent value="settings" className="space-y-6 p-6">
+        <TabsContent value="settings" className="flex flex-1 flex-col space-y-6 p-6">
           <WorkbenchSidebar {...sidebarProps} />
         </TabsContent>
       </Tabs>

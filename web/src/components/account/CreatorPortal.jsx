@@ -126,13 +126,6 @@ function CreatorPortal({
                     : 'Connect Supabase environment variables to enable saving tools and portal insights.'}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={onOpenDocs}
-              >
-                Review integration guide
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
