@@ -23,7 +23,6 @@ import {
 } from '@/lib/themeManager.js';
 import { useModelManager } from '@/lib/modelManager.js';
 import { Shell } from '@/components/layout';
-import LandingPage from '@/components/landing/LandingPage.jsx';
 import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
 import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
@@ -95,36 +94,6 @@ function App() {
     useThemeManager(DEFAULT_THEME_KEY);
   const { modelId, setModelId, selectedModelOption, options: modelOptions } = useModelManager();
 
-  const scrollToComposer = useCallback(() => {
-    const node = composerRef.current || document.getElementById('questit-composer');
-    if (node && typeof node.scrollIntoView === 'function') {
-      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      if (typeof node.focus === 'function') {
-        node.focus();
-      }
-    }
-  }, []);
-
-  const handleLandingStart = useCallback(() => {
-    setActiveView('workbench');
-    setTimeout(() => {
-      scrollToComposer();
-    }, 50);
-  }, [scrollToComposer]);
-
-  const handleLandingTemplateSelect = useCallback(
-    (prompt) => {
-      if (!prompt) return;
-      setActiveView('workbench');
-      setComposerValue(prompt);
-      setSessionStatus({ state: 'idle', message: '' });
-      setTimeout(() => {
-        scrollToComposer();
-      }, 50);
-    },
-    [scrollToComposer]
-  );
-
   const endpoint = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
@@ -183,15 +152,17 @@ function App() {
       : scopeDecision === 'refine'
         ? 'bg-amber-100 text-amber-700 border border-amber-200'
         : 'bg-rose-100 text-rose-700 border border-rose-200';
-  const isLanding = activeView === 'landing';
-
   const handleRequestLogin = useCallback(() => {
     setAuthDialogOpen(true);
     setAuthStatus({ state: 'idle', message: '' });
   }, []);
 
-  const createEntryId = () =>
-    `entry-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const createEntryId = useCallback(
+    () =>
+      crypto.randomUUID?.() ??
+      `entry-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    []
+  );
 
   const executePrompt = async ({ promptText, reuseEntryId = null } = {}) => {
     const trimmed = (promptText || '').trim();
@@ -414,7 +385,20 @@ function App() {
 
     loadRemix();
     return undefined;
-  }, [selectedModelOption.label]);
+  }, [
+    createEntryId,
+    modelOptions,
+    selectedModelOption.label,
+    setActiveView,
+    setColorMode,
+    setComposerValue,
+    setModelId,
+    setSaveDraft,
+    setSelectedTheme,
+    setSessionEntries,
+    setSessionStatus,
+    setToolCode
+  ]);
 
   const updateToolActionStatus = useCallback((toolId, updates) => {
     setToolActionStatus((previous) => {
@@ -790,74 +774,6 @@ function App() {
     };
   }, [activeView, myToolsRefreshKey, user]);
 
-  if (isLanding) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <Shell as="main" className="py-12 sm:py-14 lg:py-16">
-          <LandingPage
-            user={user}
-            userLabel={userLabel}
-            onNavigate={setActiveView}
-            onStart={handleLandingStart}
-            onSeeTemplates={handleLandingStart}
-            onSelectTemplate={handleLandingTemplateSelect}
-            onLogin={handleRequestLogin}
-            onSignOut={handleSignOut}
-          />
-        </Shell>
-        <SaveToolDialog
-          open={saveDialogOpen}
-          onOpenChange={setSaveDialogOpen}
-          initialTitle={saveDraft.title || sessionEntries[0]?.prompt?.slice(0, 80) || ''}
-          initialSummary={saveDraft.summary || ''}
-          onSubmit={handleSaveTool}
-          status={saveStatus}
-        />
-        <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
-          <DialogContent className="w-full max-w-md gap-6 p-6 sm:p-8">
-            <DialogHeader>
-              <DialogTitle>Sign in to Questit</DialogTitle>
-              <DialogDescription>
-                We’ll email you a magic link so you can save tools to Supabase.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="auth-email">Email address</Label>
-                <Input
-                  id="auth-email"
-                  type="email"
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              {authStatus.message && (
-                <p
-                  className={`text-sm ${
-                    authStatus.state === 'error'
-                      ? 'text-destructive'
-                      : authStatus.state === 'success'
-                        ? 'text-emerald-500'
-                        : 'text-muted-foreground'
-                  }`}
-                >
-                  {authStatus.message}
-                </p>
-              )}
-              <DialogFooter>
-                <Button type="submit" disabled={authStatus.state === 'loading'}>
-                  {authStatus.state === 'loading' ? 'Sending…' : 'Send magic link'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Shell as="main" className="py-10 sm:py-12 lg:py-16">
@@ -869,7 +785,7 @@ function App() {
             userLabel={userLabel}
             onLogin={handleRequestLogin}
             onSignOut={handleSignOut}
-            onNavigateHome={() => setActiveView('landing')}
+            onNavigateHome={() => setActiveView('workbench')}
           />
 
           {activeView === 'workbench' ? (
@@ -912,9 +828,6 @@ function App() {
                       sessionStateClass,
                       sessionStepCount,
                       selectedModelLabel: selectedModelOption.label,
-                      selectedTheme,
-                      colorMode,
-                      resolvedMode,
                       scopeDecisionLabel,
                       scopeDecisionClasses,
                       scopeReasons,
