@@ -11,7 +11,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PillTray, Section, Surface } from '@/components/layout';
+import { PillTray, Surface } from '@/components/layout';
 
 const FEATURE_PILLS = [
   { icon: Sparkles, label: 'Works with plain language' },
@@ -73,8 +73,6 @@ const TEMPLATE_CHIPS = [
   }
 ];
 
-const TRUSTED_LOGOS = ['OpenAI', 'Supabase', 'Vercel', 'Cursor', 'Cloudflare'];
-
 function LandingPage({
   onStart,
   onSeeTemplates,
@@ -88,7 +86,7 @@ function LandingPage({
   const isAuthenticated = Boolean(user);
 
   return (
-    <div className="space-y-16 lg:space-y-20">
+    <div className="space-y-20">
       <div className="questit-landing-header flex flex-col gap-6 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
@@ -146,9 +144,8 @@ function LandingPage({
         </div>
       </div>
 
-      <Section className="gap-14 lg:gap-16">
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
+      <section className="questit-shell grid gap-12 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)] lg:items-center">
+        <div className="space-y-8">
             <Badge variant="outline" className="w-fit rounded-full px-3 py-1 text-xs font-medium">
               No coding. No downloads.
             </Badge>
@@ -180,7 +177,7 @@ function LandingPage({
               ))}
             </PillTray>
           </div>
-          <Surface className="flex-1 overflow-hidden border border-border/50 p-6">
+          <Surface className="overflow-hidden border border-border/60 p-6 shadow-lg shadow-primary/10">
             <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/90 p-6 shadow-lg shadow-primary/10">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -216,20 +213,9 @@ function LandingPage({
             </div>
           </Surface>
         </div>
-      </Section>
+      </section>
 
-      <Section tight className="gap-6 text-center">
-        <span className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">
-          Trusted by builders at
-        </span>
-        <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-muted-foreground md:gap-8">
-          {TRUSTED_LOGOS.map((logo) => (
-            <span key={logo}>{logo}</span>
-          ))}
-        </div>
-      </Section>
-
-      <Section className="gap-8">
+      <section className="questit-shell space-y-10">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {VALUE_CARDS.map(({ icon: Icon, title, copy }) => (
             <Surface key={title} muted className="h-full border border-border/40 p-6 shadow-sm">
@@ -245,9 +231,9 @@ function LandingPage({
             </Surface>
           ))}
         </div>
-      </Section>
+      </section>
 
-      <Section className="gap-6">
+      <section className="questit-shell space-y-6 pb-16">
         <div className="space-y-2 text-left">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             Or try a ready-made idea
@@ -274,7 +260,7 @@ function LandingPage({
             </button>
           ))}
         </div>
-      </Section>
+      </section>
     </div>
   );
 }
