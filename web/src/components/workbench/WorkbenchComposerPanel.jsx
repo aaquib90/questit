@@ -1,7 +1,11 @@
-import { forwardRef } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 
 import { Surface } from '@/components/layout';
-import PromptComposer from '@/components/workbench/PromptComposer.jsx';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import AdvancedControlsDrawer from '@/components/workbench/AdvancedControlsDrawer.jsx';
+import { Sparkles, Settings2 } from 'lucide-react';
 
 const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
   {
@@ -15,37 +19,149 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
     onResetSession,
     onSaveTool,
     user,
-    saveStatus
+    saveStatus,
+    modelId,
+    setModelId,
+    modelOptions
   },
   ref
 ) {
+  const [addons, setAddons] = useState({ auth: false, persistence: false, share: true });
+  const [showSettings, setShowSettings] = useState(false);
+
+  const adaptivePlaceholder = useMemo(() => {
+    return 'e.g., Create a password generator with options for length and special characters...';
+  }, []);
+
+  const handleToggleAddon = (key, value) => {
+    setAddons((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const INSPIRATIONS = [
+    {
+      id: 'shopping',
+      icon: '🛒',
+      title: 'Shopping list tracker',
+      prompt:
+        'Create a simple shopping list tracker where I can add items and check them off, grouped by store sections.'
+    },
+    {
+      id: 'mood',
+      icon: '😊',
+      title: 'Mood journal',
+      prompt:
+        'Make a mood journal where I pick an emoji for each day and add a quick note, with a weekly trend.'
+    },
+    {
+      id: 'recipe',
+      icon: '🧪',
+      title: 'Recipe scaler',
+      prompt:
+        'Create a recipe scaler that adjusts ingredient amounts up or down based on the number of servings.'
+    },
+    {
+      id: 'caffeine',
+      icon: '☕',
+      title: 'Caffeine tracker',
+      prompt:
+        'Build a caffeine tracker that lets me log drinks and shows my intake for the day with a gentle limit warning.'
+    },
+    {
+      id: 'gratitude',
+      icon: '💖',
+      title: 'Gratitude journal',
+      prompt:
+        'Design a gratitude journal that prompts me for three highlights each day and shows a weekly recap.'
+    },
+    {
+      id: 'timer',
+      icon: '⚡',
+      title: 'Quick timer',
+      prompt:
+        'Make a quick timer with 5, 10, 15, and 30 minute presets and a gentle alert sound when time is up.'
+    }
+  ];
+
   return (
     <Surface id="questit-composer" className="flex h-full flex-col space-y-6 p-6">
-      <div className="space-y-2">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Tell us what you need
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Use friendly, everyday language. Mention what you want it to do and any important buttons or lists. Questit fills in the rest.
-        </p>
+      <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/30 p-4 sm:p-6">
+        <div className="space-y-2">
+          <h2 className="text-base font-semibold text-foreground">Your Idea</h2>
+          <div className="space-y-2">
+            <Label htmlFor="questit-composer-textarea" className="sr-only">
+              Your idea
+            </Label>
+            <Textarea
+              id="questit-composer-textarea"
+              ref={ref}
+              value={composerValue}
+              onChange={(event) => setComposerValue(event.target.value)}
+              placeholder={adaptivePlaceholder}
+              className="min-h-[140px] resize-y text-sm leading-relaxed"
+              disabled={isGenerating}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              <span className="mr-1">💡</span> Tip: Be specific about what you want—the more details, the
+              better!
+            </p>
+          </div>
+          <div className="pt-1">
+            <Button
+              type="button"
+              size="lg"
+              disabled={isGenerating || !composerValue?.trim()}
+              onClick={onSubmit}
+              className="w-full gap-2 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-500/90 hover:to-violet-500/90"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden />
+              Generate Tool
+            </Button>
+          </div>
+          <div className="flex items-center justify-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-2 text-xs"
+              onClick={() => setShowSettings((v) => !v)}
+            >
+              <Settings2 className="h-3.5 w-3.5" aria-hidden />
+              {showSettings ? 'Hide Settings' : 'Show Settings'}
+            </Button>
+          </div>
+          {showSettings ? (
+            <AdvancedControlsDrawer
+              modelOptions={modelOptions}
+              selectedModelId={modelId}
+              onSelectModel={setModelId}
+            />
+          ) : null}
+        </div>
       </div>
-      <PromptComposer
-        ref={ref}
-        value={composerValue}
-        onChange={setComposerValue}
-        onSubmit={onSubmit}
-        disabled={isGenerating}
-        isWorking={isGenerating}
-        status={sessionStatus}
-        onReset={onResetSession}
-        canReset={hasHistory || hasGenerated}
-        onSave={onSaveTool}
-        hasGenerated={hasGenerated}
-        user={user}
-        saveStatus={saveStatus}
-        placeholder="For example: “Help me plan weekly meals with a spot for groceries.”"
-        className="mt-2"
-      />
+
+      <div className="space-y-3">
+        <p className="text-center text-sm text-muted-foreground">
+          Need some inspiration? Try one of these:
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {INSPIRATIONS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/80 px-4 py-3 text-left shadow-sm transition hover:bg-background"
+              onClick={() => setComposerValue(item.prompt)}
+              title={item.title}
+            >
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-muted text-base">
+                {item.icon}
+              </span>
+              <div>
+                <div className="text-sm font-medium text-foreground">{item.title}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
     </Surface>
   );
 });

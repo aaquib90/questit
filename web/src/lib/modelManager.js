@@ -18,12 +18,6 @@ export const MODEL_OPTIONS = [
     label: 'OpenAI · GPT-4o mini',
     provider: 'openai',
     model: 'gpt-4o-mini'
-  },
-  {
-    id: 'gemini:1.5-flash',
-    label: 'Google · Gemini 1.5 Flash (Legacy)',
-    provider: 'gemini',
-    model: 'gemini-1.5-flash'
   }
 ];
 

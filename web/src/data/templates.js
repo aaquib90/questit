@@ -225,7 +225,12 @@ export function flattenTemplates(collections = TEMPLATE_COLLECTIONS) {
     collection.templates.map((template) => ({
       ...template,
       collectionId: collection.id,
-      collectionTitle: collection.title
+      collectionTitle: collection.title,
+      popularityScore: typeof template.popularity === 'number' ? template.popularity : 0,
+      updatedAt: template.updatedAt || new Date().toISOString(),
+      previewHtml: template.preview?.html || '',
+      previewCss: template.preview?.css || '',
+      previewJs: template.preview?.js || ''
     }))
   );
 }
