@@ -65,6 +65,17 @@ function summarizeCodeBundle({ html = '', css = '', js = '' }) {
   return `Updated ${parts.join(' · ')}`;
 }
 
+const MEMORY_MODE_LABELS = {
+  none: 'Off',
+  device: 'This device',
+  account: 'Signed-in users'
+};
+
+function formatMemoryModeLabel(value) {
+  if (!value) return 'Off';
+  return MEMORY_MODE_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function detectViewerSlug() {
   if (typeof window === 'undefined') return null;
   try {
@@ -128,6 +139,10 @@ function WorkbenchApp() {
     message: ''
   });
   const [publishVisibilityByTool, setPublishVisibilityByTool] = useState({});
+  const [memorySettings, setMemorySettings] = useState({
+    mode: 'none',
+    retention: 'indefinite'
+  });
   const composerRef = useRef(null);
   const { selectedTheme, setSelectedTheme, colorMode, setColorMode, resolvedMode } =
     useThemeManager(DEFAULT_THEME_KEY);
@@ -259,7 +274,10 @@ function WorkbenchApp() {
         model: selectedModelOption.model
       };
       const previousCode = hasGenerated ? toolCode : undefined;
-      const result = await generateTool(trimmed, endpoint, previousCode, modelConfig);
+      const result = await generateTool(trimmed, endpoint, previousCode, {
+        modelConfig,
+        memoryConfig: memorySettings
+      });
 
       setToolCode(result);
       setSessionEntries((previous) =>
@@ -342,6 +360,7 @@ function WorkbenchApp() {
     });
     setSaveStatus({ state: 'idle', message: '' });
     setSaveDraft({ title: template.title || '', summary: template.summary || '' });
+    setMemorySettings({ mode: 'none', retention: 'indefinite' });
     setActiveView('workbench');
     setTimeout(() => {
       composerRef.current?.focus();
@@ -358,6 +377,7 @@ function WorkbenchApp() {
     });
     setSaveStatus({ state: 'idle', message: '' });
     setSaveDraft({ title: '', summary: '' });
+    setMemorySettings({ mode: 'none', retention: 'indefinite' });
   };
 
   useEffect(() => {
@@ -503,7 +523,9 @@ function WorkbenchApp() {
   const fetchToolDetails = async (toolId) => {
     const { data, error } = await supabase
       .from('user_tools')
-      .select('id, title, prompt, public_summary, model_provider, model_name, theme, color_mode, html, css, js, created_at, updated_at')
+      .select(
+        'id, title, prompt, public_summary, model_provider, model_name, theme, color_mode, memory_mode, memory_retention, html, css, js, created_at, updated_at'
+      )
       .eq('id', toolId)
       .maybeSingle();
 
@@ -517,6 +539,10 @@ function WorkbenchApp() {
     setMyTools((previous) =>
       previous.map((tool) => (tool.id === toolId ? { ...tool, ...data } : tool))
     );
+    setMemorySettings({
+      mode: data.memory_mode || 'none',
+      retention: data.memory_retention || 'indefinite'
+    });
     return data;
   };
 
@@ -629,6 +655,10 @@ function WorkbenchApp() {
       if (toolRecord.color_mode) {
         setColorMode(toolRecord.color_mode);
       }
+      setMemorySettings({
+        mode: toolRecord.memory_mode || 'none',
+        retention: toolRecord.memory_retention || 'indefinite'
+      });
       if (toolRecord.model_provider && toolRecord.model_name) {
         const match = modelOptions.find(
           (option) =>
@@ -746,11 +776,16 @@ function WorkbenchApp() {
       const trimmedPassphrase =
         typeof options.passphrase === 'string' ? options.passphrase.trim() : '';
 
+      const memoryMode = toolRecord.memory_mode || memorySettings.mode;
+      const memoryRetention = toolRecord.memory_retention || memorySettings.retention;
+
       const publishPayload = {
         id: toolRecord.id,
         tool_id: toolRecord.id,
         owner_id: user.id,
         visibility,
+        memory_mode: memoryMode,
+        memory_retention: memoryRetention,
         title: toolRecord.title,
         public_summary: toolRecord.public_summary || saveDraft.summary || '',
         theme: toolRecord.theme || selectedTheme || DEFAULT_THEME_KEY,
@@ -775,7 +810,9 @@ function WorkbenchApp() {
         shareUrl,
         publishedName: result?.name || '',
         publishedNamespace: result?.namespace || '',
-        visibility
+        visibility,
+        memoryMode,
+        memoryRetention
       });
 
       // Copy link to clipboard automatically
@@ -840,6 +877,8 @@ function WorkbenchApp() {
       prompt: sourcePrompt,
       theme: selectedTheme,
       color_mode: colorMode,
+      memory_mode: memorySettings.mode,
+      memory_retention: memorySettings.retention,
       public_summary: summary || null,
       model_provider: selectedModelOption.provider,
       model_name: selectedModelOption.model,
@@ -897,7 +936,9 @@ function WorkbenchApp() {
 
     supabase
       .from('user_tools')
-      .select('id, title, prompt, public_summary, model_provider, model_name, theme, color_mode, created_at, updated_at')
+      .select(
+        'id, title, prompt, public_summary, model_provider, model_name, theme, color_mode, memory_mode, memory_retention, created_at, updated_at'
+      )
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (!isActive) return;
@@ -966,16 +1007,13 @@ function WorkbenchApp() {
                   setComposerValue={setComposerValue}
                   onSubmit={handlePromptSubmit}
                   isGenerating={isGenerating}
-                  sessionStatus={sessionStatus}
-                  hasHistory={hasHistory}
                   hasGenerated={hasGenerated}
-                  onResetSession={handleResetSession}
                   onSaveTool={handleOpenSaveDialog}
-                  user={user}
-                  saveStatus={saveStatus}
                   modelId={modelId}
                   setModelId={setModelId}
                   modelOptions={modelOptions}
+                  memorySettings={memorySettings}
+                  onChangeMemorySettings={setMemorySettings}
                 />
                 {isGenerating ? (
                   <GeneratingAnimation />
@@ -996,16 +1034,13 @@ function WorkbenchApp() {
                   setComposerValue={setComposerValue}
                   onSubmit={handlePromptSubmit}
                   isGenerating={isGenerating}
-                  sessionStatus={sessionStatus}
-                  hasHistory={hasHistory}
                   hasGenerated={hasGenerated}
-                  onResetSession={handleResetSession}
                   onSaveTool={handleOpenSaveDialog}
-                  user={user}
-                  saveStatus={saveStatus}
                   modelId={modelId}
                   setModelId={setModelId}
                   modelOptions={modelOptions}
+                  memorySettings={memorySettings}
+                  onChangeMemorySettings={setMemorySettings}
                 />
                 <WorkbenchInspector
                   hasGenerated={hasGenerated}
@@ -1125,6 +1160,10 @@ function WorkbenchApp() {
                           <span>{tool.theme ? `Theme: ${tool.theme}` : 'Default theme'}</span>
                           <span>•</span>
                           <span>{tool.color_mode ? `Mode: ${tool.color_mode}` : 'Mode: light'}</span>
+                          <span>•</span>
+                          <span>
+                            Memory: {formatMemoryModeLabel(tool.memory_mode || 'none')}
+                          </span>
                         </div>
 
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

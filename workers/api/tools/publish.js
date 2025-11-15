@@ -755,7 +755,9 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     share_slug: shareSlug,
     shell_version: SHARE_SHELL_VERSION,
     visibility,
-    passphrase_required: visibility === 'passphrase'
+    passphrase_required: visibility === 'passphrase',
+    memory_mode: tool.memory_mode || 'none',
+    memory_retention: tool.memory_retention || 'indefinite'
   };
 
   const shellTitle = escapeHtmlAttr(tool.title || 'Questit Tool');
@@ -789,7 +791,9 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     shell_version: SHARE_SHELL_VERSION,
     visibility,
     passphrase_required: visibility === 'passphrase',
-    passphrase_hash: passphraseHash
+    passphrase_hash: passphraseHash,
+    memory_mode: tool.memory_mode || 'none',
+    memory_retention: tool.memory_retention || 'indefinite'
   };
 
   const privateGateHtml = `<!doctype html>
@@ -1413,7 +1417,7 @@ async function handleGetPublishedTool(request, env, corsHeaders, slug) {
   const headers = buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' });
   const selectUrl = `${supabaseUrl}/rest/v1/published_tools?slug=eq.${encodeURIComponent(
     slug
-  )}&select=id,slug,tool_id,owner_id,title,summary,html,css,js,visibility,passphrase_hash,view_count,last_viewed_at,created_at,updated_at,tags,theme,color_mode,model_provider,model_name`;
+  )}&select=id,slug,tool_id,owner_id,title,summary,html,css,js,visibility,passphrase_hash,view_count,last_viewed_at,created_at,updated_at,tags,theme,color_mode,model_provider,model_name,memory_mode,memory_retention`;
 
   const selectRes = await fetch(selectUrl, { headers });
   const selectText = await selectRes.text();
@@ -1566,7 +1570,9 @@ async function handleGetPublishedTool(request, env, corsHeaders, slug) {
     theme: record.theme || null,
     color_mode: record.color_mode || null,
     model_provider: record.model_provider || null,
-    model_name: record.model_name || null
+    model_name: record.model_name || null,
+    memory_mode: record.memory_mode || 'none',
+    memory_retention: record.memory_retention || 'indefinite'
   };
 
   return new Response(JSON.stringify(payload), {
@@ -1862,6 +1868,8 @@ export default {
       color_mode: colorModeForRecord,
       model_provider: modelProvider,
       model_name: modelName,
+      memory_mode: (tool.memory_mode || 'none').toLowerCase(),
+      memory_retention: (tool.memory_retention || 'indefinite').toLowerCase(),
       updated_at: isoNow()
     };
 

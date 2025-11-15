@@ -11,40 +11,64 @@ Always return a STRICT JSON object with exactly these top-level keys: html, css,
 
 const DEFAULT_ENDPOINT = 'https://questit.cc/api/ai/proxy';
 
-function buildIterationInput(prompt, previousCode) {
-  if (!previousCode) return prompt;
+function buildMemoryGuidance(memoryConfig) {
+  if (!memoryConfig || memoryConfig.mode === 'none') {
+    return '';
+  }
+
+  const retentionNote =
+    memoryConfig.retention === 'session'
+      ? 'Reset stored state when the viewer clears it or closes the tab.'
+      : 'Keep stored state so it persists across visits on the same device.';
+
+  return `Memory requirements:
+- Persist data using Questit\\'s memory helper.
+- Access it via: const questitMemory = window.questit?.kit?.memory?.forTool(window.questit?.runtime?.currentToolId || 'current-tool');
+- Load data with: const saved = await questitMemory?.get('<memory-key>', <defaultValue>);
+- Save data with: await questitMemory?.set('<memory-key>', <value>);
+- Provide a clear action that calls await questitMemory?.remove('<memory-key>');
+- Always guard the helper with optional chaining so the tool still works if memory is unavailable.
+- ${retentionNote}`;
+}
+
+function buildIterationInput(prompt, previousCode, memoryGuidance) {
+  if (!previousCode) {
+    return memoryGuidance ? `${prompt}\n\n${memoryGuidance}` : prompt;
+  }
 
   const { html = '', css = '', js = '' } = previousCode;
-  return `You previously generated this tool. Update it while keeping the structure self-contained.
+  const sections = [
+    `You previously generated this tool. Update it while keeping the structure self-contained.`,
+    `Existing HTML:\n${html || '// no html'}`,
+    `Existing CSS:\n${css || '// no css'}`,
+    `Existing JavaScript:\n${js || '// no js'}`,
+    `Apply the following update instructions:\n${prompt}`
+  ];
 
-Existing HTML:
-${html || '// no html'}
+  if (memoryGuidance) {
+    sections.push(memoryGuidance);
+  }
 
-Existing CSS:
-${css || '// no css'}
-
-Existing JavaScript:
-${js || '// no js'}
-
-Apply the following update instructions:
-${prompt}
-
-Return the complete updated tool (html, css, js) as JSON.`;
+  sections.push('Return the complete updated tool (html, css, js) as JSON.');
+  return sections.join('\n\n');
 }
 
 export async function generateTool(
   prompt,
   endpoint = DEFAULT_ENDPOINT,
   previousCode,
-  modelConfig = {}
+  options = {}
 ) {
+  const { modelConfig = {}, memoryConfig } = options;
   const provider = (modelConfig.provider || 'openai').toLowerCase();
   const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini';
   const model = modelConfig.model || defaultModel;
+  const memoryGuidance = buildMemoryGuidance(memoryConfig);
+  const input = buildIterationInput(prompt, previousCode, memoryGuidance);
 
   const body = {
     system: SYSTEM_PROMPT,
-    input: buildIterationInput(prompt, previousCode),
+    input,
     provider,
     model,
     options: {

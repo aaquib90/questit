@@ -46,6 +46,18 @@ function formatDateTime(iso) {
   }
 }
 
+function formatMemoryMode(mode) {
+  if (mode === 'device') return 'Device only';
+  if (mode === 'account') return 'Signed-in users';
+  return 'Off';
+}
+
+function formatRetention(retention) {
+  if (retention === 'session') return 'Clears when reset';
+  if (retention === 'custom') return 'Custom';
+  return 'Keeps data across visits';
+}
+
 function StateMessage({ title, description }) {
   return (
     <Section className="flex justify-center">
@@ -208,11 +220,14 @@ export default function ToolViewer({ slug, apiBase }) {
 
   const { status, error, data } = viewerState;
   const toolId = data?.tool_id || null;
+  const memoryMode = data?.memory_mode || 'none';
+  const memoryRetention = data?.memory_retention || 'indefinite';
+  const showMemoryPanel = status === 'ready' && Boolean(toolId) && memoryMode !== 'none';
   const memoryState = useToolMemory(toolId, {
     apiBase,
-    enabled: status === 'ready' && Boolean(toolId)
+    enabled: showMemoryPanel
   });
-  const memoryEntries = memoryState.entries || [];
+  const memoryEntries = showMemoryPanel && Array.isArray(memoryState.entries) ? memoryState.entries : [];
   const isForbidden = status === 'forbidden';
   const forbiddenMessage = error || '';
   const isPassphraseGate = isForbidden && /passphrase/i.test(forbiddenMessage);
@@ -347,84 +362,88 @@ export default function ToolViewer({ slug, apiBase }) {
                   </div>
                 </Surface>
 
-                <Surface className="space-y-4 p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                        Your Data
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        Stored on this device. Clear it any time.
-                      </p>
+                {showMemoryPanel ? (
+                  <Surface className="space-y-4 p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                          Your Data
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          {memoryMode === 'device'
+                            ? 'Stored on this device until you clear it.'
+                            : 'Synced for signed-in viewers.'}
+                        </p>
+                      </div>
+                      <Badge size="xs" variant="outline">
+                        Beta
+                      </Badge>
                     </div>
-                    <Badge size="xs" variant="outline">
-                      Beta
-                    </Badge>
-                  </div>
-                  {memoryState.status === 'loading' ? (
-                    <p className="text-xs text-muted-foreground">Loading saved entries…</p>
-                  ) : memoryEntries.length ? (
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      {memoryEntries.map((entry) => (
-                        <li
-                          key={entry.memory_key}
-                          className="rounded-lg border border-border/40 bg-muted/40 px-3 py-2 text-left"
-                        >
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                            {entry.memory_key}
-                          </span>
-                          <pre className="mt-2 max-h-36 overflow-auto text-sm text-foreground">
-                            {JSON.stringify(entry.memory_value, null, 2)}
-                          </pre>
-                          <div className="mt-2 flex justify-end">
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              className="text-xs"
-                              onClick={() => memoryState.removeMemory(entry.memory_key)}
-                            >
-                              Clear
-                            </Button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      This tool hasn&apos;t stored anything yet. Interact with it to save progress.
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs"
-                      onClick={() => memoryState.refresh({ silent: true })}
-                    >
-                      Refresh
-                    </Button>
-                    {memoryEntries.length ? (
+                    {memoryState.status === 'loading' ? (
+                      <p className="text-xs text-muted-foreground">Loading saved entries…</p>
+                    ) : memoryEntries.length ? (
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        {memoryEntries.map((entry) => (
+                          <li
+                            key={entry.memory_key}
+                            className="rounded-lg border border-border/40 bg-muted/40 px-3 py-2 text-left"
+                          >
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                              {entry.memory_key}
+                            </span>
+                            <pre className="mt-2 max-h-36 overflow-auto text-sm text-foreground">
+                              {JSON.stringify(entry.memory_value, null, 2)}
+                            </pre>
+                            <div className="mt-2 flex justify-end">
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                className="text-xs"
+                                onClick={() => memoryState.removeMemory(entry.memory_key)}
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This tool hasn&apos;t stored anything yet. Interact with it to save progress.
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         className="text-xs"
-                        onClick={async () => {
-                          await Promise.all(
-                            memoryEntries.map((entry) =>
-                              memoryState.removeMemory(entry.memory_key)
-                            )
-                          );
-                          await memoryState.refresh({ silent: true });
-                        }}
+                        onClick={() => memoryState.refresh({ silent: true })}
                       >
-                        Clear all
+                        Refresh
                       </Button>
-                    ) : null}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Memory syncing across devices will arrive soon.
-                  </p>
-                </Surface>
+                      {memoryEntries.length ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={async () => {
+                            await Promise.all(
+                              memoryEntries.map((entry) =>
+                                memoryState.removeMemory(entry.memory_key)
+                              )
+                            );
+                            await memoryState.refresh({ silent: true });
+                          }}
+                        >
+                          Clear all
+                        </Button>
+                      ) : null}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatRetention(memoryRetention)}
+                    </p>
+                  </Surface>
+                ) : null}
 
                 <Surface className="space-y-4 p-5 text-sm">
                   <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
@@ -441,6 +460,22 @@ export default function ToolViewer({ slug, apiBase }) {
                         {data.visibility}
                       </span>
                     </li>
+                    {memoryMode !== 'none' ? (
+                      <>
+                        <li className="flex items-center justify-between gap-4">
+                          <span className="text-xs uppercase tracking-[0.25em]">Memory</span>
+                          <span className="text-right font-medium text-foreground">
+                            {formatMemoryMode(memoryMode)}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between gap-4">
+                          <span className="text-xs uppercase tracking-[0.25em]">Retention</span>
+                          <span className="text-right font-medium text-foreground">
+                            {formatRetention(memoryRetention)}
+                          </span>
+                        </li>
+                      </>
+                    ) : null}
                     {data.model_provider || data.model_name ? (
                       <li className="flex flex-col gap-1">
                         <span className="text-xs uppercase tracking-[0.25em]">Model</span>

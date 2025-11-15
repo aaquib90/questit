@@ -6,6 +6,7 @@
   const TOOL_STYLE_ID = 'questit-tool-style';
   const TOOL_SCRIPT_ATTR = 'data-questit-tool-script';
   const SHELL_VERSION = 'v1';
+  const SESSION_STORAGE_KEY = 'questit-session-id';
 
   const BASE_THEME_VARS = {
     '--background': '0 0% 100%',
@@ -224,6 +225,159 @@
   const REMIX_MESSAGE_DEFAULT =
     "Creator hasn't added a public summary yet.";
 
+  function generateSessionId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function normaliseApiBase(base) {
+    if (base) {
+      return base.replace(/\/$/, '');
+    }
+    if (typeof window !== 'undefined' && window.location) {
+      return `${window.location.origin.replace(/\/$/, '')}/api`;
+    }
+    return '/api';
+  }
+
+  function ensureSessionId() {
+    if (typeof window === 'undefined') return null;
+    let sessionId = null;
+    try {
+      sessionId = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    } catch {
+      sessionId = null;
+    }
+    if (!sessionId) {
+      sessionId = generateSessionId();
+      try {
+        window.localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+      } catch {
+        // ignore storage issues
+      }
+    }
+    try {
+      if (typeof document !== 'undefined') {
+        document.cookie = `questit_session_id=${sessionId}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+    } catch {
+      // ignore cookie issues
+    }
+    return sessionId;
+  }
+
+  function createMemoryClient(toolId, apiBase) {
+    const base = normaliseApiBase(apiBase);
+    const request = async (targetToolId, method, key, body) => {
+      if (!targetToolId) return null;
+      const sessionId = ensureSessionId();
+      const headers = {};
+      if (sessionId) {
+        headers['X-Questit-Session-Id'] = sessionId;
+      }
+      if (body !== undefined && body !== null) {
+        headers['Content-Type'] = 'application/json';
+      }
+      const path =
+        key != null
+          ? `/tools/${encodeURIComponent(targetToolId)}/memory/${encodeURIComponent(key)}`
+          : `/tools/${encodeURIComponent(targetToolId)}/memory`;
+      return fetch(`${base}${path}`, {
+        method,
+        headers,
+        body: body != null ? JSON.stringify(body) : undefined
+      });
+    };
+
+    const list = async (targetToolId = toolId) => {
+      const res = await request(targetToolId, 'GET');
+      if (!res || !res.ok) return [];
+      const data = await res.json().catch(() => ({}));
+      return Array.isArray(data.memories) ? data.memories : [];
+    };
+
+    const get = async (targetToolId = toolId, key, fallback) => {
+      const entries = await list(targetToolId);
+      const match = entries.find((entry) => entry.memory_key === key);
+      return match ? match.memory_value : fallback;
+    };
+
+    const set = async (targetToolId = toolId, key, value) => {
+      const res = await request(targetToolId, 'POST', null, { key, value });
+      if (!res || !res.ok) {
+        const text = res ? await res.text().catch(() => '') : '';
+        throw new Error(text || 'Failed to persist memory entry.');
+      }
+      const data = await res.json().catch(() => ({}));
+      return Array.isArray(data.memory) ? data.memory[0] : data.memory || null;
+    };
+
+    const remove = async (targetToolId = toolId, key) => {
+      const res = await request(targetToolId, 'DELETE', key);
+      if (!res) return false;
+      if (!res.ok && res.status !== 404) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || 'Failed to delete memory entry.');
+      }
+      return true;
+    };
+
+    const api = {
+      ensureSessionId,
+      list: () => list(),
+      get: (key, fallback) => get(toolId, key, fallback),
+      set: (key, value) => set(toolId, key, value),
+      remove: (key) => remove(toolId, key),
+      refresh: () => list(),
+      forTool(targetId) {
+        const resolved = targetId || toolId;
+        return {
+          list: () => list(resolved),
+          get: (key, fallback) => get(resolved, key, fallback),
+          set: (key, value) => set(resolved, key, value),
+          remove: (key) => remove(resolved, key),
+          refresh: () => list(resolved)
+        };
+      }
+    };
+
+    return api;
+  }
+
+  function attachMemoryBridge(payload) {
+    const toolId = payload?.tool_id || payload?.id || null;
+    const memoryMode = (payload?.memory_mode || 'none').toLowerCase();
+    const memoryClient = createMemoryClient(toolId, payload?.api_base || '/api');
+    window.questit = window.questit || {};
+    window.questit.kit = window.questit.kit || {};
+    window.questit.kit.memory = memoryClient;
+    window.questit.runtime = window.questit.runtime || {};
+    window.questit.runtime.memory = memoryClient;
+    window.questit.runtime.memoryForTool = memoryClient.forTool.bind(memoryClient);
+    window.questit.runtime.currentToolId = toolId;
+    if (typeof window.questit.runtime.listTools !== 'function') {
+      window.questit.runtime.listTools = () => (toolId ? [toolId] : []);
+    }
+    memoryClient.ensureSessionId();
+    return { memoryMode, memoryClient };
+  }
+
+  function formatMemoryModeLabel(mode) {
+    const lookup = (mode || '').toLowerCase();
+    if (lookup === 'device') return 'This device';
+    if (lookup === 'account') return 'Signed-in users';
+    return 'Off';
+  }
+
+  function formatRetentionLabel(retention) {
+    const lookup = (retention || '').toLowerCase();
+    if (lookup === 'session') return 'Clears on reset';
+    if (lookup === 'custom') return 'Custom';
+    return 'Keeps data';
+  }
+
   function parsePayload() {
     const dataEl = document.getElementById(DATA_ELEMENT_ID);
     if (!dataEl) return null;
@@ -327,6 +481,11 @@
     const modelLabel = escapeHtml(formatModelLabel(payload.model_provider, payload.model_name));
     const themeLabel = escapeHtml(formatThemeLabel(payload.theme));
     const modeLabel = escapeHtml(formatModeLabel(payload.color_mode));
+    const memoryModeLabel =
+      payload.memory_mode && payload.memory_mode !== 'none'
+        ? escapeHtml(formatMemoryModeLabel(payload.memory_mode))
+        : null;
+    const retentionLabel = escapeHtml(formatRetentionLabel(payload.memory_retention));
     const title = escapeHtml(payload.title || 'Questit Tool');
 
     root.innerHTML = `
@@ -372,6 +531,15 @@
               <span>Mode</span>
               <strong data-questit-mode>${modeLabel}</strong>
             </div>
+            ${
+              memoryModeLabel
+                ? `<div class="questit-meta-chip">
+              <span>Memory</span>
+              <strong>${memoryModeLabel}</strong>
+              <small>${retentionLabel}</small>
+            </div>`
+                : ''
+            }
           </div>
         </div>
         <section class="questit-tool" id="${TOOL_ROOT_ID}"></section>
@@ -557,6 +725,7 @@
     document.title = payload.title || 'Questit Tool';
 
     renderShell(root, payload);
+    const memoryBridge = attachMemoryBridge(payload);
     injectToolCode(payload);
     setupRemixLink(payload.share_slug);
     setupAuthBridge();
@@ -564,7 +733,8 @@
     // Expose for debugging if needed
     window.__QUESTIT_SHARE__ = {
       version: SHELL_VERSION,
-      payload
+      payload,
+      memoryMode: memoryBridge.memoryMode
     };
   }
 
