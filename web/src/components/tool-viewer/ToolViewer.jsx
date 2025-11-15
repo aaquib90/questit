@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 import BrandLogo from '@/components/layout/BrandLogo.jsx';
-import { Shell, Surface } from '@/components/layout';
+import { Section, Shell, Surface } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_THEME_KEY, buildIframeHTML } from '@/lib/themeManager.js';
@@ -47,23 +47,25 @@ function formatDateTime(iso) {
 
 function StateMessage({ title, description }) {
   return (
-    <Surface muted className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-        <AlertCircle className="h-6 w-6" aria-hidden />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {description ? (
-          <p className="text-sm text-muted-foreground max-w-md">{description}</p>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" onClick={() => (window.location.href = '/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
-          Back to Questit
-        </Button>
-      </div>
-    </Surface>
+    <Section className="flex justify-center">
+      <Surface muted className="flex w-full max-w-xl flex-col items-center gap-4 px-8 py-14 text-center">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <AlertCircle className="h-6 w-6" aria-hidden />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
+          {description ? (
+            <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => (window.location.href = '/')}>
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
+            Back to Questit
+          </Button>
+        </div>
+      </Surface>
+    </Section>
   );
 }
 
@@ -206,7 +208,6 @@ export default function ToolViewer({ slug, apiBase }) {
   const { status, error, data } = viewerState;
   const isForbidden = status === 'forbidden';
   const forbiddenMessage = error || '';
-  const isPrivateGate = isForbidden && /private/i.test(forbiddenMessage);
   const isPassphraseGate = isForbidden && /passphrase/i.test(forbiddenMessage);
 
   return (
