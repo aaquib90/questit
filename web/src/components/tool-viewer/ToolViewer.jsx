@@ -90,6 +90,9 @@ export default function ToolViewer({ slug, apiBase }) {
     statusCode: null
   });
   const [copyState, setCopyState] = useState('idle');
+  const [passphraseInput, setPassphraseInput] = useState('');
+  const [passphraseStatus, setPassphraseStatus] = useState({ state: 'idle', message: '' });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const shareUrl = useMemo(() => deriveShareUrl(slug), [slug]);
 
@@ -165,7 +168,14 @@ export default function ToolViewer({ slug, apiBase }) {
 
     loadTool();
     return () => controller.abort();
-  }, [apiBase, slug]);
+  }, [apiBase, slug, refreshKey]);
+
+  useEffect(() => {
+    if (viewerState.status === 'ready') {
+      setPassphraseStatus({ state: 'idle', message: '' });
+      setPassphraseInput('');
+    }
+  }, [viewerState.status]);
 
   const iframeDoc = useMemo(() => {
     if (!viewerState.data) return '';
@@ -216,6 +226,44 @@ export default function ToolViewer({ slug, apiBase }) {
 
   const handleSignInRedirect = () => {
     window.location.href = '/?login=1';
+  };
+
+  const submitPassphrase = async (event) => {
+    event.preventDefault();
+    if (!passphraseInput.trim()) {
+      setPassphraseStatus({ state: 'error', message: 'Enter the passphrase to continue.' });
+      return;
+    }
+    setPassphraseStatus({ state: 'loading', message: 'Verifying passphrase…' });
+    try {
+      const endpoint = `${apiBase.replace(/\/$/, '')}/tools/${encodeURIComponent(slug)}/passphrase`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ passphrase: passphraseInput.trim() })
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        let message = 'Incorrect passphrase. Try again.';
+        try {
+          const payload = text ? JSON.parse(text) : null;
+          if (payload?.error) message = payload.error;
+        } catch {
+          // ignore parse error
+        }
+        setPassphraseStatus({ state: 'error', message });
+        return;
+      }
+      setPassphraseStatus({ state: 'success', message: 'Passphrase accepted. Loading tool…' });
+      setPassphraseInput('');
+      setRefreshKey((value) => value + 1);
+    } catch (error) {
+      setPassphraseStatus({
+        state: 'error',
+        message: error?.message || 'Failed to verify passphrase. Please try again.'
+      });
+    }
   };
 
   const { status, error, data } = viewerState;
@@ -504,38 +552,89 @@ export default function ToolViewer({ slug, apiBase }) {
               </div>
             </Surface>
           ) : isForbidden ? (
-            <Surface muted className="flex flex-1 flex-col items-center gap-5 px-8 py-12 text-center">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
-                {isPassphraseGate ? <Key className="h-6 w-6" aria-hidden /> : <Lock className="h-6 w-6" aria-hidden />}
-              </div>
-              <div className="space-y-3 max-w-lg">
-                <h2 className="text-2xl font-semibold tracking-tight">
-                  {isPassphraseGate
-                    ? 'This tool is shared with a passphrase'
-                    : 'Only the creator can view this tool'}
-                </h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {isPassphraseGate
-                    ? 'Ask the creator for the passphrase they shared with you, or start building your own Questit tool in minutes.'
-                    : 'You need to be the creator to open this link. Sign in to see your private tools or spin up a fresh idea of your own.'}
+            isPassphraseGate ? (
+              <Surface muted className="flex flex-1 flex-col items-center gap-6 px-8 py-12 text-center">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
+                  <Key className="h-6 w-6" aria-hidden />
+                </div>
+                <div className="space-y-3 max-w-lg">
+                  <h2 className="text-2xl font-semibold tracking-tight">Enter the passphrase to unlock this tool</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    The creator shared a code with you. Enter it below to reveal the tool, or build your own in the Questit workbench.
+                  </p>
+                </div>
+                <form onSubmit={submitPassphrase} className="w-full max-w-sm space-y-3 text-left">
+                  <label htmlFor="questit-passphrase" className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                    Passphrase
+                  </label>
+                  <input
+                    id="questit-passphrase"
+                    type="password"
+                    autoComplete="off"
+                    value={passphraseInput}
+                    onChange={(event) => setPassphraseInput(event.target.value)}
+                    className="w-full rounded-xl border border-border/60 bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Enter passphrase"
+                  />
+                  {passphraseStatus.message ? (
+                    <p
+                      className={`text-xs ${
+                        passphraseStatus.state === 'error'
+                          ? 'text-destructive'
+                          : passphraseStatus.state === 'success'
+                            ? 'text-emerald-500'
+                            : 'text-muted-foreground'
+                      }`}
+                    >
+                      {passphraseStatus.message}
+                    </p>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm" className="flex-1" disabled={passphraseStatus.state === 'loading'}>
+                      {passphraseStatus.state === 'loading' ? 'Verifying…' : 'Unlock tool'}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setPassphraseInput('')}>
+                      Clear
+                    </Button>
+                  </div>
+                </form>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button size="sm" className="gap-2" onClick={handleNavigateHome}>
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                    Build your own tool
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={handleSignInRedirect}>
+                    <LogIn className="h-4 w-4" aria-hidden />
+                    Sign in to Questit
+                  </Button>
+                </div>
+              </Surface>
+            ) : (
+              <Surface muted className="flex flex-1 flex-col items-center gap-5 px-8 py-12 text-center">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
+                  <Lock className="h-6 w-6" aria-hidden />
+                </div>
+                <div className="space-y-3 max-w-lg">
+                  <h2 className="text-2xl font-semibold tracking-tight">Only the creator can view this tool</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Sign in with the account that published this link, or spin up a fresh Questit tool shot from the workbench.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button size="sm" className="gap-2" onClick={handleNavigateHome}>
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                    Build your own tool
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={handleSignInRedirect}>
+                    <LogIn className="h-4 w-4" aria-hidden />
+                    Sign in to Questit
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Private links keep your experiments visible only to you.
                 </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button size="sm" className="gap-2" onClick={handleNavigateHome}>
-                  <Sparkles className="h-4 w-4" aria-hidden />
-                  Build your own tool
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleSignInRedirect}>
-                  <LogIn className="h-4 w-4" aria-hidden />
-                  Sign in to Questit
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isPassphraseGate
-                  ? 'Tip: Passphrase sharing is great for classrooms, clients, or friends.'
-                  : 'Private links keep your experiments visible only to you.'}
-              </p>
-            </Surface>
+              </Surface>
+            )
           ) : status === 'not-found' ? (
             <StateMessage
               icon={AlertCircle}

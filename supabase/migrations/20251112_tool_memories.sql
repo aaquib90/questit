@@ -25,6 +25,7 @@ alter table public.tool_memories enable row level security;
 
 -- For now we rely on service-role mediated access from Workers.
 
+drop policy if exists "Service role full access" on public.tool_memories;
 create policy "Service role full access"
   on public.tool_memories
   using (auth.role() = 'service_role')

@@ -1403,61 +1403,174 @@ async function handleMemoryDelete(toolId, env, context, key) {
   return new Response(null, { status: 204 });
 }
 
-async function handleGetPublishedTool(request, env, corsHeaders, slug) {
+function buildPassphraseCookie(slug, hash, env, requestUrl) {
+  const segments = [];
+  segments.push(`questit_passphrase_${slug}=${hash}`);
+  segments.push('Path=/');
+  segments.push('Max-Age=604800');
+  segments.push('HttpOnly');
+  segments.push('SameSite=Lax');
+  const cookieDomain = env.PUBLISHED_TOOLS_COOKIE_DOMAIN;
+  if (cookieDomain) {
+    segments.push(`Domain=${cookieDomain}`);
+  } else {
+    try {
+      const host = new URL(requestUrl).hostname;
+      if (host && /^[a-z0-9.-]+$/i.test(host) && host.split('.').length > 1) {
+        segments.push(`Domain=.${host.split('.').slice(-2).join('.')}`);
+      }
+    } catch {
+      // ignore domain parsing errors
+    }
+  }
+  return segments.join('; ');
+}
+
+async function fetchPublishedToolRecord(env, slug, corsHeaders) {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseServiceRole = env.SUPABASE_SERVICE_ROLE;
 
   if (!supabaseUrl || !supabaseServiceRole) {
-    return new Response('Supabase not configured for publishing', {
-      status: 500,
-      headers: corsHeaders
-    });
+    return {
+      error: new Response('Supabase not configured for publishing', {
+        status: 500,
+        headers: corsHeaders
+      })
+    };
   }
 
-  const headers = buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' });
   const selectUrl = `${supabaseUrl}/rest/v1/published_tools?slug=eq.${encodeURIComponent(
     slug
   )}&select=id,slug,tool_id,owner_id,title,summary,html,css,js,visibility,passphrase_hash,view_count,last_viewed_at,created_at,updated_at,tags,theme,color_mode,model_provider,model_name,memory_mode,memory_retention`;
 
-  const selectRes = await fetch(selectUrl, { headers });
+  const selectRes = await fetch(selectUrl, {
+    headers: buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' })
+  });
   const selectText = await selectRes.text();
 
   if (!selectRes.ok) {
     const message = selectText || `Failed to load tool metadata (status ${selectRes.status})`;
-    return new Response(message, {
-      status: 502,
-      headers: corsHeaders
-    });
+    return {
+      error: new Response(message, {
+        status: 502,
+        headers: corsHeaders
+      })
+    };
   }
 
   let list;
   try {
     list = selectText ? JSON.parse(selectText) : [];
   } catch {
-    return new Response('Failed to parse tool metadata', {
-      status: 502,
-      headers: corsHeaders
-    });
+    return {
+      error: new Response('Failed to parse tool metadata', {
+        status: 502,
+        headers: corsHeaders
+      })
+    };
   }
 
   if (!Array.isArray(list) || list.length === 0) {
-    return new Response(
-      JSON.stringify({ error: 'Tool not found.' }),
-      {
-        status: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
+    return {
+      error: new Response(
+        JSON.stringify({ error: 'Tool not found.' }),
+        {
+          status: 404,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
         }
-      }
+      )
+    };
+  }
+
+  return { record: list[0], supabaseUrl, supabaseServiceRole };
+}
+
+async function handlePassphraseVerify(slug, request, env, corsHeaders) {
+  const lookup = await fetchPublishedToolRecord(env, slug, corsHeaders);
+  if (lookup.error) {
+    return withCors(lookup.error, corsHeaders);
+  }
+  const { record } = lookup;
+  if (record.visibility !== 'passphrase') {
+    return withCors(
+      new Response(JSON.stringify({ error: 'Passphrase not required for this tool.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      corsHeaders
+    );
+  }
+  if (!record.passphrase_hash) {
+    return withCors(
+      new Response(JSON.stringify({ error: 'No passphrase configured for this tool.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      corsHeaders
     );
   }
 
-  const record = list[0];
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return withCors(
+      new Response(JSON.stringify({ error: 'Invalid JSON payload.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      corsHeaders
+    );
+  }
+
+  const passphrase = typeof payload?.passphrase === 'string' ? payload.passphrase.trim() : '';
+  if (!passphrase) {
+    return withCors(
+      new Response(JSON.stringify({ error: 'Passphrase is required.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      corsHeaders
+    );
+  }
+
+  const hashed = await hashPassphrase(passphrase, env.PUBLISHED_TOOLS_PASSPHRASE_SALT || '');
+  if (hashed !== record.passphrase_hash) {
+    return withCors(
+      new Response(JSON.stringify({ error: 'Incorrect passphrase.' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      corsHeaders
+    );
+  }
+
+  const cookie = buildPassphraseCookie(slug, hashed, env, request.url);
+  const response = new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': cookie
+    }
+  });
+  return withCors(response, corsHeaders);
+}
+
+async function handleGetPublishedTool(request, env, corsHeaders, slug) {
+  const lookup = await fetchPublishedToolRecord(env, slug, corsHeaders);
+  if (lookup.error) {
+    return lookup.error;
+  }
+  const { record, supabaseUrl, supabaseServiceRole } = lookup;
   const viewerIdHeader = request.headers.get('x-questit-user-id');
   const viewerId = viewerIdHeader ? viewerIdHeader.trim() : null;
+  const authContext = await resolveAuthContext(request, env);
+  const ownerBypass = authContext.userId && authContext.userId === record.owner_id;
 
-  if (record.visibility === 'private' && (!viewerId || viewerId !== record.owner_id)) {
+  if (record.visibility === 'private' && !ownerBypass && (!viewerId || viewerId !== record.owner_id)) {
     return new Response(
       JSON.stringify({ error: 'This tool is private to its creator.' }),
       {
@@ -1470,9 +1583,20 @@ async function handleGetPublishedTool(request, env, corsHeaders, slug) {
     );
   }
 
-  if (record.visibility === 'passphrase') {
+  const cookies = parseCookies(request.headers.get('cookie') || request.headers.get('Cookie') || '');
+  const cookieKey = `questit_passphrase_${slug}`;
+  const passphraseCookie = cookies[cookieKey];
+  const hasValidPassphrase =
+    record.passphrase_hash && passphraseCookie && passphraseCookie === record.passphrase_hash;
+
+  if (
+    record.visibility === 'passphrase' &&
+    !hasValidPassphrase &&
+    !ownerBypass &&
+    (!viewerId || viewerId !== record.owner_id)
+  ) {
     return new Response(
-      JSON.stringify({ error: 'This tool requires a passphrase.' }),
+      JSON.stringify({ error: 'This tool requires a passphrase.', requires_passphrase: true }),
       {
         status: 403,
         headers: {
@@ -1595,8 +1719,9 @@ function getCorsHeaders(origin) {
   const isAllowed = origin && allowedOrigins.some(allowed => origin === allowed || origin.endsWith('.questit.cc'));
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Questit-Session-Id',
+    'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400'
   };
 }
@@ -1657,6 +1782,8 @@ export default {
     const toolIdSegment = pathSegments[2];
     const memoryRoute =
       isToolsRoute && toolIdSegment && pathSegments[3] === 'memory';
+    const passphraseRoute =
+      isToolsRoute && toolIdSegment && pathSegments[3] === 'passphrase';
 
     if (memoryRoute) {
       const decodedToolId = sanitizeNullableString(decodeURIComponent(toolIdSegment), 64);
@@ -1682,6 +1809,24 @@ export default {
         return withCors(response, corsHeaders);
       }
       return new Response('Unsupported memory operation.', {
+        status: 405,
+        headers: corsHeaders
+      });
+    }
+
+    if (passphraseRoute) {
+      const decodedSlug = sanitizeNullableString(decodeURIComponent(toolIdSegment), 64);
+      if (!decodedSlug) {
+        return new Response('Invalid tool identifier.', {
+          status: 400,
+          headers: corsHeaders
+        });
+      }
+      if (request.method === 'POST') {
+        const response = await handlePassphraseVerify(decodedSlug, request, env, corsHeaders);
+        return response;
+      }
+      return new Response('Method Not Allowed', {
         status: 405,
         headers: corsHeaders
       });
