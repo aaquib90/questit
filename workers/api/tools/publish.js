@@ -1454,7 +1454,34 @@ export default {
     }
 
     const requestedSlug = normaliseSlug(tool.share_slug || tool.slug);
-    let scriptName = requestedSlug;
+
+    let existingSlug = null;
+    if (!requestedSlug) {
+      try {
+        const existingRes = await fetch(
+          `${supabaseUrl}/rest/v1/published_tools?tool_id=eq.${encodeURIComponent(
+            toolUuid
+          )}&owner_id=eq.${encodeURIComponent(ownerUuid)}&select=slug&limit=1`,
+          {
+            headers: buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' })
+          }
+        );
+        if (existingRes.ok) {
+          const text = await existingRes.text();
+          if (text) {
+            const parsed = JSON.parse(text);
+            const record = Array.isArray(parsed) ? parsed[0] : parsed;
+            if (record?.slug) {
+              existingSlug = normaliseSlug(record.slug);
+            }
+          }
+        }
+      } catch {
+        // ignore lookup failures; we'll fall back to generating a new slug
+      }
+    }
+
+    let scriptName = requestedSlug || existingSlug;
     if (!scriptName) {
       scriptName = generateSlug(tool.title || toolId || 'tool');
     }
