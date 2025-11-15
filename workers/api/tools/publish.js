@@ -735,6 +735,8 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
           : 'light';
   const htmlClass = colorMode === 'dark' ? ' class="dark"' : '';
   const shareSlug = tool.share_slug || null;
+  const visibility = (tool.visibility || 'public').toLowerCase();
+  const passphraseHash = tool.passphrase_hash || null;
   const assetBase =
     (assetBaseUrl || 'https://questit.cc/share-shell').replace(/\/$/, '');
   const cssHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.css`;
@@ -751,7 +753,9 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     css: tool.css || '',
     js: tool.js || '',
     share_slug: shareSlug,
-    shell_version: SHARE_SHELL_VERSION
+    shell_version: SHARE_SHELL_VERSION,
+    visibility,
+    passphrase_required: visibility === 'passphrase'
   };
 
   const shellTitle = escapeHtmlAttr(tool.title || 'Questit Tool');
@@ -782,7 +786,10 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     html: tool.html || '',
     css: tool.css || '',
     js: tool.js || '',
-    shell_version: SHARE_SHELL_VERSION
+    shell_version: SHARE_SHELL_VERSION,
+    visibility,
+    passphrase_required: visibility === 'passphrase',
+    passphrase_hash: passphraseHash
   };
 
   const responseInit = JSON.stringify({
@@ -800,6 +807,26 @@ const html = ${JSON.stringify(htmlDocument)};
 const metadata = ${JSON.stringify(metadataPayload)};
 
 async function handleRequest(request) {
+  if (metadata.visibility === 'private') {
+    return new Response('This tool is private to its creator.', {
+      status: 403,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+  if (metadata.visibility === 'passphrase') {
+    return new Response('This tool requires a passphrase. Open it via the Questit Tool Viewer.', {
+      status: 403,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
   const url = new URL(request.url);
   if (url.pathname === '/metadata') {
     return new Response(JSON.stringify(metadata), {
