@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import AdvancedControlsDrawer from '@/components/workbench/AdvancedControlsDrawer.jsx';
-import { Sparkles, Settings2 } from 'lucide-react';
+import { BookmarkPlus, Sparkles, Settings2 } from 'lucide-react';
 
 const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
   {
@@ -28,6 +28,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
 ) {
   const [addons, setAddons] = useState({ auth: false, persistence: false, share: true });
   const [showSettings, setShowSettings] = useState(false);
+  const canSaveTool = hasGenerated && typeof onSaveTool === 'function';
 
   const adaptivePlaceholder = useMemo(() => {
     return 'e.g., Create a password generator with options for length and special characters...';
@@ -105,7 +106,7 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
               better!
             </p>
           </div>
-          <div className="pt-1">
+          <div className="pt-1 flex flex-col gap-3 sm:flex-row">
             <Button
               type="button"
               size="lg"
@@ -116,6 +117,18 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
               <Sparkles className="h-4 w-4" aria-hidden />
               Generate Tool
             </Button>
+            {canSaveTool ? (
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                onClick={onSaveTool}
+                className="w-full gap-2 text-sm font-semibold"
+              >
+                <BookmarkPlus className="h-4 w-4" aria-hidden />
+                Save tool
+              </Button>
+            ) : null}
           </div>
           <div className="flex items-center justify-center">
             <Button
