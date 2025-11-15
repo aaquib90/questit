@@ -1,15 +1,10 @@
-import { ArrowRight, CreditCard, ShieldCheck, Users, Zap } from 'lucide-react';
+import { CreditCard, ShieldCheck } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-function formatTokenLabel(token) {
-  return token ? token.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : '—';
-}
 
 function CreatorPortal({
   user,
@@ -17,13 +12,7 @@ function CreatorPortal({
   onLogin,
   toolsError,
   hasSupabaseConfig,
-  myTools = [],
-  selectedTheme,
-  colorMode,
-  selectedModelLabel,
-  sessionEntries = [],
-  onUsePrompt,
-  onOpenDocs
+  sessionEntries = []
 }) {
   if (!user) {
     return (
@@ -49,13 +38,6 @@ function CreatorPortal({
       </section>
     );
   }
-
-  const lastSession = sessionEntries.at(-1) ?? null;
-  const recentPrompts = sessionEntries.slice(-5).reverse();
-
-  const lastSignIn = user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).toLocaleString()
-    : 'Not recorded';
 
   const displayName =
     user.user_metadata?.full_name ||

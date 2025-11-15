@@ -77,9 +77,9 @@ Two capabilities are still blocking a production-ready launch: (1) dedicated end
    - Ensure iframe sandbox restrictions remain (no top-level navigation).
 
 ### 1.5 Open Questions
-- Do we need multi-language support on Tool Viewer?  
-- Should tools support offline caching or PWA install?  
-- Are we exposing API keys or storing generative outputs client-side? (Security review required.)
+- Do we need multi-language support on Tool Viewer? → MVP ships English-only UI copy; revisit localization once creator demand is clearer.  
+- Should tools support offline caching or PWA install? → Not for MVP—viewer stays online-only with no service-worker manifest.  
+- Are we exposing API keys or storing generative outputs client-side? (Security review required.) → Maintain current pattern: no secret keys in the browser bundle; published payloads stay limited to HTML/CSS/JS plus non-sensitive metadata, with a pre-launch security checklist to confirm.
 
 ---
 

@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
+import ToolViewer from '@/components/tool-viewer/ToolViewer.jsx';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from './generateTool.js';
 import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
 import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
+import PublishToolDialog from '@/components/workbench/PublishToolDialog.jsx';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
 import {
   buildIframeHTML,
@@ -34,21 +36,9 @@ import Landing from '@/components/landing/Landing.jsx';
 import { trackEvent } from '@/lib/utils.js';
 import PrePromptPreview from '@/components/workbench/PrePromptPreview.jsx';
 import GeneratingAnimation from '@/components/workbench/GeneratingAnimation.jsx';
+import { resolveApiBase } from '@/lib/api.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
-
-function resolveApiBase(endpoint) {
-  if (!endpoint) return 'https://questit.cc/api';
-  try {
-    const url = new URL(endpoint);
-    const segments = url.pathname.split('/').filter(Boolean);
-    const apiIndex = segments.indexOf('api');
-    const basePath = apiIndex >= 0 ? segments.slice(0, apiIndex + 1).join('/') : 'api';
-    return `${url.origin}/${basePath}`;
-  } catch {
-    return 'https://questit.cc/api';
-  }
-}
 
 function buildShareUrl(workerName, apiBase) {
   if (!workerName) return '';
@@ -75,7 +65,37 @@ function summarizeCodeBundle({ html = '', css = '', js = '' }) {
   return `Updated ${parts.join(' · ')}`;
 }
 
+function detectViewerSlug() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    if (segments[0] === 'tools' && segments[1]) {
+      return decodeURIComponent(segments[1]);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function App() {
+  const viewerSlug = detectViewerSlug();
+
+  if (viewerSlug) {
+    const endpointOverride =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('endpoint')
+        : null;
+    const viewerApiBase = resolveApiBase(
+      endpointOverride || 'https://questit.cc/api/ai/proxy'
+    );
+    return <ToolViewer slug={viewerSlug} apiBase={viewerApiBase} />;
+  }
+
+  return <WorkbenchApp />;
+}
+
+function WorkbenchApp() {
   const [composerValue, setComposerValue] = useState(DEFAULT_PROMPT);
   const [sessionEntries, setSessionEntries] = useState([]);
   const [sessionStatus, setSessionStatus] = useState({
@@ -97,6 +117,17 @@ function App() {
   const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
   const [myToolsError, setMyToolsError] = useState('');
   const [toolActionStatus, setToolActionStatus] = useState({});
+  const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
+  const [publishDialogState, setPublishDialogState] = useState({
+    open: false,
+    toolId: null,
+    visibility: 'public'
+  });
+  const [publishDialogStatus, setPublishDialogStatus] = useState({
+    state: 'idle',
+    message: ''
+  });
+  const [publishVisibilityByTool, setPublishVisibilityByTool] = useState({});
   const composerRef = useRef(null);
   const { selectedTheme, setSelectedTheme, colorMode, setColorMode, resolvedMode } =
     useThemeManager(DEFAULT_THEME_KEY);
@@ -107,6 +138,10 @@ function App() {
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
   }, []);
   const apiBase = useMemo(() => resolveApiBase(endpoint), [endpoint]);
+  const publishDialogTool = useMemo(() => {
+    if (!publishDialogState.toolId) return null;
+    return myTools.find((tool) => tool.id === publishDialogState.toolId) || null;
+  }, [publishDialogState.toolId, myTools]);
   const handleOpenDocs = useCallback(() => {
     window.open('https://github.com/aaquib90/questit#readme', '_blank', 'noopener,noreferrer');
   }, []);
@@ -628,15 +663,64 @@ function App() {
     }
   }, [updateToolActionStatus]);
 
-  const handlePublishSavedTool = async (toolId) => {
+  const handleOpenPublishDialog = (toolId) => {
     if (!user) {
       handleRequestLogin();
       return;
     }
     if (!hasSupabaseConfig) {
       setMyToolsError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-      updateToolActionStatus(toolId, { publishing: false, error: '' });
       return;
+    }
+    const status = toolActionStatus[toolId];
+    if (status?.publishing) {
+      return;
+    }
+    const savedVisibility = status?.visibility || publishVisibilityByTool[toolId] || 'public';
+    setPublishDialogState({
+      open: true,
+      toolId,
+      visibility: savedVisibility
+    });
+    setPublishDialogStatus({ state: 'idle', message: '' });
+  };
+
+  const handlePublishDialogOpenChange = (isOpen) => {
+    if (!isOpen) {
+      setPublishDialogState({ open: false, toolId: null, visibility: 'public' });
+      setPublishDialogStatus({ state: 'idle', message: '' });
+    }
+  };
+
+  const handleSubmitPublishDialog = async ({ visibility, passphrase }) => {
+    const toolId = publishDialogState.toolId;
+    if (!toolId) return;
+    setPublishDialogStatus({ state: 'loading', message: 'Publishing your tool…' });
+    const response = await handlePublishSavedTool(toolId, { visibility, passphrase });
+    if (response.ok) {
+      setPublishVisibilityByTool((previous) => ({
+        ...previous,
+        [toolId]: visibility
+      }));
+      setPublishDialogState({ open: false, toolId: null, visibility: 'public' });
+      setPublishDialogStatus({ state: 'idle', message: '' });
+    } else {
+      setPublishDialogStatus({
+        state: 'error',
+        message: response.error || 'Failed to publish tool.'
+      });
+    }
+  };
+
+  const handlePublishSavedTool = async (toolId, options = {}) => {
+    if (!user) {
+      handleRequestLogin();
+      return { ok: false, error: 'Sign in to publish tools.' };
+    }
+    if (!hasSupabaseConfig) {
+      setMyToolsError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      updateToolActionStatus(toolId, { publishing: false, error: '' });
+      return { ok: false, error: 'Supabase is not configured.' };
     }
     updateToolActionStatus(toolId, { publishing: true, error: '' });
 
@@ -658,8 +742,15 @@ function App() {
         throw new Error('Saved tool is missing code content.');
       }
 
+      const visibility = options.visibility || 'public';
+      const trimmedPassphrase =
+        typeof options.passphrase === 'string' ? options.passphrase.trim() : '';
+
       const publishPayload = {
         id: toolRecord.id,
+        tool_id: toolRecord.id,
+        owner_id: user.id,
+        visibility,
         title: toolRecord.title,
         public_summary: toolRecord.public_summary || saveDraft.summary || '',
         theme: toolRecord.theme || selectedTheme || DEFAULT_THEME_KEY,
@@ -671,6 +762,10 @@ function App() {
         js: toolRecord.js || ''
       };
 
+      if (visibility === 'passphrase' && trimmedPassphrase) {
+        publishPayload.passphrase = trimmedPassphrase;
+      }
+
       const result = await publishSavedTool(publishPayload, apiBase);
       const shareUrl = buildShareUrl(result?.name, apiBase);
 
@@ -679,19 +774,22 @@ function App() {
         error: '',
         shareUrl,
         publishedName: result?.name || '',
-        publishedNamespace: result?.namespace || ''
+        publishedNamespace: result?.namespace || '',
+        visibility
       });
 
       // Copy link to clipboard automatically
       if (shareUrl) {
         await handleCopyShareLink(shareUrl, toolId);
       }
+      return { ok: true, result };
     } catch (error) {
       console.error('Failed to publish saved tool:', error);
       updateToolActionStatus(toolId, {
         publishing: false,
         error: error?.message || 'Failed to publish tool.'
       });
+      return { ok: false, error: error?.message || 'Failed to publish tool.' };
     }
   };
 
@@ -823,7 +921,7 @@ function App() {
     return () => {
       isActive = false;
     };
-  }, [activeView, user]);
+  }, [activeView, user, myToolsRefreshKey]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -997,6 +1095,10 @@ function App() {
 
                 {myTools.map((tool) => {
                   const status = toolActionStatus[tool.id] || {};
+                  const visibilityLabel = (status.visibility || 'public').replace(
+                    /^\w/,
+                    (char) => char.toUpperCase()
+                  );
                   return (
                     <Card key={tool.id} className="border border-primary/20 bg-card shadow-sm">
                       <CardHeader className="space-y-2">
@@ -1045,7 +1147,7 @@ function App() {
                           <Button
                             size="sm"
                             variant="secondary"
-                            onClick={() => handlePublishSavedTool(tool.id)}
+                            onClick={() => handleOpenPublishDialog(tool.id)}
                             disabled={!!status.publishing}
                             className="w-full sm:w-auto"
                           >
@@ -1095,6 +1197,11 @@ function App() {
                         ) : status.publishedName ? (
                           <p className="text-xs text-muted-foreground">
                             Published worker: {status.publishedName}
+                          </p>
+                        ) : null}
+                        {status.shareUrl || status.publishedName ? (
+                          <p className="text-[11px] text-muted-foreground">
+                            Visibility: {visibilityLabel}
                           </p>
                         ) : null}
                         {status.error ? (
@@ -1174,11 +1281,19 @@ function App() {
               </DialogFooter>
             </form>
           </DialogContent>
-          </Dialog>
-        </div>
-      </Shell>
-    </div>
-  );
+        </Dialog>
+      </div>
+      <PublishToolDialog
+        open={publishDialogState.open}
+        onOpenChange={handlePublishDialogOpenChange}
+        initialVisibility={publishDialogState.visibility}
+        onSubmit={handleSubmitPublishDialog}
+        status={publishDialogStatus}
+        toolTitle={publishDialogTool?.title}
+      />
+    </Shell>
+  </div>
+);
 }
 
 export default App;

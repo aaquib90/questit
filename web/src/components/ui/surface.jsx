@@ -1,9 +1,12 @@
 import { cn } from '@/lib/utils.js';
 
-export function Surface({ as: As = 'div', muted = false, className = '', ...props }) {
+export function Surface({ as: Component = 'div', muted = false, className = '', ...props }) {
+  const Element = Component;
   return (
-    <As className={cn(muted ? 'questit-surface-muted' : 'questit-surface', className)} {...props} />
+    <Element
+      className={cn(muted ? 'questit-surface-muted' : 'questit-surface', className)}
+      {...props}
+    />
   );
 }
-
 

@@ -13,30 +13,20 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
     setComposerValue,
     onSubmit,
     isGenerating,
-    sessionStatus,
-    hasHistory,
     hasGenerated,
-    onResetSession,
     onSaveTool,
-    user,
-    saveStatus,
     modelId,
     setModelId,
     modelOptions
   },
   ref
 ) {
-  const [addons, setAddons] = useState({ auth: false, persistence: false, share: true });
   const [showSettings, setShowSettings] = useState(false);
   const canSaveTool = hasGenerated && typeof onSaveTool === 'function';
 
   const adaptivePlaceholder = useMemo(() => {
     return 'e.g., Create a password generator with options for length and special characters...';
   }, []);
-
-  const handleToggleAddon = (key, value) => {
-    setAddons((prev) => ({ ...prev, [key]: value }));
-  };
 
   const INSPIRATIONS = [
     {

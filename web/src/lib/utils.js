@@ -8,7 +8,6 @@ export function cn(...inputs) {
 export function trackEvent(name, props = {}) {
   try {
     // Replace with real analytics later
-    // eslint-disable-next-line no-console
     console.debug('[telemetry]', name, props);
   } catch {
     // noop
