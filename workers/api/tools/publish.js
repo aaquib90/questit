@@ -792,6 +792,214 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     passphrase_hash: passphraseHash
   };
 
+  const privateGateHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Restricted tool · Questit</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, rgba(56,189,248,0.16), rgba(15,23,42,0.85));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        color: #e2e8f0;
+      }
+      .card {
+        width: min(560px, 100%);
+        border-radius: 28px;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 42px 120px -40px rgba(15, 23, 42, 0.65);
+        padding: 48px 40px;
+        text-align: center;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 9999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: rgba(15, 23, 42, 0.6);
+        color: rgba(148, 163, 184, 0.9);
+        font-size: 11px;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        padding: 6px 16px;
+        margin-bottom: 20px;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: clamp(26px, 5vw, 34px);
+        color: #f8fafc;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 28px;
+        color: #cbd5f5;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        text-decoration: none;
+        color: inherit;
+        background: rgba(30, 41, 59, 0.6);
+        transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      }
+      .button--primary {
+        border-color: rgba(94, 234, 212, 0.6);
+        background: linear-gradient(120deg, rgba(94, 234, 212, 0.22), rgba(56, 189, 248, 0.24));
+        color: #0f172a;
+      }
+      .button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(148, 163, 184, 0.6);
+      }
+      .button--primary:hover {
+        border-color: rgba(94, 234, 212, 0.9);
+        background: linear-gradient(120deg, rgba(94, 234, 212, 0.3), rgba(56, 189, 248, 0.36));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <span class="badge">Private tool</span>
+      <h1>This tool is only visible to its creator</h1>
+      <p>Want to try it yourself? Sign in with the account that published this link, or start building your own Questit tool in just a few clicks.</p>
+      <div class="actions">
+        <a class="button button--primary" href="/">Create your own tool</a>
+        <a class="button" href="/?login=1">Sign in to Questit</a>
+      </div>
+    </div>
+  </body>
+</html>`;
+
+  const passphraseGateHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Passphrase required · Questit</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: radial-gradient(circle at top, rgba(129, 140, 248,0.15), rgba(15,23,42,0.9));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+        color: #e2e8f0;
+      }
+      .card {
+        width: min(560px, 100%);
+        border-radius: 28px;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(165, 180, 252, 0.42);
+        box-shadow: 0 42px 120px -46px rgba(79,70,229,0.6);
+        padding: 48px 40px;
+        text-align: center;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 9999px;
+        border: 1px solid rgba(165, 180, 252, 0.5);
+        background: rgba(76, 29, 149, 0.4);
+        color: rgba(224, 231, 255, 0.9);
+        font-size: 11px;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        padding: 6px 16px;
+        margin-bottom: 20px;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: clamp(26px, 5vw, 34px);
+        color: #ede9fe;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 28px;
+        color: #c7d2fe;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid rgba(165, 180, 252, 0.35);
+        text-decoration: none;
+        color: inherit;
+        background: rgba(30, 41, 59, 0.6);
+        transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      }
+      .button--primary {
+        border-color: rgba(167, 139, 250, 0.6);
+        background: linear-gradient(120deg, rgba(167, 139, 250, 0.25), rgba(129, 140, 248, 0.26));
+        color: #0f172a;
+      }
+      .button:hover {
+        transform: translateY(-2px);
+        border-color: rgba(165, 180, 252, 0.7);
+      }
+      .button--primary:hover {
+        border-color: rgba(167, 139, 250, 0.9);
+        background: linear-gradient(120deg, rgba(167, 139, 250, 0.33), rgba(129, 140, 248, 0.36));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <span class="badge">Passphrase required</span>
+      <h1>You’ll need the shared passphrase to view this tool</h1>
+      <p>The creator locked access with a passphrase. Reach out to them for the code—or jump into Questit and craft your own interactive tool.</p>
+      <div class="actions">
+        <a class="button button--primary" href="/">Start building your tool</a>
+        <a class="button" href="/?login=1">Sign in to Questit</a>
+      </div>
+    </div>
+  </body>
+</html>`;
+
   const responseInit = JSON.stringify({
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
@@ -808,20 +1016,20 @@ const metadata = ${JSON.stringify(metadataPayload)};
 
 async function handleRequest(request) {
   if (metadata.visibility === 'private') {
-    return new Response('This tool is private to its creator.', {
+    return new Response(${JSON.stringify(privateGateHtml)}, {
       status: 403,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*'
       }
     });
   }
   if (metadata.visibility === 'passphrase') {
-    return new Response('This tool requires a passphrase. Open it via the Questit Tool Viewer.', {
+    return new Response(${JSON.stringify(passphraseGateHtml)}, {
       status: 403,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*'
       }
