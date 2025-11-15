@@ -815,6 +815,259 @@ async function handleRequest(request) {
 `;
 }
 
+const VALID_VISIBILITIES = new Set(['public', 'private', 'passphrase']);
+
+function normaliseVisibility(value) {
+  const candidate = (value || '').toString().toLowerCase().trim();
+  return VALID_VISIBILITIES.has(candidate) ? candidate : 'public';
+}
+
+function normaliseSlug(value) {
+  if (!value) return '';
+  const slug = value
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!slug) return '';
+  if (slug.length <= 63) return slug;
+  return slug.slice(0, 63).replace(/-+$/g, '');
+}
+
+function generateSlug(baseSource = 'tool') {
+  const base = normaliseSlug(baseSource) || 'tool';
+  const suffix = Math.random().toString(36).slice(2, 7);
+  let slug = `${base}-${suffix}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+  if (!slug) {
+    slug = `tool-${suffix}`;
+  }
+  if (slug.length > 63) {
+    slug = slug.slice(0, 63).replace(/-+$/g, '');
+  }
+  return slug;
+}
+
+function sanitiseTags(tags) {
+  if (!Array.isArray(tags)) return null;
+  const cleaned = tags
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+    .filter(Boolean);
+  return cleaned.length ? cleaned : null;
+}
+
+function bufferToHex(buffer) {
+  const bytes = new Uint8Array(buffer);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function hashPassphrase(passphrase, salt = '') {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${salt}:${passphrase}`);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return bufferToHex(digest);
+}
+
+function isoNow() {
+  return new Date().toISOString();
+}
+
+function buildSupabaseHeaders(serviceRoleKey, extra = {}) {
+  return {
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
+    ...extra
+  };
+}
+
+function sanitizeNullableString(value, maxLength = 255) {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  return str.slice(0, maxLength);
+}
+
+async function handleGetPublishedTool(request, env, corsHeaders, slug) {
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseServiceRole = env.SUPABASE_SERVICE_ROLE;
+
+  if (!supabaseUrl || !supabaseServiceRole) {
+    return new Response('Supabase not configured for publishing', {
+      status: 500,
+      headers: corsHeaders
+    });
+  }
+
+  const headers = buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' });
+  const selectUrl = `${supabaseUrl}/rest/v1/published_tools?slug=eq.${encodeURIComponent(
+    slug
+  )}&select=id,slug,tool_id,owner_id,title,summary,html,css,js,visibility,passphrase_hash,view_count,last_viewed_at,created_at,updated_at,tags,theme,color_mode,model_provider,model_name`;
+
+  const selectRes = await fetch(selectUrl, { headers });
+  const selectText = await selectRes.text();
+
+  if (!selectRes.ok) {
+    const message = selectText || `Failed to load tool metadata (status ${selectRes.status})`;
+    return new Response(message, {
+      status: 502,
+      headers: corsHeaders
+    });
+  }
+
+  let list;
+  try {
+    list = selectText ? JSON.parse(selectText) : [];
+  } catch {
+    return new Response('Failed to parse tool metadata', {
+      status: 502,
+      headers: corsHeaders
+    });
+  }
+
+  if (!Array.isArray(list) || list.length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'Tool not found.' }),
+      {
+        status: 404,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
+
+  const record = list[0];
+  const viewerIdHeader = request.headers.get('x-questit-user-id');
+  const viewerId = viewerIdHeader ? viewerIdHeader.trim() : null;
+
+  if (record.visibility === 'private' && (!viewerId || viewerId !== record.owner_id)) {
+    return new Response(
+      JSON.stringify({ error: 'This tool is private to its creator.' }),
+      {
+        status: 403,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
+
+  if (record.visibility === 'passphrase') {
+    return new Response(
+      JSON.stringify({ error: 'This tool requires a passphrase.' }),
+      {
+        status: 403,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
+
+  const nowIso = isoNow();
+  const nextViewCount = Number(record.view_count || 0) + 1;
+
+  try {
+    const updateRes = await fetch(
+      `${supabaseUrl}/rest/v1/published_tools?slug=eq.${encodeURIComponent(slug)}`,
+      {
+        method: 'PATCH',
+        headers: buildSupabaseHeaders(supabaseServiceRole, {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Prefer: 'return=representation'
+        }),
+        body: JSON.stringify({
+          view_count: nextViewCount,
+          last_viewed_at: nowIso
+        })
+      }
+    );
+
+    const updateText = await updateRes.text();
+    if (updateRes.ok) {
+      try {
+        const updatePayload = updateText ? JSON.parse(updateText) : null;
+        const updatedRecord = Array.isArray(updatePayload) ? updatePayload[0] : updatePayload;
+        if (updatedRecord) {
+          record.view_count = updatedRecord.view_count ?? nextViewCount;
+          record.last_viewed_at = updatedRecord.last_viewed_at ?? nowIso;
+        } else {
+          record.view_count = nextViewCount;
+          record.last_viewed_at = nowIso;
+        }
+      } catch {
+        record.view_count = nextViewCount;
+        record.last_viewed_at = nowIso;
+      }
+    } else {
+      record.view_count = nextViewCount;
+      record.last_viewed_at = nowIso;
+    }
+  } catch {
+    record.view_count = nextViewCount;
+    record.last_viewed_at = nowIso;
+  }
+
+  if (record.id) {
+    try {
+      const sessionId = sanitizeNullableString(request.headers.get('x-questit-session-id'), 128);
+      const userAgent = sanitizeNullableString(request.headers.get('user-agent'), 255);
+      await fetch(`${supabaseUrl}/rest/v1/tool_views`, {
+        method: 'POST',
+        headers: buildSupabaseHeaders(supabaseServiceRole, {
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal'
+        }),
+        body: JSON.stringify({
+          published_tool_id: record.id,
+          viewer_id: sanitizeNullableString(viewerId, 64),
+          session_id: sessionId,
+          user_agent: userAgent
+        })
+      });
+    } catch {
+      // best-effort logging; ignore failures
+    }
+  }
+
+  delete record.passphrase_hash;
+
+  const payload = {
+    slug: record.slug,
+    tool_id: record.tool_id,
+    owner_id: record.owner_id,
+    title: record.title,
+    summary: record.summary,
+    html: record.html || '',
+    css: record.css || '',
+    js: record.js || '',
+    visibility: record.visibility,
+    tags: Array.isArray(record.tags) ? record.tags : [],
+    view_count: Number(record.view_count || 0),
+    last_viewed_at: record.last_viewed_at,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+    theme: record.theme || null,
+    color_mode: record.color_mode || null,
+    model_provider: record.model_provider || null,
+    model_name: record.model_name || null
+  };
+
+  return new Response(JSON.stringify(payload), {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store'
+    }
+  });
+}
+
 function getCorsHeaders(origin) {
   const allowedOrigins = [
     'http://localhost:8000',
@@ -841,6 +1094,57 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
     
+    let url;
+    try {
+      url = new URL(request.url);
+    } catch {
+      return new Response('Bad Request', {
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+
+    const pathSegments = url.pathname.split('/').filter(Boolean);
+    const isToolsRoute = pathSegments[0] === 'api' && pathSegments[1] === 'tools';
+    const isPublishRoute = isToolsRoute && pathSegments[2] === 'publish';
+
+    if (
+      request.method === 'GET' &&
+      isToolsRoute &&
+      pathSegments[2] &&
+      pathSegments[2] !== 'publish'
+    ) {
+      if (pathSegments.length > 3) {
+        return new Response('Not Found', {
+          status: 404,
+          headers: corsHeaders
+        });
+      }
+
+      let slug = '';
+      try {
+        slug = decodeURIComponent(pathSegments[2] || '').trim().toLowerCase();
+      } catch {
+        slug = '';
+      }
+
+      if (!slug) {
+        return new Response('Not Found', {
+          status: 404,
+          headers: corsHeaders
+        });
+      }
+
+      return handleGetPublishedTool(request, env, corsHeaders, slug);
+    }
+
+    if (!isPublishRoute) {
+      return new Response('Not Found', {
+        status: 404,
+        headers: corsHeaders
+      });
+    }
+
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { 
         status: 405,
@@ -850,39 +1154,95 @@ export default {
     
     const tool = await request.json();
 
-    const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-    const namespaceSlug = env.WFP_NAMESPACE_NAME || env.WFP_NAMESPACE_ID;
-    const token = env.CLOUDFLARE_API_TOKEN;
-    if (!accountId || !namespaceSlug || !token) {
-      return new Response('Workers for Platforms not configured', { 
+    const supabaseUrl = env.SUPABASE_URL;
+    const supabaseServiceRole = env.SUPABASE_SERVICE_ROLE;
+    if (!supabaseUrl || !supabaseServiceRole) {
+      return new Response('Supabase not configured for publishing', {
         status: 500,
         headers: corsHeaders
       });
     }
 
-    const sanitizeSlug = (value) =>
-      String(value || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+    const ownerId =
+      tool.owner_id ||
+      tool.user_id ||
+      tool.ownerId ||
+      (tool.owner && (tool.owner.id || tool.owner.user_id)) ||
+      null;
 
-    const baseSlugSource = tool.slug || tool.title || tool.id || '';
-    let baseSlug = sanitizeSlug(baseSlugSource).slice(0, 40);
-    if (!baseSlug) {
-      baseSlug = `tool`;
+    if (!ownerId) {
+      return new Response('owner_id is required to publish a tool', {
+        status: 400,
+        headers: corsHeaders
+      });
     }
-    const randomSuffix = Math.random().toString(36).slice(2, 7);
-    let scriptName = `${baseSlug}-${randomSuffix}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-    if (scriptName.length > 63) {
-      scriptName = scriptName.slice(0, 63).replace(/-+$/g, '');
+
+    const toolId = tool.tool_id || tool.id;
+    if (!toolId) {
+      return new Response('tool_id is required to publish a tool', {
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+
+    const visibility = normaliseVisibility(tool.visibility);
+    let passphraseHash = null;
+    if (visibility === 'passphrase') {
+      if (typeof tool.passphrase_hash === 'string' && tool.passphrase_hash.trim()) {
+        passphraseHash = tool.passphrase_hash.trim();
+      } else if (typeof tool.passphrase === 'string' && tool.passphrase.trim()) {
+        passphraseHash = await hashPassphrase(
+          tool.passphrase.trim(),
+          env.PUBLISHED_TOOLS_PASSPHRASE_SALT || ''
+        );
+      } else {
+        return new Response('Passphrase is required when visibility is set to passphrase.', {
+          status: 400,
+          headers: corsHeaders
+        });
+      }
+    }
+
+    const ownerUuid = ownerId.toString().trim();
+    if (!ownerUuid) {
+      return new Response('owner_id is required to publish a tool', {
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+    const toolUuid = toolId.toString().trim();
+    if (!toolUuid) {
+      return new Response('tool_id is required to publish a tool', {
+        status: 400,
+        headers: corsHeaders
+      });
+    }
+
+    const requestedSlug = normaliseSlug(tool.share_slug || tool.slug);
+    let scriptName = requestedSlug;
+    if (!scriptName) {
+      scriptName = generateSlug(tool.title || toolId || 'tool');
     }
 
     const enrichedTool = { ...tool, share_slug: scriptName };
+    delete enrichedTool.passphrase;
+    delete enrichedTool.passphrase_hash;
+
+    const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+    const namespaceSlug = env.WFP_NAMESPACE_NAME || env.WFP_NAMESPACE_ID;
+    const token = env.CLOUDFLARE_API_TOKEN;
+    if (!accountId || !namespaceSlug || !token) {
+      return new Response('Workers for Platforms not configured', {
+        status: 500,
+        headers: corsHeaders
+      });
+    }
+
     const assetBaseUrl = (env.SHARE_SHELL_BASE_URL || 'https://questit.cc/share-shell').trim();
     const source = buildUserWorkerScript(enrichedTool, assetBaseUrl);
 
-    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${namespaceSlug}/scripts/${scriptName}`;
-    const res = await fetch(url, {
+    const deploymentUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${namespaceSlug}/scripts/${scriptName}`;
+    const res = await fetch(deploymentUrl, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/javascript' },
       body: source
@@ -895,11 +1255,91 @@ export default {
       });
     }
 
-    return new Response(JSON.stringify({ name: scriptName, namespace: namespaceSlug }), { 
+    const summary =
+      typeof tool.public_summary === 'string' && tool.public_summary.trim()
+        ? tool.public_summary.trim()
+        : typeof tool.summary === 'string' && tool.summary.trim()
+          ? tool.summary.trim()
+          : null;
+
+    const themeCandidate =
+      typeof tool.theme === 'string' && tool.theme.trim()
+        ? tool.theme.trim().toLowerCase()
+        : null;
+    const themeKeyForRecord = themeCandidate && THEME_PRESETS[themeCandidate] ? themeCandidate : null;
+    const colorCandidate =
+      typeof tool.color_mode === 'string' && tool.color_mode.trim()
+        ? tool.color_mode.trim().toLowerCase()
+        : null;
+    const allowedColorModes = new Set(['light', 'dark', 'system']);
+    const colorModeForRecord = allowedColorModes.has(colorCandidate || '') ? colorCandidate : null;
+    const modelProvider = sanitizeNullableString(tool.model_provider, 64);
+    const modelName = sanitizeNullableString(tool.model_name, 128);
+
+    const supabasePayload = {
+      slug: scriptName,
+      tool_id: toolUuid,
+      owner_id: ownerUuid,
+      title: (tool.title || '').toString().trim() || 'Untitled Tool',
+      summary,
+      html: typeof tool.html === 'string' ? tool.html : '',
+      css: typeof tool.css === 'string' ? tool.css : '',
+      js: typeof tool.js === 'string' ? tool.js : '',
+      visibility,
+      passphrase_hash: visibility === 'passphrase' ? passphraseHash : null,
+      tags: sanitiseTags(tool.tags),
+      theme: themeKeyForRecord,
+      color_mode: colorModeForRecord,
+      model_provider: modelProvider,
+      model_name: modelName,
+      updated_at: isoNow()
+    };
+
+    const supabaseResponse = await fetch(`${supabaseUrl}/rest/v1/published_tools?on_conflict=slug`, {
+      method: 'POST',
       headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+        'apikey': supabaseServiceRole,
+        'Authorization': `Bearer ${supabaseServiceRole}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(supabasePayload)
     });
+
+    const supabaseText = await supabaseResponse.text();
+    if (!supabaseResponse.ok) {
+      return new Response(
+        `Failed to persist published tool: ${supabaseResponse.status} ${supabaseText}`,
+        {
+          status: 502,
+          headers: corsHeaders
+        }
+      );
+    }
+
+    let supabaseRecord = null;
+    if (supabaseText) {
+      try {
+        const parsed = JSON.parse(supabaseText);
+        supabaseRecord = Array.isArray(parsed) ? parsed[0] : parsed;
+      } catch {
+        // ignore parse errors; not critical for response
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        name: scriptName,
+        slug: scriptName,
+        namespace: namespaceSlug,
+        published_tool: supabaseRecord
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
   }
 };
