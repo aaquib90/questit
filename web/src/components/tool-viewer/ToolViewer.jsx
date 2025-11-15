@@ -6,8 +6,12 @@ import {
   Copy,
   ExternalLink,
   Eye,
+  Key,
   Loader2,
-  Share2
+  Lock,
+  LogIn,
+  Share2,
+  Sparkles
 } from 'lucide-react';
 
 import BrandLogo from '@/components/layout/BrandLogo.jsx';
@@ -195,7 +199,15 @@ export default function ToolViewer({ slug, apiBase }) {
     window.location.href = '/';
   };
 
+  const handleSignInRedirect = () => {
+    window.location.href = '/?login=1';
+  };
+
   const { status, error, data } = viewerState;
+  const isForbidden = status === 'forbidden';
+  const forbiddenMessage = error || '';
+  const isPrivateGate = isForbidden && /private/i.test(forbiddenMessage);
+  const isPassphraseGate = isForbidden && /passphrase/i.test(forbiddenMessage);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -369,12 +381,39 @@ export default function ToolViewer({ slug, apiBase }) {
                 <p className="text-sm text-muted-foreground">Loading published tool…</p>
               </div>
             </Surface>
-          ) : status === 'forbidden' ? (
-            <StateMessage
-              icon={AlertCircle}
-              title="Restricted tool"
-              description={error || 'Access to this tool is restricted.'}
-            />
+          ) : isForbidden ? (
+            <Surface muted className="flex flex-1 flex-col items-center gap-5 px-8 py-12 text-center">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
+                {isPassphraseGate ? <Key className="h-6 w-6" aria-hidden /> : <Lock className="h-6 w-6" aria-hidden />}
+              </div>
+              <div className="space-y-3 max-w-lg">
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {isPassphraseGate
+                    ? 'This tool is shared with a passphrase'
+                    : 'Only the creator can view this tool'}
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {isPassphraseGate
+                    ? 'Ask the creator for the passphrase they shared with you, or start building your own Questit tool in minutes.'
+                    : 'You need to be the creator to open this link. Sign in to see your private tools or spin up a fresh idea of your own.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button size="sm" className="gap-2" onClick={handleNavigateHome}>
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                  Build your own tool
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleSignInRedirect}>
+                  <LogIn className="h-4 w-4" aria-hidden />
+                  Sign in to Questit
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isPassphraseGate
+                  ? 'Tip: Passphrase sharing is great for classrooms, clients, or friends.'
+                  : 'Private links keep your experiments visible only to you.'}
+              </p>
+            </Surface>
           ) : status === 'not-found' ? (
             <StateMessage
               icon={AlertCircle}
