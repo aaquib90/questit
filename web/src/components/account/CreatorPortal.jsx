@@ -110,6 +110,30 @@ function CreatorPortal({
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border border-border/70 bg-card">
+            <CardHeader className="space-y-1.5">
+              <CardTitle className="text-base">Tool memory</CardTitle>
+              <CardDescription>
+                Device-scoped storage is now available. Enable it from the workbench settings and
+                clear stored data from the My Tools dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                Memory is currently device-only. Tools that enable it can call{' '}
+                <code>window.questit?.kit?.memory</code> to persist user state, and the Tool Viewer
+                shows a “Your Data” panel with a clear option for visitors.
+              </p>
+              <p>
+                When you re-publish a tool, the viewer keeps the same slug and automatically carries
+                over the memory settings.
+              </p>
+              <p>
+                Signed-in-user syncing is planned next; keep an eye on release notes for upgrades.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="billing">

@@ -30,6 +30,7 @@ import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
 import TemplatesView from '@/components/templates/TemplatesView.jsx';
 import { TEMPLATE_COLLECTIONS, getTemplateById } from '@/data/templates.js';
+import { createMemoryClient } from '@/lib/memoryClient.js';
 import SyncBanner from '@/components/workbench/SyncBanner.jsx';
 import Landing from '@/components/landing/Landing.jsx';
 // LeftRail removed from workbench two-column layout
@@ -74,6 +75,16 @@ const MEMORY_MODE_LABELS = {
 function formatMemoryModeLabel(value) {
   if (!value) return 'Off';
   return MEMORY_MODE_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+const MEMORY_RETENTION_LABELS = {
+  indefinite: 'Keeps data across visits',
+  session: 'Clears on reset'
+};
+
+function formatMemoryRetentionLabel(value) {
+  if (!value) return MEMORY_RETENTION_LABELS.indefinite;
+  return MEMORY_RETENTION_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function detectViewerSlug() {
@@ -153,6 +164,13 @@ function WorkbenchApp() {
     return params.get('endpoint') || 'https://questit.cc/api/ai/proxy';
   }, []);
   const apiBase = useMemo(() => resolveApiBase(endpoint), [endpoint]);
+  const memoryClient = useMemo(
+    () => createMemoryClient({ apiBase, supabase: hasSupabaseConfig ? supabase : null }),
+    [apiBase]
+  );
+  useEffect(() => {
+    memoryClient.ensureSessionId?.();
+  }, [memoryClient]);
   const publishDialogTool = useMemo(() => {
     if (!publishDialogState.toolId) return null;
     return myTools.find((tool) => tool.id === publishDialogState.toolId) || null;
@@ -692,6 +710,28 @@ function WorkbenchApp() {
       console.warn('Failed to copy link to clipboard:', error);
     }
   }, [updateToolActionStatus]);
+
+  const handleClearToolMemory = async (toolId) => {
+    if (!hasSupabaseConfig) {
+      setMyToolsError('Supabase is not configured. Unable to clear memory.');
+      return;
+    }
+    updateToolActionStatus(toolId, { clearingMemory: true, error: '' });
+    try {
+      const adapter = memoryClient.forTool(toolId);
+      const entries = await adapter.list({ force: true });
+      await Promise.all(entries.map((entry) => adapter.remove(entry.memory_key)));
+      updateToolActionStatus(toolId, {
+        clearingMemory: false,
+        memoryClearedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      updateToolActionStatus(toolId, {
+        clearingMemory: false,
+        error: error?.message || 'Failed to clear tool memory.'
+      });
+    }
+  };
 
   const handleOpenPublishDialog = (toolId) => {
     if (!user) {
@@ -1242,6 +1282,35 @@ function WorkbenchApp() {
                           <p className="text-[11px] text-muted-foreground">
                             Visibility: {visibilityLabel}
                           </p>
+                        ) : null}
+                        {tool.memory_mode && tool.memory_mode !== 'none' ? (
+                          <div className="space-y-2 rounded-lg border border-border/40 bg-muted/30 p-3">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Memory: {formatMemoryModeLabel(tool.memory_mode)}</span>
+                              <span>{formatMemoryRetentionLabel(tool.memory_retention)}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full sm:w-auto text-xs"
+                              onClick={() => handleClearToolMemory(tool.id)}
+                              disabled={!!status.clearingMemory}
+                            >
+                              {status.clearingMemory ? (
+                                <>
+                                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden />
+                                  Clearing…
+                                </>
+                              ) : (
+                                'Clear stored data'
+                              )}
+                            </Button>
+                            {status.memoryClearedAt ? (
+                              <p className="text-[11px] text-muted-foreground">
+                                Cleared {new Date(status.memoryClearedAt).toLocaleString()}
+                              </p>
+                            ) : null}
+                          </div>
                         ) : null}
                         {status.error ? (
                           <p className="text-xs text-destructive">{status.error}</p>

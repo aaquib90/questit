@@ -32,6 +32,19 @@ export function createMemoryClient({ apiBase = '/api', supabase } = {}) {
     async remove(toolId, key) {
       return adapter.remove(toolId, key);
     },
+    forTool(toolId) {
+      return {
+        list: (options) => adapter.fetchAll(toolId, options),
+        get: async (key, fallback) => {
+          const entries = await adapter.fetchAll(toolId);
+          const match = entries.find((entry) => entry.memory_key === key);
+          return match ? match.memory_value : fallback;
+        },
+        set: (key, value) => adapter.upsert(toolId, key, value),
+        remove: (key) => adapter.remove(toolId, key),
+        refresh: () => adapter.fetchAll(toolId, { force: true })
+      };
+    },
     setAuthTokenResolver: adapter.setAuthTokenResolver
   };
 }

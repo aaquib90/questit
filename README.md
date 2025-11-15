@@ -149,6 +149,7 @@ questit/
 - **Supabase Sync**: Optional login flow that stores generated tools in Supabase for logged-in users
 - **My Tools Dashboard**: Browse saved bundles, reload them into the workbench, or publish a Worker without leaving the app
 - **Shareable Edge Shell**: Published Workers render inside a Questit-branded layout that mirrors the saved theme and color-mode preference
+- **Tool Memory (Beta)**: Device-scoped storage helpers (`window.questit.kit.memory`) let generated tools remember user inputs, with viewer-side controls to review and clear stored data
 - **Browser Runtime Kit**: `window.questit.kit` exposes an event bus, `safeFetch`, persistent storage helpers, and shadcn-aligned UI templates so generated tools can stay dynamic without extra build tooling
 - **Questit UI Classes**: Generated HTML can reuse the bundled `questit-ui-*` classes/snippets to match the workbench styling out of the box
 - **Model Selection**: Edge proxy drives OpenAI and Google Gemini models; the workbench UI exposes a simple switcher while keeping API keys server-side
@@ -168,6 +169,7 @@ questit/
 - **Browser-First Guidance** – Updated prompts and adapters to prefer browser-compatible libraries, ensuring all generated experiences run locally until the worker-backed roadmap is ready.
 - **Multi-Model Support** – Questit’s AI proxy can now call OpenAI GPT-4o mini and Google Gemini 2.5 Flash (plus a legacy 1.5 option); the workbench exposes a model picker and `GEMINI_API_KEY` enables Gemini routing.
 - **Share + Remix UX** – Published links now show safe metadata, a Questit shell, and a one-click remix button that keeps prompts private while duplicating code for new users.
+- **Passphrase & Memory Enhancements** – Share-shell now supports passphrase unlocks, exposes a device-session memory bridge, and the Tool Viewer shows “Your Data” with clear/reset controls.
 
 ## Limits
 

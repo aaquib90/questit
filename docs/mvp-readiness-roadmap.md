@@ -111,15 +111,15 @@ We support three storage scopes:
    - `POST /api/tools/:toolId/memory` → set/update memory (requires memory key).  
    - `GET /api/tools/:toolId/memory` → fetch memory for current user/session.  
    - `DELETE /api/tools/:toolId/memory/:key` → remove entry.  
-   - `POST /api/tools/:toolId/memory/clear` → wipe all entries (owner-only).
+   - `POST /api/tools/:slug/passphrase` → verify passphrase and set unlock cookie for viewer.
 2. **Auth rules**  
    - For device-scoped storage without login: assign `session_id` (UUID) stored in cookie/local storage; include in API request header.  
    - For logged-in creators/users: use Supabase auth to attach `user_id`.  
    - Enforce per-tool quotas (e.g., 1 MB per tool) to avoid abuse.
 3. **Client helpers**  
-   - Add `useToolMemory(toolId)` hook returning `get`, `set`, `remove`, `reset`.  
-   - Expose to generated tool runtime via injected script (makes `QuestitMemory` global).  
-   - Provide offline fallback (caches writes and syncs when online).
+   - Add `useToolMemory(toolId)` hook returning `get`, `set`, `remove`, `reset`. ✅  
+   - Expose to generated tool runtime via injected script (makes `window.questit.kit.memory` available). ✅  
+   - Provide offline fallback (caches writes and syncs when online). ➜ Included via session ID & local storage for now; revisit for advanced sync.
 
 ### 2.5 Workbench UI Changes
 - **Composer sidebar**: new “Memory” section with controls:  
@@ -142,22 +142,22 @@ We support three storage scopes:
    - Update iframe builder to inject memory bootstrap script.  
    - Provide CLI/generator snippets explaining how to read/write memory (`QuestitMemory.set('list', items)`).
 3. **Workbench Integration**
-   - Add memory controls UI in Workbench inspector (or sidebar).  
-   - Update publish flow to include memory configuration (persisted in metadata).  
-   - Update Save Tool dialog to store memory settings with tool record.
+   - Add memory controls UI in Workbench settings drawer. ✅  
+   - Update publish flow to include memory configuration (persisted in metadata). ✅  
+   - Update Save Tool dialog to store memory settings with tool record. ✅
 4. **Templates & Migration**
-   - Store memory config in new columns (`memory_scope`, `memory_retention_days`).  
-   - Write migration script for existing tools (default `memory_scope = 'none'`).  
-   - Highlight memory-ready templates in Templates tab.
+   - Store memory config in new columns (`memory_mode`, `memory_retention`). ✅  
+   - Write migration script for existing tools (default `memory_mode = 'none'`). ✅ (defaults handled)  
+   - Highlight memory-ready templates in Templates tab. ➜ TODO.
 5. **Testing**
-   - Unit tests for API endpoints and RLS policies.  
+   - Unit tests for API endpoints and RLS policies. ➜ pending  
    - E2E tests using Playwright/Cypress:  
-     - Create tool → enable memory → use viewer → verify persistence across reload.  
-     - Switch memory scope while data exists (ensure data is handled correctly).  
-     - Clear data and confirm removal server/client side.
+     - Create tool → enable memory → use viewer → verify persistence across reload. ➜ pending  
+     - Switch memory scope while data exists (ensure data is handled correctly). ➜ pending  
+     - Clear data and confirm removal server/client side. ➜ manual verification in progress
 6. **Security & Compliance**
-   - Document data retention and deletion policy.  
-   - Implement rate limits per session/user to prevent abuse.  
+   - Document data retention and deletion policy. ➜ to document  
+   - Implement rate limits per session/user to prevent abuse. ➜ backlog
    - Add “Download my data” endpoint for compliance.
 
 ### 2.7 Open Questions
