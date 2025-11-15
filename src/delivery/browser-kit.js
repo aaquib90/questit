@@ -1,5 +1,6 @@
 import { generateUniqueId, isBrowser, safeJsonParse } from '../utils/helper-functions.js';
 import { createUiTemplates } from './ui-kit.js';
+import { createMemoryAdapter } from './memory-adapter.js';
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_RETRY_DELAY_MS = 500;
@@ -209,6 +210,69 @@ function createBrowserKit() {
   };
   const queue = createPublishQueue(events);
   const ui = createUiTemplates();
+  const memoryAdapter = createMemoryAdapter({ apiBase: '/api' });
+  const memoryCache = new Map();
+
+  const memory = {
+    ensureSessionId: memoryAdapter.ensureSessionId,
+    setAuthTokenResolver: memoryAdapter.setAuthTokenResolver,
+    async list(toolId, { force = false } = {}) {
+      if (!toolId) throw new Error('toolId is required');
+      if (!force && memoryCache.has(toolId)) {
+        return memoryCache.get(toolId);
+      }
+      const entries = await memoryAdapter.fetchAll(toolId);
+      memoryCache.set(toolId, entries);
+      return entries;
+    },
+    async get(toolId, key, fallback = null) {
+      const entries = await memory.list(toolId);
+      const record = entries.find((entry) => entry.memory_key === key);
+      return record ? record.memory_value : fallback;
+    },
+    async set(toolId, key, value) {
+      if (!toolId) throw new Error('toolId is required');
+      const record = await memoryAdapter.upsert(toolId, key, value);
+      const entries = await memory.list(toolId);
+      const next = entries.filter((entry) => entry.memory_key !== key);
+      if (record) {
+        next.push(record);
+      }
+      memoryCache.set(toolId, next);
+      return record;
+    },
+    async remove(toolId, key) {
+      if (!toolId) throw new Error('toolId is required');
+      await memoryAdapter.remove(toolId, key);
+      const entries = memoryCache.get(toolId);
+      if (entries) {
+        memoryCache.set(
+          toolId,
+          entries.filter((entry) => entry.memory_key !== key)
+        );
+      }
+      return true;
+    },
+    forTool(toolId) {
+      return {
+        async list(options) {
+          return memory.list(toolId, options);
+        },
+        async get(key, fallback) {
+          return memory.get(toolId, key, fallback);
+        },
+        async set(key, value) {
+          return memory.set(toolId, key, value);
+        },
+        async remove(key) {
+          return memory.remove(toolId, key);
+        },
+        async refresh() {
+          return memory.list(toolId, { force: true });
+        }
+      };
+    }
+  };
 
   return {
     version: '2025.11.09',
@@ -217,7 +281,8 @@ function createBrowserKit() {
     storage,
     publish: queue.enqueue,
     history: queue.history,
-    ui
+    ui,
+    memory
   };
 }
 

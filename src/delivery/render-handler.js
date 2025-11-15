@@ -120,6 +120,9 @@ function ensureRuntimeRegistration(tool, container, body, controls) {
     const runtime = {
       version: RUNTIME_VERSION,
       kit,
+      memory: kit.memory,
+      memoryForTool: (id) => kit.memory.forTool(id),
+      currentToolId: null,
       listTools: () => Array.from(toolRegistry.keys()),
       getToolState: (id) => {
         const entry = toolRegistry.get(id);
@@ -180,6 +183,7 @@ function ensureRuntimeRegistration(tool, container, body, controls) {
     tool,
     container,
     body,
+    memory: kit.memory.forTool(tool.id),
     reset: controls.reset,
     runSelfTest: controls.runSelfTest,
     dispose: controls.dispose
@@ -202,7 +206,18 @@ export function renderTool(tool, options = {}) {
       cleanupListeners();
     }
     cleanupListeners = bindErrorListeners(tool, container);
-    executeTool(tool, body);
+    const runtime = window.questit?.runtime;
+    const previousToolId = runtime?.currentToolId;
+    if (runtime) {
+      runtime.currentToolId = tool.id;
+    }
+    try {
+      executeTool(tool, body);
+    } finally {
+      if (runtime) {
+        runtime.currentToolId = previousToolId || null;
+      }
+    }
     if (dispatchReset) {
       container.dispatchEvent(new CustomEvent('questit:tool-reset'));
     }

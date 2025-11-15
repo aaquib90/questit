@@ -1124,6 +1124,281 @@ function sanitizeNullableString(value, maxLength = 255) {
   return str.slice(0, maxLength);
 }
 
+function withCors(response, corsHeaders = {}) {
+  const merged = new Headers(response.headers);
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    merged.set(key, value);
+  });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: merged
+  });
+}
+
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').reduce((acc, part) => {
+    const [rawKey, ...rawValue] = part.split('=');
+    if (!rawKey) return acc;
+    const key = rawKey.trim();
+    const value = rawValue.join('=').trim();
+    if (key) {
+      acc[key] = decodeURIComponent(value || '');
+    }
+    return acc;
+  }, {});
+}
+
+async function resolveAuthContext(request, env) {
+  const headers = request.headers;
+  const authHeader = headers.get('authorization') || headers.get('Authorization');
+  let userId = null;
+
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    const token = authHeader.slice(7).trim();
+    if (token) {
+      try {
+        const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: env.SUPABASE_SERVICE_ROLE
+          }
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          userId = userData?.id || null;
+        }
+      } catch {
+        // ignore auth lookup errors; we'll fall back to session scope
+      }
+    }
+  }
+
+  const sessionHeader = headers.get('x-questit-session-id') || headers.get('X-Questit-Session-Id');
+  let sessionId = sanitizeNullableString(sessionHeader, 128);
+  if (!sessionId) {
+    const cookieHeader = headers.get('cookie') || headers.get('Cookie');
+    const cookies = parseCookies(cookieHeader);
+    sessionId = sanitizeNullableString(cookies['questit_session_id'], 128);
+  }
+
+  return { userId, sessionId };
+}
+
+async function selectExistingMemory(env, toolId, key, context) {
+  const supabaseUrl = env.SUPABASE_URL;
+  const serviceRole = env.SUPABASE_SERVICE_ROLE;
+  let url = `${supabaseUrl}/rest/v1/tool_memories?tool_id=eq.${encodeURIComponent(
+    toolId
+  )}&memory_key=eq.${encodeURIComponent(key)}&select=id&limit=1`;
+
+  if (context.userId) {
+    url += `&user_id=eq.${encodeURIComponent(context.userId)}`;
+  } else if (context.sessionId) {
+    url += `&session_id=eq.${encodeURIComponent(context.sessionId)}`;
+  }
+
+  const res = await fetch(url, {
+    headers: buildSupabaseHeaders(serviceRole, { Accept: 'application/json' })
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text);
+    const record = Array.isArray(parsed) ? parsed[0] : parsed;
+    return record?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+async function handleMemoryGet(toolId, env, context) {
+  if (!context.userId && !context.sessionId) {
+    return new Response(
+      JSON.stringify({ error: 'Provide an authenticated user or session identifier.' }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  let url = `${env.SUPABASE_URL}/rest/v1/tool_memories?tool_id=eq.${encodeURIComponent(
+    toolId
+  )}&select=memory_key,memory_value,updated_at`;
+
+  if (context.userId) {
+    url += `&user_id=eq.${encodeURIComponent(context.userId)}`;
+  } else if (context.sessionId) {
+    url += `&session_id=eq.${encodeURIComponent(context.sessionId)}`;
+  }
+
+  const res = await fetch(url, {
+    headers: buildSupabaseHeaders(env.SUPABASE_SERVICE_ROLE, { Accept: 'application/json' })
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return new Response(text || 'Failed to load tool memory', {
+      status: res.status,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+
+  const text = await res.text();
+  const payload = text ? JSON.parse(text) : [];
+  return new Response(JSON.stringify({ memories: payload || [] }), {
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+  });
+}
+
+async function handleMemoryUpsert(toolId, env, context, request) {
+  if (!context.userId && !context.sessionId) {
+    return new Response(
+      JSON.stringify({ error: 'Provide an authenticated user or session identifier.' }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON payload.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const rawKey = sanitizeNullableString(body?.key, 120);
+  if (!rawKey) {
+    return new Response(JSON.stringify({ error: 'Memory key is required.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const memoryValue = body?.value;
+  const serviceRole = env.SUPABASE_SERVICE_ROLE;
+  const supabaseUrl = env.SUPABASE_URL;
+  const headers = buildSupabaseHeaders(serviceRole, {
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation'
+  });
+
+  const existingId = await selectExistingMemory(env, toolId, rawKey, context);
+
+  if (existingId) {
+    const updateRes = await fetch(
+      `${supabaseUrl}/rest/v1/tool_memories?id=eq.${encodeURIComponent(existingId)}`,
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          memory_value: memoryValue,
+          user_id: context.userId ?? null,
+          session_id: context.userId ? null : context.sessionId,
+          updated_at: isoNow()
+        })
+      }
+    );
+
+    const text = await updateRes.text();
+    if (!updateRes.ok) {
+      return new Response(text || 'Failed to update memory entry.', {
+        status: updateRes.status,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+
+    const payload = text ? JSON.parse(text) : null;
+    return new Response(JSON.stringify({ memory: Array.isArray(payload) ? payload[0] : payload }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const insertRes = await fetch(`${supabaseUrl}/rest/v1/tool_memories`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      tool_id: toolId,
+      memory_key: rawKey,
+      memory_value: memoryValue,
+      user_id: context.userId ?? null,
+      session_id: context.userId ? null : context.sessionId
+    })
+  });
+
+  const text = await insertRes.text();
+  if (!insertRes.ok) {
+    return new Response(text || 'Failed to persist memory entry.', {
+      status: insertRes.status,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+
+  const payload = text ? JSON.parse(text) : null;
+  return new Response(JSON.stringify({ memory: Array.isArray(payload) ? payload[0] : payload }), {
+    status: 201,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleMemoryDelete(toolId, env, context, key) {
+  if (!context.userId && !context.sessionId) {
+    return new Response(
+      JSON.stringify({ error: 'Provide an authenticated user or session identifier.' }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+  const normalizedKey = sanitizeNullableString(key, 120);
+  if (!normalizedKey) {
+    return new Response(JSON.stringify({ error: 'Memory key is required.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  let url = `${env.SUPABASE_URL}/rest/v1/tool_memories?tool_id=eq.${encodeURIComponent(
+    toolId
+  )}&memory_key=eq.${encodeURIComponent(normalizedKey)}`;
+
+  if (context.userId) {
+    url += `&user_id=eq.${encodeURIComponent(context.userId)}`;
+  } else if (context.sessionId) {
+    url += `&session_id=eq.${encodeURIComponent(context.sessionId)}`;
+  }
+
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: buildSupabaseHeaders(env.SUPABASE_SERVICE_ROLE, {
+      Prefer: 'return=minimal'
+    })
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return new Response(text || 'Failed to delete memory entry.', {
+      status: res.status,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+
+  return new Response(null, { status: 204 });
+}
+
 async function handleGetPublishedTool(request, env, corsHeaders, slug) {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseServiceRole = env.SUPABASE_SERVICE_ROLE;
@@ -1371,6 +1646,39 @@ export default {
       }
 
       return handleGetPublishedTool(request, env, corsHeaders, slug);
+    }
+
+    const toolIdSegment = pathSegments[2];
+    const memoryRoute =
+      isToolsRoute && toolIdSegment && pathSegments[3] === 'memory';
+
+    if (memoryRoute) {
+      const decodedToolId = sanitizeNullableString(decodeURIComponent(toolIdSegment), 64);
+      if (!decodedToolId) {
+        return new Response('Invalid tool identifier.', {
+          status: 400,
+          headers: corsHeaders
+        });
+      }
+      const context = await resolveAuthContext(request, env);
+      const tailSegments = pathSegments.slice(4);
+      if (request.method === 'GET' && tailSegments.length === 0) {
+        const response = await handleMemoryGet(decodedToolId, env, context);
+        return withCors(response, corsHeaders);
+      }
+      if (request.method === 'POST' && tailSegments.length === 0) {
+        const response = await handleMemoryUpsert(decodedToolId, env, context, request);
+        return withCors(response, corsHeaders);
+      }
+      if (request.method === 'DELETE' && tailSegments.length === 1) {
+        const key = tailSegments[0] ? decodeURIComponent(tailSegments[0]) : '';
+        const response = await handleMemoryDelete(decodedToolId, env, context, key);
+        return withCors(response, corsHeaders);
+      }
+      return new Response('Unsupported memory operation.', {
+        status: 405,
+        headers: corsHeaders
+      });
     }
 
     if (!isPublishRoute) {

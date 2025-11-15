@@ -19,6 +19,7 @@ import { Section, Shell, Surface } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_THEME_KEY, buildIframeHTML } from '@/lib/themeManager.js';
+import { useToolMemory } from '@/lib/memoryClient.js';
 import { cn } from '@/lib/utils.js';
 
 function deriveShareUrl(slug) {
@@ -206,6 +207,12 @@ export default function ToolViewer({ slug, apiBase }) {
   };
 
   const { status, error, data } = viewerState;
+  const toolId = data?.tool_id || null;
+  const memoryState = useToolMemory(toolId, {
+    apiBase,
+    enabled: status === 'ready' && Boolean(toolId)
+  });
+  const memoryEntries = memoryState.entries || [];
   const isForbidden = status === 'forbidden';
   const forbiddenMessage = error || '';
   const isPassphraseGate = isForbidden && /passphrase/i.test(forbiddenMessage);
@@ -338,6 +345,85 @@ export default function ToolViewer({ slug, apiBase }) {
                       ) : null}
                     </div>
                   </div>
+                </Surface>
+
+                <Surface className="space-y-4 p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                        Your Data
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Stored on this device. Clear it any time.
+                      </p>
+                    </div>
+                    <Badge size="xs" variant="outline">
+                      Beta
+                    </Badge>
+                  </div>
+                  {memoryState.status === 'loading' ? (
+                    <p className="text-xs text-muted-foreground">Loading saved entries…</p>
+                  ) : memoryEntries.length ? (
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {memoryEntries.map((entry) => (
+                        <li
+                          key={entry.memory_key}
+                          className="rounded-lg border border-border/40 bg-muted/40 px-3 py-2 text-left"
+                        >
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                            {entry.memory_key}
+                          </span>
+                          <pre className="mt-2 max-h-36 overflow-auto text-sm text-foreground">
+                            {JSON.stringify(entry.memory_value, null, 2)}
+                          </pre>
+                          <div className="mt-2 flex justify-end">
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              className="text-xs"
+                              onClick={() => memoryState.removeMemory(entry.memory_key)}
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      This tool hasn&apos;t stored anything yet. Interact with it to save progress.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => memoryState.refresh({ silent: true })}
+                    >
+                      Refresh
+                    </Button>
+                    {memoryEntries.length ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs"
+                        onClick={async () => {
+                          await Promise.all(
+                            memoryEntries.map((entry) =>
+                              memoryState.removeMemory(entry.memory_key)
+                            )
+                          );
+                          await memoryState.refresh({ silent: true });
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Memory syncing across devices will arrive soon.
+                  </p>
                 </Surface>
 
                 <Surface className="space-y-4 p-5 text-sm">
