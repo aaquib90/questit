@@ -31,7 +31,6 @@ import { TEMPLATE_COLLECTIONS, getTemplateById } from '@/data/templates.js';
 import SyncBanner from '@/components/workbench/SyncBanner.jsx';
 import Landing from '@/components/landing/Landing.jsx';
 // LeftRail removed from workbench two-column layout
-import DebugBottomSheet from '@/components/workbench/DebugBottomSheet.jsx';
 import { trackEvent } from '@/lib/utils.js';
 import PrePromptPreview from '@/components/workbench/PrePromptPreview.jsx';
 import GeneratingAnimation from '@/components/workbench/GeneratingAnimation.jsx';
@@ -917,6 +916,7 @@ function App() {
                   toolCode={toolCode}
                   isGenerating={isGenerating}
                   onReset={handleResetSession}
+                  onSaveTool={handleOpenSaveDialog}
                   sidebarProps={{
                     modelId,
                     setModelId,
@@ -1177,10 +1177,6 @@ function App() {
           </Dialog>
         </div>
       </Shell>
-      <DebugBottomSheet
-        scope={{ decision: scopeDecision, reasons: scopeReasons, metrics: scopeMetrics }}
-        session={{ state: sessionState, steps: sessionStepCount, user: user ? 'signed-in' : 'guest' }}
-      />
     </div>
   );
 }

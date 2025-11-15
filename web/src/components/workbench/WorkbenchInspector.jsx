@@ -15,7 +15,8 @@ export default function WorkbenchInspector({
   sessionEntries,
   onUsePrompt,
   isGenerating,
-  onReset
+  onReset,
+  onSaveTool
 }) {
   const reloadIframe = () => {
     // force reload by replacing the iframe content via srcdoc toggle
@@ -42,9 +43,6 @@ export default function WorkbenchInspector({
   return (
     <Surface muted className="flex h-full flex-col p-0">
       <Tabs defaultValue="preview" className="flex flex-1 flex-col w-full">
-        <TabsList className="grid w-full grid-cols-1 bg-muted/70">
-          <TabsTrigger value="preview">Tool Preview</TabsTrigger>
-        </TabsList>
         <TabsContent value="preview" className="flex flex-1 flex-col p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -64,6 +62,11 @@ export default function WorkbenchInspector({
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                 Reset
               </Button>
+              {hasGenerated ? (
+                <Button size="sm" onClick={onSaveTool} className="gap-1 text-xs">
+                  Save tool
+                </Button>
+              ) : null}
             </div>
           </div>
           {isGenerating ? (
