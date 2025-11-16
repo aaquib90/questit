@@ -1,3 +1,6 @@
+import { rateLimit } from '../../lib/ratelimit.js';
+import { logErrorToSentry, capturePosthogEvent } from '../../lib/telemetry.js';
+
 function getCorsHeaders(origin) {
   // Allow localhost and questit.cc origins
   const allowedOrigins = [
@@ -23,58 +26,104 @@ export default {
     const origin = request.headers.get('Origin');
     const corsHeaders = getCorsHeaders(origin);
     
+    const jsonResponse = (body, init = {}) =>
+      new Response(JSON.stringify(body), {
+        ...init,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          ...(init.headers || {})
+        }
+      });
+
+    const errorJson = (status, code, message, details) =>
+      jsonResponse(
+        {
+          error: {
+            code,
+            message,
+            details: details ?? null
+          }
+        },
+        { status }
+      );
+
     // Handle preflight OPTIONS request
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
     
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { 
-        status: 405,
-        headers: corsHeaders
-      });
+      return errorJson(405, 'method_not_allowed', 'Method Not Allowed');
     }
     
     let parsedBody;
     try {
       parsedBody = await request.json();
     } catch {
-      return new Response('Invalid JSON payload', {
-        status: 400,
-        headers: corsHeaders
-      });
+      return errorJson(400, 'invalid_json', 'Invalid JSON payload');
     }
 
-    const { system, input, options = {}, provider: requestedProvider, model: requestedModel } = parsedBody;
+    const {
+      system,
+      input,
+      options = {},
+      provider: requestedProvider,
+      model: requestedModel
+    } = parsedBody;
     const provider = (requestedProvider || options.provider || 'openai').toLowerCase();
     const model = requestedModel || options.model;
+    const expectJson =
+      options?.response_format?.type === 'json_object' ||
+      options?.response_format === 'json_object';
+
+    // Rate limit per-IP and path (best-effort)
+    try {
+      const { allowed, remaining, reset } = await rateLimit(request, env, {
+        limit: 60,
+        windowSec: 60
+      });
+      if (!allowed) {
+        return jsonResponse(
+          {
+            error: {
+              code: 'rate_limited',
+              message: 'Too many requests. Please slow down and try again shortly.',
+              details: { remaining, reset }
+            }
+          },
+          { status: 429 }
+        );
+      }
+    } catch {
+      // ignore RL failures (fail-open)
+    }
 
     switch (provider) {
       case 'openai':
-        return handleOpenAI({ system, input, options, corsHeaders, env, model });
+        return handleOpenAI({ system, input, options, corsHeaders, env, model, expectJson });
       case 'gemini':
       case 'google':
       case 'google-gemini':
-        return handleGemini({ system, input, options, corsHeaders, env, model });
+        return handleGemini({ system, input, options, corsHeaders, env, model, expectJson });
       case 'anthropic':
       case 'claude':
-        return handleAnthropic({ system, input, options, corsHeaders, env, model });
+        return handleAnthropic({ system, input, options, corsHeaders, env, model, expectJson });
       default:
-        return new Response(`Unsupported provider: ${provider}`, {
-          status: 400,
-          headers: corsHeaders
-        });
+        return errorJson(400, 'unsupported_provider', `Unsupported provider: ${provider}`);
     }
   }
 };
 
-async function handleOpenAI({ system, input, options, corsHeaders, env, model }) {
+async function handleOpenAI({ system, input, options, corsHeaders, env, model, expectJson }) {
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) {
-    return new Response('OPENAI_API_KEY not configured', {
-      status: 500,
-      headers: corsHeaders
-    });
+    return new Response(
+      JSON.stringify({
+        error: { code: 'config_missing', message: 'OPENAI_API_KEY not configured' }
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const payload = {
@@ -100,14 +149,25 @@ async function handleOpenAI({ system, input, options, corsHeaders, env, model })
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    return new Response(text, {
-      status: res.status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/plain'
-      }
+    let details = null;
+    try {
+      details = await res.json();
+    } catch {
+      details = await res.text().catch(() => null);
+    }
+    await logErrorToSentry(env, new Error('OpenAI upstream_error'), {
+      extra: { provider: 'openai', status: res.status, details }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'upstream_error',
+          message: 'The upstream provider returned an error.',
+          details
+        }
+      }),
+      { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   let data;
@@ -115,41 +175,86 @@ async function handleOpenAI({ system, input, options, corsHeaders, env, model })
     data = await res.json();
   } catch (parseError) {
     const fallbackText = await res.text().catch(() => '');
-    return new Response(fallbackText || 'Invalid response from upstream model', {
-      status: 502,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/plain'
-      }
+    await logErrorToSentry(env, new Error('OpenAI invalid_upstream_json'), {
+      extra: { provider: 'openai' }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'invalid_upstream_json',
+          message: 'Invalid response from upstream model',
+          details: fallbackText || null
+        }
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const content = data.choices?.[0]?.message?.content || '';
   if (!content) {
-    return new Response(JSON.stringify(data), {
-      status: 502,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+    await logErrorToSentry(env, new Error('OpenAI empty_content'), {
+      extra: { provider: 'openai', data }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'empty_content',
+          message: 'No content returned by upstream model.',
+          details: data
+        }
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
-  return new Response(content, {
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json'
+  if (expectJson) {
+    try {
+      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+      await capturePosthogEvent(env, 'ai_proxy_request', {
+        provider: 'openai',
+        model: payload.model || null,
+        json_ok: true
+      });
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch {
+      await logErrorToSentry(env, new Error('OpenAI non_json_content'), {
+        extra: { provider: 'openai' }
+      });
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'non_json_content',
+            message:
+              'Upstream model did not honor the requested JSON response_format. Expected JSON object.'
+          }
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+  }
+
+  // Fallback: return raw content string
+  await capturePosthogEvent(env, 'ai_proxy_request', {
+    provider: 'openai',
+    model: payload.model || null,
+    json_ok: false
+  });
+  return new Response(JSON.stringify({ content }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
 
-async function handleGemini({ system, input, options, corsHeaders, env, model }) {
+async function handleGemini({ system, input, options, corsHeaders, env, model, expectJson }) {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response('GEMINI_API_KEY not configured', {
-      status: 500,
-      headers: corsHeaders
-    });
+    return new Response(
+      JSON.stringify({
+        error: { code: 'config_missing', message: 'GEMINI_API_KEY not configured' }
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const selectedModel = model || options?.model || 'gemini-2.5-flash';
@@ -189,14 +294,25 @@ async function handleGemini({ system, input, options, corsHeaders, env, model })
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    return new Response(text, {
-      status: res.status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/plain'
-      }
+    let details = null;
+    try {
+      details = await res.json();
+    } catch {
+      details = await res.text().catch(() => null);
+    }
+    await logErrorToSentry(env, new Error('Gemini upstream_error'), {
+      extra: { provider: 'gemini', status: res.status, details }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'upstream_error',
+          message: 'The upstream provider returned an error.',
+          details
+        }
+      }),
+      { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   let data;
@@ -204,13 +320,19 @@ async function handleGemini({ system, input, options, corsHeaders, env, model })
     data = await res.json();
   } catch (error) {
     const fallbackText = await res.text().catch(() => '');
-    return new Response(fallbackText || 'Invalid response from Gemini', {
-      status: 502,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/plain'
-      }
+    await logErrorToSentry(env, new Error('Gemini invalid_upstream_json'), {
+      extra: { provider: 'gemini' }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'invalid_upstream_json',
+          message: 'Invalid response from Gemini',
+          details: fallbackText || null
+        }
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const textParts = data.candidates?.[0]?.content?.parts || [];
@@ -220,39 +342,82 @@ async function handleGemini({ system, input, options, corsHeaders, env, model })
     .trim();
 
   if (!content) {
-    return new Response(JSON.stringify(data), {
-      status: 502,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+    await logErrorToSentry(env, new Error('Gemini empty_content'), {
+      extra: { provider: 'gemini', data }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'empty_content',
+          message: 'No content returned by upstream model.',
+          details: data
+        }
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
-  return new Response(content, {
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json'
+  if (expectJson) {
+    try {
+      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+      await capturePosthogEvent(env, 'ai_proxy_request', {
+        provider: 'gemini',
+        model: selectedModel || null,
+        json_ok: true
+      });
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch {
+      await logErrorToSentry(env, new Error('Gemini non_json_content'), {
+        extra: { provider: 'gemini' }
+      });
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'non_json_content',
+            message:
+              'Upstream model did not honor the requested JSON response_format. Expected JSON object.'
+          }
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+  }
+
+  await capturePosthogEvent(env, 'ai_proxy_request', {
+    provider: 'gemini',
+    model: selectedModel || null,
+    json_ok: false
+  });
+  return new Response(JSON.stringify({ content }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
 
-async function handleAnthropic({ system, input, options, corsHeaders, env, model }) {
+async function handleAnthropic({ system, input, options, corsHeaders, env, model, expectJson }) {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response('ANTHROPIC_API_KEY not configured', {
-      status: 500,
-      headers: corsHeaders
-    });
+    return new Response(
+      JSON.stringify({
+        error: { code: 'config_missing', message: 'ANTHROPIC_API_KEY not configured' }
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const selectedModel = model || options?.model || 'claude-3-5-haiku-20241022';
   const userContent = input || '';
   if (!userContent.trim()) {
-    return new Response('Prompt content required for Anthropic request', {
-      status: 400,
-      headers: corsHeaders
-    });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'invalid_request',
+          message: 'Prompt content required for Anthropic request'
+        }
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const payload = {
@@ -287,14 +452,25 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    return new Response(text, {
-      status: res.status,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/plain'
-      }
+    let details = null;
+    try {
+      details = await res.json();
+    } catch {
+      details = await res.text().catch(() => null);
+    }
+    await logErrorToSentry(env, new Error('Anthropic upstream_error'), {
+      extra: { provider: 'anthropic', status: res.status, details }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'upstream_error',
+          message: 'The upstream provider returned an error.',
+          details
+        }
+      }),
+      { status: res.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   let data;
@@ -302,13 +478,19 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
     data = await res.json();
   } catch (parseError) {
     const fallbackText = await res.text().catch(() => '');
-    return new Response(fallbackText || 'Invalid response from Anthropic', {
-      status: 502,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/plain'
-      }
+    await logErrorToSentry(env, new Error('Anthropic invalid_upstream_json'), {
+      extra: { provider: 'anthropic' }
     });
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: 'invalid_upstream_json',
+          message: 'Invalid response from Anthropic',
+          details: fallbackText || null
+        }
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   let aggregatedText = '';
@@ -320,12 +502,43 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
       .trim();
   }
 
-  const responseBody = aggregatedText || JSON.stringify(data);
+  const responseBody = aggregatedText || '';
 
-  return new Response(responseBody, {
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json'
+  if (expectJson) {
+    try {
+      const parsed = responseBody ? JSON.parse(responseBody) : data;
+      await capturePosthogEvent(env, 'ai_proxy_request', {
+        provider: 'anthropic',
+        model: selectedModel || null,
+        json_ok: true
+      });
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch {
+      await logErrorToSentry(env, new Error('Anthropic non_json_content'), {
+        extra: { provider: 'anthropic' }
+      });
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'non_json_content',
+            message:
+              'Upstream model did not honor the requested JSON response_format. Expected JSON object.'
+          }
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+  }
+
+  // Fallback: return raw text wrapped in JSON for consistency
+  await capturePosthogEvent(env, 'ai_proxy_request', {
+    provider: 'anthropic',
+    model: selectedModel || null,
+    json_ok: false
+  });
+  return new Response(JSON.stringify({ content: responseBody || data }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }

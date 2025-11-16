@@ -1,6 +1,8 @@
 // Publishes a User Worker into a dispatch namespace (Workers for Platforms)
 // Requires env: CLOUDFLARE_ACCOUNT_ID, WFP_NAMESPACE_ID, CLOUDFLARE_API_TOKEN
 
+import { logErrorToSentry, capturePosthogEvent } from '../../lib/telemetry.js';
+
 const BASE_THEME_VARS = {
   '--background': '0 0% 100%',
   '--foreground': '222.2 47.4% 11.2%',
@@ -1155,6 +1157,26 @@ function withCors(response, corsHeaders = {}) {
   });
 }
 
+function scanForDangerousPatterns(tool) {
+  const findings = [];
+  const add = (severity, message, snippet) =>
+    findings.push({
+      severity,
+      message,
+      snippet: typeof snippet === 'string' ? snippet.slice(0, 160) : null
+    });
+  const js = String(tool.js || '');
+  const html = String(tool.html || '');
+  // Basic JS guards
+  if (/\beval\s*\(/i.test(js)) add('high', 'Use of eval() is not allowed', 'eval(');
+  if (/\bnew\s+Function\s*\(/i.test(js)) add('high', 'Use of new Function() is not allowed', 'new Function(');
+  if (/\bdocument\.write\s*\(/i.test(js)) add('medium', 'document.write() can be harmful to shell layout', 'document.write(');
+  if (/<script[^>]+src\s*=/i.test(html)) add('high', 'External <script src> tags are not allowed', '<script src=...>');
+  // Inline event handlers in HTML (onclick=, onerror=, etc.)
+  if (/\son\w+\s*=/i.test(html)) add('medium', 'Inline HTML event handlers are discouraged', 'on*=');
+  return findings;
+}
+
 function parseCookies(cookieHeader) {
   if (!cookieHeader) return {};
   return cookieHeader.split(';').reduce((acc, part) => {
@@ -1275,6 +1297,26 @@ async function handleMemoryGet(toolId, env, context) {
   return new Response(JSON.stringify({ memories: payload || [] }), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
   });
+}
+
+async function handleMemoryExport(toolId, env, context) {
+  const listRes = await handleMemoryGet(toolId, env, context);
+  if (!listRes.ok) return listRes;
+  try {
+    const text = await listRes.text();
+    const filename = `questit-tool-${toolId}-memory.json`;
+    return new Response(text, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      }
+    });
+  } catch {
+    return new Response(JSON.stringify({ error: 'Failed to export memory.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }
 
 async function handleMemoryUpsert(toolId, env, context, request) {
@@ -1571,6 +1613,9 @@ async function handlePassphraseVerify(slug, request, env, corsHeaders) {
       'Set-Cookie': cookie
     }
   });
+  try {
+    await capturePosthogEvent(env, 'passphrase_verified', { slug });
+  } catch {}
   return withCors(response, corsHeaders);
 }
 
@@ -1764,6 +1809,159 @@ export default {
     const isToolsRoute = pathSegments[0] === 'api' && pathSegments[1] === 'tools';
     const isPublishRoute = isToolsRoute && pathSegments[2] === 'publish';
 
+    // PATCH/DELETE /api/tools/:slug (owner-only)
+    if (isToolsRoute && pathSegments[2] && ['PATCH', 'DELETE'].includes(request.method)) {
+      const slug = sanitizeNullableString(decodeURIComponent(pathSegments[2]), 64);
+      if (!slug) {
+        return new Response('Invalid slug', { status: 400, headers: corsHeaders });
+      }
+      const auth = await resolveAuthContext(request, env);
+      if (!auth.userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required.' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      // Load record and verify ownership
+      const lookup = await fetchPublishedToolRecord(env, slug, corsHeaders);
+      if (lookup.error) {
+        return withCors(lookup.error, corsHeaders);
+      }
+      const { record } = lookup;
+      if (!record || record.owner_id !== auth.userId) {
+        return new Response(JSON.stringify({ error: 'Owner access required.' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (request.method === 'DELETE') {
+        // Delete dispatch script (best effort)
+        try {
+          const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+          const namespaceSlug = env.WFP_NAMESPACE_NAME || env.WFP_NAMESPACE_ID;
+          const token = env.CLOUDFLARE_API_TOKEN;
+          if (accountId && namespaceSlug && token) {
+            const delUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${namespaceSlug}/scripts/${slug}`;
+            await fetch(delUrl, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+          }
+        } catch {
+          // ignore delete failures
+        }
+        // Remove DB record
+        try {
+          const res = await fetch(
+            `${env.SUPABASE_URL}/rest/v1/published_tools?slug=eq.${encodeURIComponent(slug)}&owner_id=eq.${encodeURIComponent(auth.userId)}`,
+            {
+              method: 'DELETE',
+              headers: buildSupabaseHeaders(env.SUPABASE_SERVICE_ROLE, { Prefer: 'return=minimal' })
+            }
+          );
+          if (!res.ok) {
+            const text = await res.text();
+            await logErrorToSentry(env, new Error('unpublish_delete_failed'), {
+              extra: { status: res.status, body: text?.slice(0, 300) || null, slug }
+            });
+            return new Response(text || 'Failed to unpublish tool.', {
+              status: 502,
+              headers: corsHeaders
+            });
+          }
+        } catch (error) {
+          await logErrorToSentry(env, error, { extra: { slug } });
+          return new Response('Failed to unpublish tool.', { status: 502, headers: corsHeaders });
+        }
+        try {
+          await capturePosthogEvent(env, 'publish_deleted', { slug, owner_id: auth.userId });
+        } catch {}
+        return new Response(null, { status: 204, headers: corsHeaders });
+      }
+
+      if (request.method === 'PATCH') {
+        let patch;
+        try {
+          patch = await request.json();
+        } catch {
+          return new Response(JSON.stringify({ error: 'Invalid JSON payload.' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        const visibility = normaliseVisibility(patch.visibility || record.visibility);
+        let passphraseHash = record.passphrase_hash || null;
+        if (visibility === 'passphrase') {
+          if (typeof patch.passphrase_hash === 'string' && patch.passphrase_hash.trim()) {
+            passphraseHash = patch.passphrase_hash.trim();
+          } else if (typeof patch.passphrase === 'string' && patch.passphrase.trim()) {
+            passphraseHash = await hashPassphrase(
+              patch.passphrase.trim(),
+              env.PUBLISHED_TOOLS_PASSPHRASE_SALT || ''
+            );
+          }
+        } else {
+          passphraseHash = null;
+        }
+        const themeCandidate =
+          typeof patch.theme === 'string' && patch.theme.trim()
+            ? patch.theme.trim().toLowerCase()
+            : null;
+        const allowedColorModes = new Set(['light', 'dark', 'system']);
+        const colorCandidate =
+          typeof patch.color_mode === 'string' && patch.color_mode.trim()
+            ? patch.color_mode.trim().toLowerCase()
+            : null;
+        const updatePayload = {
+          title: sanitizeNullableString(patch.title, 255) ?? record.title,
+          summary: sanitizeNullableString(patch.summary, 2000) ?? record.summary,
+          visibility,
+          passphrase_hash: passphraseHash,
+          tags: sanitiseTags(patch.tags) ?? record.tags,
+          theme: themeCandidate && THEME_PRESETS[themeCandidate] ? themeCandidate : record.theme,
+          color_mode: allowedColorModes.has(colorCandidate || '') ? colorCandidate : record.color_mode,
+          updated_at: isoNow()
+        };
+        try {
+          const res = await fetch(
+            `${lookup.supabaseUrl}/rest/v1/published_tools?slug=eq.${encodeURIComponent(slug)}&owner_id=eq.${encodeURIComponent(auth.userId)}`,
+            {
+              method: 'PATCH',
+              headers: buildSupabaseHeaders(lookup.supabaseServiceRole, {
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation'
+              }),
+              body: JSON.stringify(updatePayload)
+            }
+          );
+          const text = await res.text();
+          if (!res.ok) {
+            await logErrorToSentry(env, new Error('publish_update_failed'), {
+              extra: { status: res.status, body: text?.slice(0, 300) || null, slug }
+            });
+            return new Response(text || 'Failed to update published tool.', {
+              status: 502,
+              headers: corsHeaders
+            });
+          }
+          let payload = null;
+          try {
+            const parsed = text ? JSON.parse(text) : null;
+            payload = Array.isArray(parsed) ? parsed[0] : parsed;
+          } catch {
+            payload = null;
+          }
+          try {
+            await capturePosthogEvent(env, 'publish_updated', { slug, owner_id: auth.userId });
+          } catch {}
+          return new Response(JSON.stringify(payload || { ok: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } catch (error) {
+          await logErrorToSentry(env, error, { extra: { slug } });
+          return new Response('Failed to update published tool.', { status: 502, headers: corsHeaders });
+        }
+      }
+    }
+
     if (
       request.method === 'GET' &&
       isToolsRoute &&
@@ -1810,10 +2008,14 @@ export default {
       }
       const context = await resolveAuthContext(request, env);
       const tailSegments = pathSegments.slice(4);
-      if (request.method === 'GET' && tailSegments.length === 0) {
+    if (request.method === 'GET' && tailSegments.length === 0) {
         const response = await handleMemoryGet(decodedToolId, env, context);
         return withCors(response, corsHeaders);
       }
+    if (request.method === 'GET' && tailSegments.length === 1 && tailSegments[0] === 'export') {
+      const response = await handleMemoryExport(decodedToolId, env, context);
+      return withCors(response, corsHeaders);
+    }
       if (request.method === 'POST' && tailSegments.length === 0) {
         const response = await handleMemoryUpsert(decodedToolId, env, context, request);
         return withCors(response, corsHeaders);
@@ -1912,6 +2114,19 @@ export default {
       }
     }
 
+    // Static scan for unsafe patterns
+    const scanFindings = scanForDangerousPatterns(tool);
+    const critical = scanFindings.filter((f) => f.severity === 'high');
+    if (critical.length > 0) {
+      await logErrorToSentry(env, new Error('publish_static_scan_failed'), {
+        extra: { findings: scanFindings }
+      });
+      return new Response(JSON.stringify({ error: 'Bundle failed security scan.', findings: scanFindings }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const ownerUuid = ownerId.toString().trim();
     if (!ownerUuid) {
       return new Response('owner_id is required to publish a tool', {
@@ -1989,6 +2204,11 @@ export default {
     });
     const body = await res.text();
     if (!res.ok) {
+      try {
+        await logErrorToSentry(env, new Error('publish_deploy_failed'), {
+          extra: { status: res.status, body: body?.slice(0, 500) || null, slug: scriptName }
+        });
+      } catch {}
       return new Response(body, { 
         status: res.status,
         headers: corsHeaders
@@ -2050,6 +2270,15 @@ export default {
 
     const supabaseText = await supabaseResponse.text();
     if (!supabaseResponse.ok) {
+      try {
+        await logErrorToSentry(env, new Error('publish_metadata_persist_failed'), {
+          extra: {
+            status: supabaseResponse.status,
+            body: supabaseText?.slice(0, 500) || null,
+            slug: scriptName
+          }
+        });
+      } catch {}
       return new Response(
         `Failed to persist published tool: ${supabaseResponse.status} ${supabaseText}`,
         {
@@ -2068,6 +2297,15 @@ export default {
         // ignore parse errors; not critical for response
       }
     }
+
+    try {
+      await capturePosthogEvent(env, 'publish_success', {
+        slug: scriptName,
+        owner_id: ownerUuid,
+        tool_id: toolUuid,
+        namespace: namespaceSlug
+      });
+    } catch {}
 
     return new Response(
       JSON.stringify({
