@@ -653,6 +653,33 @@
       return `<a class="questit-share-nav__link${activeClass}" href="${href}" ${ariaCurrent}>${label}</a>`;
     }).join('');
 
+    // Load shared header assets from the same origin as the share-shell assets
+    try {
+      const headerOrigin =
+        (payload?.auth_origin && typeof payload.auth_origin === 'string'
+          ? payload.auth_origin
+          : 'https://questit.cc'
+        ).replace(/\/$/, '');
+      const headerCssHref = `${headerOrigin}/header/${SHELL_VERSION}/header.css`;
+      const headerJsHref = `${headerOrigin}/header/${SHELL_VERSION}/header.js`;
+      if (!document.querySelector(`link[data-questit-header]`)) {
+        const l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = headerCssHref;
+        l.setAttribute('data-questit-header', 'true');
+        document.head.append(l);
+      }
+      if (!document.querySelector(`script[data-questit-header]`)) {
+        const s = document.createElement('script');
+        s.type = 'module';
+        s.src = headerJsHref;
+        s.setAttribute('data-questit-header', 'true');
+        document.head.append(s);
+      }
+    } catch {
+      // ignore asset injection failures; the page will still render without the shared header
+    }
+
     root.innerHTML = `
       <div class="questit-share">
         <questit-header
@@ -713,6 +740,39 @@
         </section>
       </div>
     `;
+
+    // Fallback: if the custom element fails to register quickly, inject the previous static header markup
+    const installFallbackIfNeeded = () => {
+      try {
+        const el = document.querySelector('questit-header');
+        const defined = !!customElements.get('questit-header');
+        const hasChildren = el && el.children && el.children.length > 0;
+        if (el && (!defined || !hasChildren)) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'questit-share-header';
+          wrapper.innerHTML = `
+            <div class="questit-share-header__inner">
+              <div class="questit-share-brand">
+                <div class="questit-share-logo" aria-label="Questit">${BRAND_LOGO_SVG}</div>
+                <p class="questit-share-subtitle">Shared tool</p>
+              </div>
+              <nav class="questit-share-nav" aria-label="Questit site navigation">
+                ${headerNavHtml}
+              </nav>
+              <div class="questit-share-controls">
+                <div class="questit-share-select" aria-label="Color mode"><span>${modeLabel.toUpperCase()}</span>${CHEVRON_ICON}</div>
+                <div class="questit-share-select" aria-label="Theme"><span>${themeLabel.toUpperCase()}</span>${CHEVRON_ICON}</div>
+              </div>
+            </div>
+          `;
+          el.replaceWith(wrapper);
+        }
+      } catch {
+        // ignore fallback failures
+      }
+    };
+    // Give the module a moment to load; if not, render fallback
+    window.setTimeout(installFallbackIfNeeded, 300);
   }
 
   function injectToolCode(payload) {
