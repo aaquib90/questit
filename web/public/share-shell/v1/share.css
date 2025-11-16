@@ -122,10 +122,17 @@ a {
 }
 
 .questit-share-logo {
-  font-family: 'Rubik 80s Fade', cursive;
-  font-size: clamp(1.8rem, 2.6vw, 2.6rem);
-  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0;
   color: hsl(var(--primary, 160 84% 39.4%));
+}
+
+.questit-share-logo__svg {
+  width: clamp(140px, 18vw, 180px);
+  height: auto;
+  display: block;
 }
 
 .questit-share-subtitle {

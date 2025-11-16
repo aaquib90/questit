@@ -996,7 +996,7 @@ function WorkbenchApp() {
       setSaveMemorySettings(memory);
     }
     setMyToolsRefreshKey((value) => value + 1);
-    setSaveStatus({ state: 'success', message: 'Tool saved to Supabase.' });
+    setSaveStatus({ state: 'success', message: '' });
   };
 
   useEffect(() => {
