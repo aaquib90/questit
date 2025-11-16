@@ -691,19 +691,21 @@
         ></questit-header>
         <section class="questit-share-card questit-share-body">
           <div class="questit-share-cta">
-            <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
-              Remix in Workbench
-            </a>
+            <span class="questit-tooltip-host">
+              <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
+                Remix in Workbench
+              </a>
+              <span role="tooltip" class="questit-tooltip">
+                Open this tool in the Questit workbench to customize the UI and publish your own link.
+              </span>
+            </span>
             <a class="questit-share-btn questit-share-btn--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
               Open Questit Workspace
             </a>
           </div>
           <h1 data-questit-title>${title}</h1>
           <div data-questit-summary>${summaryHtml}</div>
-          <div class="questit-share-tip">
-            <strong>Want to remix it?</strong>
-            <p>Open this tool in the Questit workbench to customize the UI and publish your own link.</p>
-          </div>
+          
           <div class="questit-tool-frame">
             <section class="questit-tool" id="${TOOL_ROOT_ID}"></section>
           </div>
