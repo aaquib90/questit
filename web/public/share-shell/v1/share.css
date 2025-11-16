@@ -76,7 +76,7 @@ a {
   position: relative;
   border-radius: clamp(1.8rem, 3vw, 3rem);
   border: 1px solid hsl(var(--line-soft, var(--border)) / 0.4);
-  padding: clamp(1.25rem, 3vw, 2.25rem);
+  padding: clamp(0.75rem, 2vw, 1.25rem);
   background:
     linear-gradient(120deg, hsl(var(--surface, var(--background)) / 0.96), hsl(var(--surface-muted, 210 40% 98%) / 0.88));
   box-shadow:
@@ -111,7 +111,7 @@ a {
   z-index: 1;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: clamp(1rem, 3vw, 2rem);
+  gap: clamp(0.5rem, 2vw, 1.25rem);
   align-items: center;
 }
 

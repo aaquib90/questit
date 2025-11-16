@@ -65,13 +65,11 @@ class QuestitHeader extends HTMLElement {
       <div class="qh-header">
         <div class="qh-brand">
           <div class="qh-logo" aria-label="Questit">${BRAND_LOGO_SVG}</div>
-          <p class="qh-subtitle">Shared tool</p>
         </div>
         <nav class="qh-nav" aria-label="Questit site navigation">
           ${mkLink('workbench', 'Workbench')}
           ${mkLink('templates', 'Templates')}
           ${mkLink('my-tools', 'My tools')}
-          ${mkLink('docs', 'Docs')}
         </nav>
         <div class="qh-controls">
           <div class="qh-select" aria-label="Color mode"><span>${mode}</span>${CHEVRON}</div>

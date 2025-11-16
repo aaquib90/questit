@@ -11,8 +11,7 @@
   const HEADER_NAV_LINKS = [
     { label: 'Workbench', href: 'https://questit.cc/#workbench' },
     { label: 'Templates', href: 'https://questit.cc/#templates' },
-    { label: 'My tools', href: 'https://questit.cc/#my-tools' },
-    { label: 'Docs', href: 'https://questit.cc/docs' }
+    { label: 'My tools', href: 'https://questit.cc/#my-tools' }
   ];
 
   const BRAND_LOGO_SVG = `
@@ -699,34 +698,8 @@
               Open Questit Workspace
             </a>
           </div>
-          <div class="questit-meta">
-            <span class="questit-chip">Generated with Questit</span>
-            <h1 data-questit-title>${title}</h1>
-            <div data-questit-summary>${summaryHtml}</div>
-          </div>
-          <div class="questit-meta-grid">
-            <div class="questit-meta-chip">
-              <span>Model</span>
-              <strong data-questit-model>${modelLabel}</strong>
-            </div>
-            <div class="questit-meta-chip">
-              <span>Theme</span>
-              <strong data-questit-theme>${themeLabel}</strong>
-            </div>
-            <div class="questit-meta-chip">
-              <span>Mode</span>
-              <strong data-questit-mode>${modeLabel}</strong>
-            </div>
-            ${
-              memoryModeLabel
-                ? `<div class="questit-meta-chip">
-              <span>Memory</span>
-              <strong>${memoryModeLabel}</strong>
-              <p>${retentionLabel}</p>
-            </div>`
-                : ''
-            }
-          </div>
+          <h1 data-questit-title>${title}</h1>
+          <div data-questit-summary>${summaryHtml}</div>
           <div class="questit-share-tip">
             <strong>Want to remix it?</strong>
             <p>Open this tool in the Questit workbench to customize the UI and publish your own link.</p>
@@ -754,7 +727,6 @@
             <div class="questit-share-header__inner">
               <div class="questit-share-brand">
                 <div class="questit-share-logo" aria-label="Questit">${BRAND_LOGO_SVG}</div>
-                <p class="questit-share-subtitle">Shared tool</p>
               </div>
               <nav class="questit-share-nav" aria-label="Questit site navigation">
                 ${headerNavHtml}
