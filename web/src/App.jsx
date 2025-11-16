@@ -66,25 +66,25 @@ function summarizeCodeBundle({ html = '', css = '', js = '' }) {
   return `Updated ${parts.join(' · ')}`;
 }
 
-const MEMORY_MODE_LABELS = {
-  none: 'Off',
-  device: 'This device',
-  account: 'Signed-in users'
-};
+const MEMORY_MODE_OPTIONS = [
+  { value: 'none', label: 'Off — do not remember anything', disabled: false },
+  { value: 'device', label: 'This device only', disabled: false },
+  { value: 'account', label: 'Signed-in users (coming soon)', disabled: true }
+];
+
+const MEMORY_RETENTION_OPTIONS = [
+  { value: 'indefinite', label: 'Keep data across visits' },
+  { value: 'session', label: 'Clear when the viewer resets' }
+];
 
 function formatMemoryModeLabel(value) {
-  if (!value) return 'Off';
-  return MEMORY_MODE_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+  const match = MEMORY_MODE_OPTIONS.find((option) => option.value === value);
+  return match ? match.label.replace(/ —.*$/, '') : 'Off';
 }
 
-const MEMORY_RETENTION_LABELS = {
-  indefinite: 'Keeps data across visits',
-  session: 'Clears on reset'
-};
-
 function formatMemoryRetentionLabel(value) {
-  if (!value) return MEMORY_RETENTION_LABELS.indefinite;
-  return MEMORY_RETENTION_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+  const match = MEMORY_RETENTION_OPTIONS.find((option) => option.value === value);
+  return match ? match.label : MEMORY_RETENTION_OPTIONS[0].label;
 }
 
 function detectViewerSlug() {
@@ -150,6 +150,7 @@ function WorkbenchApp() {
     message: ''
   });
   const [publishVisibilityByTool, setPublishVisibilityByTool] = useState({});
+  const [saveMemorySettings, setSaveMemorySettings] = useState(memorySettings);
   const [memorySettings, setMemorySettings] = useState({
     mode: 'none',
     retention: 'indefinite'
@@ -895,11 +896,12 @@ function WorkbenchApp() {
       title: draft.title || latestPrompt.slice(0, 80),
       summary: draft.summary || ''
     }));
+    setSaveMemorySettings(memorySettings);
     setSaveStatus({ state: 'idle', message: '' });
     setSaveDialogOpen(true);
   };
 
-  const handleSaveTool = async ({ title, summary }) => {
+  const handleSaveTool = async ({ title, summary, memory }) => {
     if (!user || !hasSupabaseConfig) {
       setSaveStatus({
         state: 'error',
@@ -917,8 +919,8 @@ function WorkbenchApp() {
       prompt: sourcePrompt,
       theme: selectedTheme,
       color_mode: colorMode,
-      memory_mode: memorySettings.mode,
-      memory_retention: memorySettings.retention,
+      memory_mode: (memory?.mode || memorySettings.mode || 'none'),
+      memory_retention: memory?.retention || memorySettings.retention || 'indefinite',
       public_summary: summary || null,
       model_provider: selectedModelOption.provider,
       model_name: selectedModelOption.model,
@@ -934,6 +936,10 @@ function WorkbenchApp() {
 
     setSaveDialogOpen(false);
     setSaveDraft({ title, summary });
+    if (memory) {
+      setMemorySettings(memory);
+      setSaveMemorySettings(memory);
+    }
     setMyToolsRefreshKey((value) => value + 1);
     setSaveStatus({ state: 'success', message: 'Tool saved to Supabase.' });
   };
@@ -1054,6 +1060,8 @@ function WorkbenchApp() {
                   modelOptions={modelOptions}
                   memorySettings={memorySettings}
                   onChangeMemorySettings={setMemorySettings}
+                  memoryModeOptions={MEMORY_MODE_OPTIONS}
+                  memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
                 />
                 {isGenerating ? (
                   <GeneratingAnimation />
@@ -1081,6 +1089,8 @@ function WorkbenchApp() {
                   modelOptions={modelOptions}
                   memorySettings={memorySettings}
                   onChangeMemorySettings={setMemorySettings}
+                  memoryModeOptions={MEMORY_MODE_OPTIONS}
+                  memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
                 />
                 <WorkbenchInspector
                   hasGenerated={hasGenerated}
@@ -1345,6 +1355,10 @@ function WorkbenchApp() {
           onOpenChange={setSaveDialogOpen}
           initialTitle={saveDraft.title || sessionEntries[0]?.prompt?.slice(0, 80) || ''}
           initialSummary={saveDraft.summary || ''}
+          memorySettings={saveMemorySettings}
+          onChangeMemorySettings={setSaveMemorySettings}
+          memoryModeOptions={MEMORY_MODE_OPTIONS}
+          memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
           onSubmit={handleSaveTool}
           status={saveStatus}
         />

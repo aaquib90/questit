@@ -19,7 +19,9 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
     setModelId,
     modelOptions,
     memorySettings,
-    onChangeMemorySettings
+    onChangeMemorySettings,
+    memoryModeOptions,
+    memoryRetentionOptions
   },
   ref
 ) {
@@ -141,6 +143,8 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
               onSelectModel={setModelId}
               memorySettings={memorySettings}
               onChangeMemorySettings={onChangeMemorySettings}
+              memoryModeOptions={memoryModeOptions}
+              memoryRetentionOptions={memoryRetentionOptions}
             />
           ) : null}
         </div>

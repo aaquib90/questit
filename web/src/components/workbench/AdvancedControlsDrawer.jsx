@@ -7,7 +7,9 @@ export default function AdvancedControlsDrawer({
   selectedModelId,
   onSelectModel,
   memorySettings = { mode: 'none', retention: 'indefinite' },
-  onChangeMemorySettings
+  onChangeMemorySettings,
+  memoryModeOptions = [],
+  memoryRetentionOptions = []
 }) {
   const handleMemoryModeChange = (value) => {
     onChangeMemorySettings?.({
@@ -55,11 +57,11 @@ export default function AdvancedControlsDrawer({
             <SelectValue placeholder="Select memory scope" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Off — do not remember anything</SelectItem>
-            <SelectItem value="device">This device only</SelectItem>
-            <SelectItem value="account" disabled>
-              Signed-in users (coming soon)
-            </SelectItem>
+            {memoryModeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
@@ -76,8 +78,11 @@ export default function AdvancedControlsDrawer({
                 <SelectValue placeholder="Choose retention" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="indefinite">Keep data across visits</SelectItem>
-                <SelectItem value="session">Clear when the viewer resets</SelectItem>
+                {memoryRetentionOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -86,4 +91,3 @@ export default function AdvancedControlsDrawer({
     </div>
   );
 }
-
