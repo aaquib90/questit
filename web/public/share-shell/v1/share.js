@@ -751,7 +751,7 @@
     }
   }
 
-  function setupAuthBridge() {
+  function setupAuthBridge(payload = {}) {
     const root = document.querySelector('[data-questit-auth]');
     const label = root?.querySelector('[data-questit-auth-label]');
     const action = root?.querySelector('[data-questit-auth-action]');
@@ -788,16 +788,38 @@
 
     setState('signed-out');
 
-    const defaultBridgeOrigin = 'https://questit.cc';
-    let bridgeOrigin = defaultBridgeOrigin;
-    try {
-      const currentOrigin = window.location.origin;
-      if (currentOrigin && currentOrigin.startsWith('http')) {
-        bridgeOrigin = currentOrigin;
+    const normaliseOrigin = (value) => {
+      if (!value || typeof value !== 'string') return null;
+      try {
+        const url = new URL(value);
+        return `${url.protocol}//${url.host}`;
+      } catch {
+        return null;
       }
-    } catch (error) {
-      console.warn('Questit share: determine bridge origin failed', error);
-    }
+    };
+
+    const deriveHostBridgeOrigin = () => {
+      try {
+        const { protocol, hostname, origin } = window.location;
+        if (!hostname || !protocol) return null;
+        const parts = hostname.split('.').filter(Boolean);
+        if (parts.length <= 2) {
+          return origin;
+        }
+        const baseHost = parts.slice(1).join('.');
+        return `${protocol}//${baseHost}`;
+      } catch (error) {
+        console.warn('Questit share: derive bridge origin failed', error);
+        return null;
+      }
+    };
+
+    let bridgeOrigin =
+      normaliseOrigin(payload?.auth_origin) ||
+      normaliseOrigin(window.__QUESTIT_AUTH_ORIGIN) ||
+      deriveHostBridgeOrigin() ||
+      normaliseOrigin('https://questit.cc') ||
+      'https://questit.cc';
 
     const iframe = document.createElement('iframe');
     iframe.src =
@@ -884,7 +906,7 @@
     const memoryBridge = attachMemoryBridge(payload);
     injectToolCode(payload);
     setupRemixLink(payload.share_slug);
-    setupAuthBridge();
+    setupAuthBridge(payload);
 
     // Expose for debugging if needed
     window.__QUESTIT_SHARE__ = {

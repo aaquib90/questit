@@ -721,7 +721,7 @@ function escapeJsonForScript(jsonString) {
     .replace(/&/g, '\\u0026');
 }
 
-function buildUserWorkerScript(tool, assetBaseUrl) {
+function buildUserWorkerScript(tool, assetBaseUrl, authBridgeOrigin) {
   const themeKeyRaw = (tool.theme || DEFAULT_THEME_KEY).toLowerCase();
   const themeKey = THEME_PRESETS[themeKeyRaw] ? themeKeyRaw : DEFAULT_THEME_KEY;
   const rawColorMode = (tool.color_mode || '').toLowerCase();
@@ -741,6 +741,20 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     (assetBaseUrl || 'https://questit.cc/share-shell').replace(/\/$/, '');
   const cssHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.css`;
   const jsHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.js`;
+  const explicitAuthOrigin =
+    typeof authBridgeOrigin === 'string' && authBridgeOrigin.trim()
+      ? authBridgeOrigin.trim()
+      : null;
+  let resolvedAuthOrigin = explicitAuthOrigin || null;
+  if (!resolvedAuthOrigin) {
+    try {
+      const assetOrigin = new URL(assetBase);
+      resolvedAuthOrigin = `${assetOrigin.protocol}//${assetOrigin.host}`;
+    } catch {}
+  }
+  if (!resolvedAuthOrigin) {
+    resolvedAuthOrigin = 'https://questit.cc';
+  }
 
   const payload = {
     title: tool.title || '',
@@ -757,7 +771,8 @@ function buildUserWorkerScript(tool, assetBaseUrl) {
     visibility,
     passphrase_required: visibility === 'passphrase',
     memory_mode: tool.memory_mode || 'none',
-    memory_retention: tool.memory_retention || 'indefinite'
+    memory_retention: tool.memory_retention || 'indefinite',
+    auth_origin: resolvedAuthOrigin
   };
 
   const shellTitle = escapeHtmlAttr(tool.title || 'Questit Tool');
@@ -1960,7 +1975,11 @@ export default {
     }
 
     const assetBaseUrl = (env.SHARE_SHELL_BASE_URL || 'https://questit.cc/share-shell').trim();
-    const source = buildUserWorkerScript(enrichedTool, assetBaseUrl);
+    const authBridgeOrigin =
+      typeof env.SHARE_SHELL_AUTH_ORIGIN === 'string'
+        ? env.SHARE_SHELL_AUTH_ORIGIN.trim()
+        : null;
+    const source = buildUserWorkerScript(enrichedTool, assetBaseUrl, authBridgeOrigin);
 
     const deploymentUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${namespaceSlug}/scripts/${scriptName}`;
     const res = await fetch(deploymentUrl, {
