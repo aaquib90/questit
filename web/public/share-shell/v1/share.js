@@ -516,27 +516,29 @@
 
     root.innerHTML = `
       <div class="questit-share">
-        <header class="questit-share-card questit-share-header">
-          <div class="questit-share-brand">
-            <span class="questit-share-logo">Questit</span>
-            <p class="questit-share-subtitle">Shared tool</p>
-          </div>
-          <nav class="questit-share-nav" aria-label="Questit site navigation">
-            ${headerNavHtml}
-          </nav>
-          <div class="questit-share-actions">
-            <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
-              Remix in Workbench
-            </a>
-            <a class="questit-share-btn questit-share-btn--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
-              Open Questit Workspace
-            </a>
-          </div>
-          <div class="questit-share-status" data-questit-auth data-status="signed-out">
-            <span data-questit-auth-label>Viewing as guest</span>
-            <a class="questit-share-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
-              Log in to Questit
-            </a>
+        <header class="questit-share-header">
+          <div class="questit-share-header__inner">
+            <div class="questit-share-brand">
+              <span class="questit-share-logo">Questit</span>
+              <p class="questit-share-subtitle">Shared tool</p>
+            </div>
+            <nav class="questit-share-nav" aria-label="Questit site navigation">
+              ${headerNavHtml}
+            </nav>
+            <div class="questit-share-actions">
+              <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
+                Remix in Workbench
+              </a>
+              <a class="questit-share-btn questit-share-btn--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
+                Open Questit Workspace
+              </a>
+            </div>
+            <div class="questit-share-status" data-questit-auth data-status="signed-out">
+              <span data-questit-auth-label>Viewing as guest</span>
+              <a class="questit-share-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
+                Log in to Questit
+              </a>
+            </div>
           </div>
         </header>
         <section class="questit-share-card questit-share-body">
