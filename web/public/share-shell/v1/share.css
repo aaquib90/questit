@@ -75,12 +75,12 @@ a {
 .questit-share-header {
   position: relative;
   border-radius: clamp(1.8rem, 3vw, 3rem);
-  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.5);
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.4);
+  padding: clamp(1.25rem, 3vw, 2.25rem);
   background:
-    linear-gradient(120deg, hsl(var(--surface, var(--background)) / 0.92), hsl(var(--surface-muted, 210 40% 98%) / 0.8));
+    linear-gradient(120deg, hsl(var(--surface, var(--background)) / 0.96), hsl(var(--surface-muted, 210 40% 98%) / 0.88));
   box-shadow:
-    0 38px 110px -48px hsl(var(--foreground) / 0.35),
+    0 28px 70px -40px hsl(var(--foreground) / 0.28),
     inset 0 1px 0 hsl(var(--background) / 0.7);
   overflow: hidden;
 }
@@ -110,8 +110,8 @@ a {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: clamp(1rem, 2.5vw, 1.75rem);
+  grid-template-columns: auto 1fr auto;
+  gap: clamp(1rem, 3vw, 2rem);
   align-items: center;
 }
 
@@ -144,15 +144,10 @@ a {
 }
 
 .questit-share-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0.35rem;
-  border-radius: 9999px;
-  background: hsl(var(--surface-subtle, 210 40% 96%) / 0.7);
-  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.6);
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .questit-share-nav__link {
@@ -160,27 +155,76 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.7);
-  padding: 0.4rem 1.05rem;
-  font-size: 0.88rem;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   color: hsl(var(--muted-foreground));
   text-decoration: none;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease, color 150ms ease;
 }
 
-.questit-share-nav__link:hover,
-.questit-share-nav__link[aria-current='page'] {
-  border-color: hsl(var(--primary));
+.questit-share-nav__link:hover {
+  color: hsl(var(--foreground));
+}
+
+.questit-share-nav__link--active {
   background: hsl(var(--primary) / 0.12);
   color: hsl(var(--primary));
 }
 
-.questit-share-actions {
+.questit-share-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.questit-share-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.8);
+  background: hsl(var(--surface-muted));
+  padding: 0.25rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.questit-share-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.questit-share-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.questit-share-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background: hsl(var(--surface-muted));
+  color: hsl(var(--foreground));
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.questit-share-icon-button--outline {
+  border-color: hsl(var(--primary) / 0.6);
+  color: hsl(var(--primary));
+  background: transparent;
+}
+
+.questit-share-icon-button:hover {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
 }
 
 .questit-share-btn {
@@ -215,50 +259,31 @@ a {
   box-shadow: 0 18px 48px -32px hsl(var(--foreground) / 0.35);
 }
 
-.questit-share-status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  justify-self: flex-end;
-  border-radius: 9999px;
-  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.7);
-  background: hsl(var(--surface-muted, 210 40% 98%));
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-  color: hsl(var(--muted-foreground));
-}
-
-.questit-share-status[data-status='signed-in'] {
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary));
-}
-
-.questit-share-status__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 9999px;
-  padding: 0.35rem 0.9rem;
-  border: 1px solid hsl(var(--primary));
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 0.1);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.questit-share-status__action[hidden] {
-  display: none;
-}
-
 .questit-share-body {
   display: flex;
   flex-direction: column;
   gap: clamp(1.75rem, 3vw, 2.5rem);
 }
 
+.questit-share-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-start;
+}
+
 .questit-chip {
   display: inline-flex;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
   align-items: center;
   gap: 0.35rem;
   border-radius: 9999px;
@@ -381,15 +406,17 @@ a {
 
   .questit-share-header__inner {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
 
-  .questit-share-nav,
-  .questit-share-actions {
+  .questit-share-nav {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
-  .questit-share-status {
-    justify-self: flex-start;
+  .questit-share-controls {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }
 

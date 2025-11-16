@@ -134,6 +134,24 @@
 </svg>
 `;
 
+  const CHEVRON_ICON = `
+<svg aria-hidden="true" class="questit-share-icon" viewBox="0 0 16 16">
+  <path d="M4.5 6l3.5 4 3.5-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+`;
+
+  const USER_ICON = `
+<svg aria-hidden="true" class="questit-share-icon" viewBox="0 0 20 20">
+  <path d="M10 2.5a4 4 0 110 8 4 4 0 010-8zM4.5 16.25a5.5 5.5 0 0111 0V18H4.5v-1.75z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+`;
+
+  const ARROW_ICON = `
+<svg aria-hidden="true" class="questit-share-icon" viewBox="0 0 20 20">
+  <path d="M11 5.5l4.5 4.5-4.5 4.5M4.5 10h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+`;
+
   const BASE_THEME_VARS = {
     '--background': '0 0% 100%',
     '--foreground': '222.2 47.4% 11.2%',
@@ -629,40 +647,31 @@
     const headerNavHtml = HEADER_NAV_LINKS.map((link, index) => {
       const label = escapeHtml(link.label);
       const href = escapeHtml(link.href);
-      const ariaCurrent = index === 0 ? 'aria-current="page"' : '';
-      return `<a class="questit-share-nav__link" href="${href}" ${ariaCurrent}>${label}</a>`;
+      const isActive = index === 0;
+      const ariaCurrent = isActive ? 'aria-current="page"' : '';
+      const activeClass = isActive ? ' questit-share-nav__link--active' : '';
+      return `<a class="questit-share-nav__link${activeClass}" href="${href}" ${ariaCurrent}>${label}</a>`;
     }).join('');
 
     root.innerHTML = `
       <div class="questit-share">
-        <header class="questit-share-header">
-          <div class="questit-share-header__inner">
-            <div class="questit-share-brand">
-              <div class="questit-share-logo" aria-label="Questit">
-                ${BRAND_LOGO_SVG}
-              </div>
-              <p class="questit-share-subtitle">Shared tool</p>
-            </div>
-            <nav class="questit-share-nav" aria-label="Questit site navigation">
-              ${headerNavHtml}
-            </nav>
-            <div class="questit-share-actions">
-              <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
-                Remix in Workbench
-              </a>
-              <a class="questit-share-btn questit-share-btn--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
-                Open Questit Workspace
-              </a>
-            </div>
-            <div class="questit-share-status" data-questit-auth data-status="signed-out">
-              <span data-questit-auth-label>Viewing as guest</span>
-              <a class="questit-share-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
-                Log in to Questit
-              </a>
-            </div>
-          </div>
-        </header>
+        <questit-header
+          active="workbench"
+          mode="${modeLabel.toUpperCase()}"
+          theme="${themeLabel.toUpperCase()}"
+          login-href="https://questit.cc/?login=1"
+          workspace-href="https://questit.cc"
+          remix-href="https://questit.cc"
+        ></questit-header>
         <section class="questit-share-card questit-share-body">
+          <div class="questit-share-cta">
+            <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
+              Remix in Workbench
+            </a>
+            <a class="questit-share-btn questit-share-btn--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
+              Open Questit Workspace
+            </a>
+          </div>
           <div class="questit-meta">
             <span class="questit-chip">Generated with Questit</span>
             <h1 data-questit-title>${title}</h1>
@@ -789,18 +798,18 @@
   }
 
   function setupAuthBridge(payload = {}) {
+    const headerEl = document.querySelector('questit-header');
     const root = document.querySelector('[data-questit-auth]');
     const label = root?.querySelector('[data-questit-auth-label]');
     const action = root?.querySelector('[data-questit-auth-action]');
-    if (!root || !label || !action) return;
 
     const defaultAction = {
-      href: action.getAttribute('href') || 'https://questit.cc/?login=1',
-      text: action.textContent || 'Log in to Questit'
+      href: (action && action.getAttribute('href')) || 'https://questit.cc/?login=1',
+      text: (action && action.textContent) || 'Log in to Questit'
     };
 
     const setState = (state, meta = {}) => {
-      root.setAttribute('data-status', state);
+      if (root) root.setAttribute('data-status', state);
       if (label) {
         label.textContent =
           meta.label ||
@@ -821,9 +830,18 @@
           action.href = meta.actionHref || defaultAction.href;
         }
       }
+      if (headerEl) {
+        if (state === 'signed-in' && meta.userLabel) {
+          headerEl.setAttribute('user', meta.userLabel);
+        } else if (state === 'error') {
+          headerEl.setAttribute('user', 'Status unavailable');
+        } else {
+          headerEl.setAttribute('user', '');
+        }
+      }
     };
 
-    setState('signed-out');
+    setState('signed-out', { userLabel: '' });
 
     const normaliseOrigin = (value) => {
       if (!value || typeof value !== 'string') return null;
@@ -876,7 +894,7 @@
     const localSession = readSupabaseSessionFromStorage();
     if (localSession) {
       const userLabel = localSession.label || 'Signed in to Questit';
-      setState('signed-in', { label: 'Signed in as ' + userLabel });
+      setState('signed-in', { label: 'Signed in as ' + userLabel, userLabel });
       handshakeResolved = true;
     }
 
@@ -893,7 +911,7 @@
       handshakeResolved = true;
       if (payload.status === 'signed-in' && payload.user) {
         const userLabel = payload.user.email || payload.user.name || 'Signed in to Questit';
-        setState('signed-in', { label: 'Signed in as ' + userLabel });
+        setState('signed-in', { label: 'Signed in as ' + userLabel, userLabel });
         return;
       }
       if (payload.status === 'error') {

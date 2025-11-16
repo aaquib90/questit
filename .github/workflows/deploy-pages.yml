@@ -1,3 +1,53 @@
+name: Deploy Web to Cloudflare Pages
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "web/**"
+      - "web/public/share-shell/**"
+      - "web/public/header/**"
+      - ".github/workflows/deploy-pages.yml"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install and build web
+        run: |
+          npm run install:web
+          npm run build:web
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.PAGES_PROJECT_NAME }}
+          directory: web/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Purge share-shell and header assets (optional)
+        if: ${{ success() }}
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          if [ -n "$CF_ZONE_ID" ]; then
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"files":["https://questit.cc/share-shell/v1/share.css","https://questit.cc/share-shell/v1/share.js","https://questit.cc/header/v1/header.css","https://questit.cc/header/v1/header.js"]}' || true
+          fi
+
 name: Deploy Docs to Cloudflare Pages
 
 on:

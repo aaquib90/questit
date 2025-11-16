@@ -1,0 +1,99 @@
+/* Questit shared header - web component styles (light DOM)
+   Depends on global CSS variables used by the main app (index.css) */
+
+:root {
+  color-scheme: light dark;
+}
+
+.qh-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2rem);
+  border-radius: clamp(1.8rem, 3vw, 3rem);
+  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.4);
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  background:
+    linear-gradient(120deg, hsl(var(--surface, var(--background)) / 0.96), hsl(var(--surface-muted, 210 40% 98%) / 0.88));
+  box-shadow:
+    0 28px 70px -40px hsl(var(--foreground) / 0.28),
+    inset 0 1px 0 hsl(var(--background) / 0.7);
+}
+
+.qh-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.qh-logo {
+  display: inline-flex;
+  align-items: center;
+  color: hsl(var(--primary));
+}
+.qh-logo > svg { width: clamp(140px, 18vw, 180px); height: auto; display: block; }
+.qh-subtitle {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground) / 0.85);
+}
+
+.qh-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.qh-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+  transition: background 150ms ease, color 150ms ease;
+}
+.qh-link:hover { color: hsl(var(--foreground)); }
+.qh-link--active { background: hsl(var(--primary) / 0.12); color: hsl(var(--primary)); }
+
+.qh-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.qh-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--line-soft, var(--border)) / 0.8);
+  background: hsl(var(--surface-muted));
+  padding: 0.25rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.qh-icon { width: 14px; height: 14px; }
+.qh-auth { display: inline-flex; align-items: center; gap: 0.4rem; }
+.qh-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 9999px;
+  border: 1px solid transparent; background: hsl(var(--surface-muted)); color: hsl(var(--foreground));
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.qh-icon-btn--outline { border-color: hsl(var(--primary) / 0.6); color: hsl(var(--primary)); background: transparent; }
+.qh-icon-btn:hover { border-color: hsl(var(--primary)); color: hsl(var(--primary)); }
+
+@media (max-width: 900px) {
+  .qh-header { grid-template-columns: 1fr; gap: 1.25rem; padding: 1.5rem; }
+  .qh-nav { justify-content: flex-start; flex-wrap: wrap; }
+  .qh-controls { flex-wrap: wrap; justify-content: flex-start; }
+}
+
+
