@@ -49,11 +49,14 @@ export function createMemoryClient({ apiBase = '/api', supabase } = {}) {
   };
 }
 
-export function useToolMemory(toolId, { apiBase = '/api', supabase, enabled = true } = {}) {
-  const client = useMemo(
-    () => createMemoryClient({ apiBase, supabase }),
-    [apiBase, supabase]
-  );
+export function useToolMemory(
+  toolId,
+  { apiBase = '/api', supabase, enabled = true, client: providedClient } = {}
+) {
+  const client = useMemo(() => {
+    if (providedClient) return providedClient;
+    return createMemoryClient({ apiBase, supabase });
+  }, [apiBase, providedClient, supabase]);
 
   const [state, setState] = useState({
     status: 'idle',
@@ -79,7 +82,7 @@ export function useToolMemory(toolId, { apiBase = '/api', supabase, enabled = tr
   );
 
   useEffect(() => {
-    client.ensureSessionId();
+    client?.ensureSessionId?.();
   }, [client]);
 
   useEffect(() => {

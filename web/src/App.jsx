@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Share2, ExternalLink, Check, Copy } from 'lucide-react';
+import { Loader2, Share2, ExternalLink, Check, Copy, Play } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
 import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
 import PublishToolDialog from '@/components/workbench/PublishToolDialog.jsx';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
+import SavedToolPlayer from '@/components/my-tools/SavedToolPlayer.jsx';
 import {
   buildIframeHTML,
   COLOR_MODE_OPTIONS,
@@ -76,6 +77,13 @@ const MEMORY_RETENTION_OPTIONS = [
   { value: 'indefinite', label: 'Keep data across visits' },
   { value: 'session', label: 'Clear when the viewer resets' }
 ];
+
+function createDefaultMemorySettings() {
+  return {
+    mode: 'none',
+    retention: 'indefinite'
+  };
+}
 
 function formatMemoryModeLabel(value) {
   const match = MEMORY_MODE_OPTIONS.find((option) => option.value === value);
@@ -150,11 +158,9 @@ function WorkbenchApp() {
     message: ''
   });
   const [publishVisibilityByTool, setPublishVisibilityByTool] = useState({});
-  const [saveMemorySettings, setSaveMemorySettings] = useState(memorySettings);
-  const [memorySettings, setMemorySettings] = useState({
-    mode: 'none',
-    retention: 'indefinite'
-  });
+  const [memorySettings, setMemorySettings] = useState(createDefaultMemorySettings);
+  const [saveMemorySettings, setSaveMemorySettings] = useState(createDefaultMemorySettings);
+  const [activeToolPlayer, setActiveToolPlayer] = useState(null);
   const composerRef = useRef(null);
   const { selectedTheme, setSelectedTheme, colorMode, setColorMode, resolvedMode } =
     useThemeManager(DEFAULT_THEME_KEY);
@@ -379,7 +385,7 @@ function WorkbenchApp() {
     });
     setSaveStatus({ state: 'idle', message: '' });
     setSaveDraft({ title: template.title || '', summary: template.summary || '' });
-    setMemorySettings({ mode: 'none', retention: 'indefinite' });
+    setMemorySettings(createDefaultMemorySettings());
     setActiveView('workbench');
     setTimeout(() => {
       composerRef.current?.focus();
@@ -396,7 +402,7 @@ function WorkbenchApp() {
     });
     setSaveStatus({ state: 'idle', message: '' });
     setSaveDraft({ title: '', summary: '' });
-    setMemorySettings({ mode: 'none', retention: 'indefinite' });
+    setMemorySettings(createDefaultMemorySettings());
   };
 
   useEffect(() => {
@@ -609,6 +615,7 @@ function WorkbenchApp() {
       setMyToolsError('');
       setIsLoadingMyTools(false);
       setToolActionStatus({});
+      setActiveToolPlayer(null);
     } catch (error) {
       console.warn('Sign out failed:', error);
     }
@@ -687,6 +694,7 @@ function WorkbenchApp() {
           setModelId(match.id);
         }
       }
+      setActiveToolPlayer(null);
       setActiveView('workbench');
       setSaveStatus({ state: 'idle', message: '' });
       updateToolActionStatus(toolId, { loading: false, error: '' });
@@ -695,6 +703,53 @@ function WorkbenchApp() {
       updateToolActionStatus(toolId, {
         loading: false,
         error: error?.message || 'Failed to load saved tool.'
+      });
+    }
+  };
+
+  const handleRunSavedTool = async (toolId) => {
+    if (!user) {
+      handleRequestLogin();
+      return;
+    }
+    if (!hasSupabaseConfig) {
+      setMyToolsError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      return;
+    }
+
+    updateToolActionStatus(toolId, { running: true, error: '' });
+    try {
+      let toolRecord = myTools.find((tool) => tool.id === toolId);
+      const hasCode =
+        toolRecord &&
+        (typeof toolRecord.html === 'string' ||
+          typeof toolRecord.css === 'string' ||
+          typeof toolRecord.js === 'string');
+      if (!hasCode) {
+        toolRecord = await fetchToolDetails(toolId);
+      }
+      if (!toolRecord) {
+        throw new Error('Saved tool not found.');
+      }
+
+      if (!toolRecord.html && !toolRecord.css && !toolRecord.js) {
+        throw new Error('Saved tool is missing code content.');
+      }
+
+      const status = toolActionStatus[toolId] || {};
+      setActiveToolPlayer({
+        ...toolRecord,
+        memory_mode: toolRecord.memory_mode || status.memoryMode || 'none',
+        memory_retention: toolRecord.memory_retention || status.memoryRetention || 'indefinite',
+        shareUrl: status.shareUrl || toolRecord.shareUrl || ''
+      });
+      setActiveView('my-tools');
+      updateToolActionStatus(toolId, { running: false, error: '' });
+    } catch (error) {
+      console.error('Failed to open saved tool player:', error);
+      updateToolActionStatus(toolId, {
+        running: false,
+        error: error?.message || 'Failed to open saved tool player.'
       });
     }
   };
@@ -1010,9 +1065,35 @@ function WorkbenchApp() {
     };
   }, [activeView, user, myToolsRefreshKey]);
 
+  const playerStatus = activeToolPlayer ? toolActionStatus[activeToolPlayer.id] || {} : {};
+  const playerTool = activeToolPlayer
+    ? {
+        ...activeToolPlayer,
+        memory_mode: activeToolPlayer.memory_mode || playerStatus.memoryMode || 'none',
+        memory_retention:
+          activeToolPlayer.memory_retention || playerStatus.memoryRetention || 'indefinite',
+        shareUrl: playerStatus.shareUrl || activeToolPlayer.shareUrl || ''
+      }
+    : null;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Shell as="main" className="py-6 sm:py-8 lg:py-10">
+      {playerTool ? (
+        <SavedToolPlayer
+          tool={playerTool}
+          apiBase={apiBase}
+          status={playerStatus}
+          memoryClient={memoryClient}
+          onBack={() => setActiveToolPlayer(null)}
+          onOpenInWorkbench={() => {
+            setActiveToolPlayer(null);
+            handleLoadSavedTool(playerTool.id);
+          }}
+          onPublish={() => handleOpenPublishDialog(playerTool.id)}
+          onClearMemory={() => handleClearToolMemory(playerTool.id)}
+        />
+      ) : (
+        <Shell as="main" className="py-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-6 lg:gap-8">
           <WorkbenchHeader
             activeView={activeView}
@@ -1220,6 +1301,25 @@ function WorkbenchApp() {
                           <Button
                             size="sm"
                             variant="default"
+                            onClick={() => handleRunSavedTool(tool.id)}
+                            disabled={!!status.running}
+                            className="w-full sm:w-auto"
+                          >
+                            {status.running ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                                Launching…
+                              </>
+                            ) : (
+                              <>
+                                <Play className="mr-2 h-4 w-4" aria-hidden />
+                                Run tool
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleLoadSavedTool(tool.id)}
                             disabled={!!status.loading}
                             className="w-full sm:w-auto"
@@ -1230,7 +1330,7 @@ function WorkbenchApp() {
                                 Loading…
                               </>
                             ) : (
-                              'Load in workbench'
+                              'Open in workbench'
                             )}
                           </Button>
                           <Button
@@ -1350,61 +1450,62 @@ function WorkbenchApp() {
               onOpenDocs={handleOpenDocs}
             />
           ) : null}
-        <SaveToolDialog
-          open={saveDialogOpen}
-          onOpenChange={setSaveDialogOpen}
-          initialTitle={saveDraft.title || sessionEntries[0]?.prompt?.slice(0, 80) || ''}
-          initialSummary={saveDraft.summary || ''}
-          memorySettings={saveMemorySettings}
-          onChangeMemorySettings={setSaveMemorySettings}
-          memoryModeOptions={MEMORY_MODE_OPTIONS}
-          memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
-          onSubmit={handleSaveTool}
-          status={saveStatus}
-        />
-
-          <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
-          <DialogContent className="w-full max-w-md gap-6 p-6 sm:p-8">
-            <DialogHeader>
-              <DialogTitle>Sign in to Questit</DialogTitle>
-              <DialogDescription>
-                We’ll email you a magic link so you can save tools to Supabase.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="auth-email">Email address</Label>
-                <Input
-                  id="auth-email"
-                  type="email"
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              {authStatus.message && (
-                <p
-                  className={`text-sm ${
-                    authStatus.state === 'error'
-                      ? 'text-destructive'
-                      : authStatus.state === 'success'
-                        ? 'text-emerald-500'
-                        : 'text-muted-foreground'
-                  }`}
-                >
-                  {authStatus.message}
-                </p>
-              )}
-              <DialogFooter>
-                <Button type="submit" disabled={authStatus.state === 'loading'}>
-                  {authStatus.state === 'loading' ? 'Sending…' : 'Send magic link'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        </Shell>
+      )}
+      <SaveToolDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        initialTitle={saveDraft.title || sessionEntries[0]?.prompt?.slice(0, 80) || ''}
+        initialSummary={saveDraft.summary || ''}
+        memorySettings={saveMemorySettings}
+        onChangeMemorySettings={setSaveMemorySettings}
+        memoryModeOptions={MEMORY_MODE_OPTIONS}
+        memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
+        onSubmit={handleSaveTool}
+        status={saveStatus}
+      />
+      <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+        <DialogContent className="w-full max-w-md gap-6 p-6 sm:p-8">
+          <DialogHeader>
+            <DialogTitle>Sign in to Questit</DialogTitle>
+            <DialogDescription>
+              We’ll email you a magic link so you can save tools to Supabase.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="auth-email">Email address</Label>
+              <Input
+                id="auth-email"
+                type="email"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            {authStatus.message && (
+              <p
+                className={`text-sm ${
+                  authStatus.state === 'error'
+                    ? 'text-destructive'
+                    : authStatus.state === 'success'
+                      ? 'text-emerald-500'
+                      : 'text-muted-foreground'
+                }`}
+              >
+                {authStatus.message}
+              </p>
+            )}
+            <DialogFooter>
+              <Button type="submit" disabled={authStatus.state === 'loading'}>
+                {authStatus.state === 'loading' ? 'Sending…' : 'Send magic link'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <PublishToolDialog
         open={publishDialogState.open}
         onOpenChange={handlePublishDialogOpenChange}
@@ -1413,9 +1514,8 @@ function WorkbenchApp() {
         status={publishDialogStatus}
         toolTitle={publishDialogTool?.title}
       />
-    </Shell>
-  </div>
-);
+    </div>
+  );
 }
 
 export default App;
