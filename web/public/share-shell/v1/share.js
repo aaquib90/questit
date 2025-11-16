@@ -575,7 +575,7 @@
 
   function formatSummary(value) {
     if (!value) {
-      return `<p class="questit-summary questit-summary--empty">${escapeHtml(REMIX_MESSAGE_DEFAULT)}</p>`;
+      return '';
     }
     const html = escapeHtml(value).replace(/\r\n|\n|\r/g, '<br>');
     return `<p class="questit-summary">${html}</p>`;
@@ -704,7 +704,7 @@
             </a>
           </div>
           <h1 data-questit-title>${title}</h1>
-          <div data-questit-summary>${summaryHtml}</div>
+          ${summaryHtml ? `<div data-questit-summary>${summaryHtml}</div>` : ``}
           
           <div class="questit-tool-frame">
             <section class="questit-tool" id="${TOOL_ROOT_ID}"></section>
