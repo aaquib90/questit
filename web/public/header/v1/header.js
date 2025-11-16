@@ -37,7 +37,12 @@ const BRAND_LOGO_SVG = `
 
 const CHEVRON = `<svg aria-hidden="true" class="qh-icon" viewBox="0 0 16 16"><path d="M4.5 6l3.5 4 3.5-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const USER = `<svg aria-hidden="true" class="qh-icon" viewBox="0 0 20 20"><path d="M10 2.5a4 4 0 110 8 4 4 0 010-8zM4.5 16.25a5.5 5.5 0 0111 0V18H4.5v-1.75z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const ARROW = `<svg aria-hidden="true" class="qh-icon" viewBox="0 0 20 20"><path d="M11 5.5l4.5 4.5-4.5 4.5M4.5 10h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// Login icon to match main site (arrow entering a square)
+const LOGIN_ICON = `<svg aria-hidden="true" class="qh-icon" viewBox="0 0 24 24">
+  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 17l5-5-5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 12H3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
 
 function html(strings, ...values) {
   return strings.reduce((acc, s, i) => acc + s + (values[i] ?? ''), '');
@@ -76,7 +81,7 @@ class QuestitHeader extends HTMLElement {
           <div class="qh-select" aria-label="Theme"><span>${theme}</span>${CHEVRON}</div>
           <div class="qh-auth" data-auth>
             <button class="qh-icon-btn" type="button" aria-label="Questit account">${USER}</button>
-            <a class="qh-icon-btn qh-icon-btn--outline" href="${loginHref}" aria-label="Log in to Questit">${ARROW}</a>
+            <a class="qh-icon-btn qh-icon-btn--outline" href="${loginHref}" aria-label="Log in to Questit">${LOGIN_ICON}</a>
           </div>
         </div>
       </div>
