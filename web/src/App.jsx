@@ -146,6 +146,7 @@ function WorkbenchApp() {
   const [myTools, setMyTools] = useState([]);
   const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
   const [myToolsError, setMyToolsError] = useState('');
+  const [publishedIndex, setPublishedIndex] = useState({});
   const [toolActionStatus, setToolActionStatus] = useState({});
   const [myToolsRefreshKey, setMyToolsRefreshKey] = useState(0);
   const [publishDialogState, setPublishDialogState] = useState({
@@ -1060,6 +1061,30 @@ function WorkbenchApp() {
         setIsLoadingMyTools(false);
       });
 
+    // Also load published_tools for this owner to surface view counts
+    supabase
+      .from('published_tools')
+      .select('tool_id, slug, view_count')
+      .eq('owner_id', user.id)
+      .then(({ data, error }) => {
+        if (!isActive) return;
+        if (error || !Array.isArray(data)) {
+          setPublishedIndex({});
+          return;
+        }
+        const index = {};
+        for (const row of data) {
+          if (row?.tool_id) {
+            index[row.tool_id] = { slug: row.slug || null, view_count: Number(row.view_count || 0) };
+          }
+        }
+        setPublishedIndex(index);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setPublishedIndex({});
+      });
+
     return () => {
       isActive = false;
     };
@@ -1265,6 +1290,7 @@ function WorkbenchApp() {
                     /^\w/,
                     (char) => char.toUpperCase()
                   );
+                  const publishedMeta = publishedIndex[tool.id] || null;
                   return (
                     <Card key={tool.id} className="border border-primary/20 bg-card shadow-sm">
                       <CardHeader className="space-y-2">
@@ -1284,6 +1310,21 @@ function WorkbenchApp() {
                         </div>
                         {tool.public_summary ? (
                           <p className="text-sm text-muted-foreground">{tool.public_summary}</p>
+                        ) : null}
+                        {publishedMeta?.slug ? (
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>Views: {new Intl.NumberFormat('en-US').format(publishedMeta.view_count || 0)}</span>
+                            <span>•</span>
+                            <a
+                              href={`/tools/${encodeURIComponent(publishedMeta.slug)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
+                            >
+                              Open viewer
+                              <ExternalLink className="h-3 w-3" aria-hidden />
+                            </a>
+                          </div>
                         ) : null}
                       </CardHeader>
                       <CardContent className="space-y-4">

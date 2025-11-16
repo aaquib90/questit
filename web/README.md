@@ -1,16 +1,42 @@
-# React + Vite
+# Questit Web Workbench (Vite + React)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Questit’s web app provides the in-browser workbench to generate, iterate, save and publish micro-tools. It also hosts the Tool Viewer route (`/tools/:slug`) for published tools.
 
-Currently, two official plugins are available:
+## Environment
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Create `web/.env` with:
 
-## React Compiler
+```
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Without these, auth and “My Tools” will be disabled gracefully.
 
-## Expanding the ESLint configuration
+## Scripts
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Install: `npm --prefix web install`
+- Dev: `npm --prefix web run dev`
+- Build: `npm --prefix web run build`
+
+## Routes
+
+- `/` – Workbench (generate → iterate → save → publish)
+- `/tools/:slug` – Tool Viewer (public/private/passphrase)
+- `/templates/:id` – Template preview deeplink
+
+Cloudflare Pages SPA routing (recommended):
+
+Add a `_routes.json` or framework config to route all paths to `index.html`, or set the fallback pattern:
+
+```
+/*    /index.html   200
+```
+
+This is required so `/tools/*` is handled client-side.
+
+## Troubleshooting
+
+- Blank “My Tools” panel: verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- 403 Private Viewer: sign in, then retry; passphrase-gated tools require a passphrase to unlock.
+- Model errors: the AI proxy may be rate limited; switch the model or retry later.

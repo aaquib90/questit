@@ -89,12 +89,66 @@ export default function ToolViewer({ slug, apiBase }) {
     data: null,
     statusCode: null
   });
+  const [authToken, setAuthToken] = useState(null);
   const [copyState, setCopyState] = useState('idle');
   const [passphraseInput, setPassphraseInput] = useState('');
   const [passphraseStatus, setPassphraseStatus] = useState({ state: 'idle', message: '' });
   const [refreshKey, setRefreshKey] = useState(0);
 
   const shareUrl = useMemo(() => deriveShareUrl(slug), [slug]);
+
+  // Attempt to fetch a Supabase access token via the auth bridge (best-effort)
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    let cancelled = false;
+    let iframe;
+    let timeoutId;
+    const origin = window.location.origin;
+    const src = `/public/auth-bridge.html?origin=${encodeURIComponent(origin)}`;
+    const request = { type: 'questit-auth-request' };
+
+    const handleMessage = (event) => {
+      try {
+        if (event.origin !== origin) return;
+        const data = event.data;
+        if (!data || data.type !== 'questit-auth-state') return;
+        if (!cancelled) {
+          if (typeof data.access_token === 'string' && data.access_token.trim()) {
+            setAuthToken(data.access_token.trim());
+          }
+        }
+      } catch {
+        // ignore malformed events
+      }
+    };
+
+    try {
+      iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.src = src;
+      document.body.appendChild(iframe);
+      window.addEventListener('message', handleMessage);
+      timeoutId = window.setTimeout(() => {
+        try {
+          iframe?.contentWindow?.postMessage(request, origin);
+        } catch {
+          // ignore postMessage errors
+        }
+      }, 100);
+    } catch {
+      // ignore bridge init errors
+    }
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('message', handleMessage);
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (iframe && iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -104,9 +158,14 @@ export default function ToolViewer({ slug, apiBase }) {
 
       try {
         const endpoint = `${apiBase.replace(/\/$/, '')}/tools/${encodeURIComponent(slug)}`;
+        const headers = { Accept: 'application/json' };
+        if (authToken) {
+          headers.Authorization = `Bearer ${authToken}`;
+        }
         const response = await fetch(endpoint, {
           method: 'GET',
-          headers: { Accept: 'application/json' },
+          headers,
+          credentials: authToken ? 'include' : 'same-origin',
           signal: controller.signal
         });
 
@@ -168,7 +227,7 @@ export default function ToolViewer({ slug, apiBase }) {
 
     loadTool();
     return () => controller.abort();
-  }, [apiBase, slug, refreshKey]);
+  }, [apiBase, slug, refreshKey, authToken]);
 
   useEffect(() => {
     if (viewerState.status === 'ready') {
@@ -279,6 +338,29 @@ export default function ToolViewer({ slug, apiBase }) {
   const isForbidden = status === 'forbidden';
   const forbiddenMessage = error || '';
   const isPassphraseGate = isForbidden && /passphrase/i.test(forbiddenMessage);
+
+  const handleDownloadMemory = async () => {
+    if (!toolId) return;
+    try {
+      const endpoint = `${apiBase.replace(/\/$/, '')}/tools/${encodeURIComponent(toolId)}/memory/export`;
+      const headers = {};
+      if (authToken) headers.Authorization = `Bearer ${authToken}`;
+      const res = await fetch(endpoint, { method: 'GET', headers, credentials: 'include' });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `questit-tool-${toolId}-memory.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // eslint-disable-next-line no-alert
+      alert(e?.message || 'Failed to download your data.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -469,6 +551,14 @@ export default function ToolViewer({ slug, apiBase }) {
                       >
                         Refresh
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={handleDownloadMemory}
+                      >
+                        Download
+                      </Button>
                       {memoryEntries.length ? (
                         <Button
                           size="sm"
@@ -628,6 +718,14 @@ export default function ToolViewer({ slug, apiBase }) {
                   <Button variant="outline" size="sm" className="gap-2" onClick={handleSignInRedirect}>
                     <LogIn className="h-4 w-4" aria-hidden />
                     Sign in to Questit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => setRefreshKey((v) => v + 1)}
+                  >
+                    Retry loading
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">

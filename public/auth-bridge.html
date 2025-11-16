@@ -49,7 +49,8 @@
           const payload = {
             type: 'questit-auth-state',
             status: 'signed-out',
-            user: null
+            user: null,
+            access_token: null
           };
           try {
             const keys = Object.keys(localStorage).filter(
@@ -72,6 +73,11 @@
                     user.user_metadata?.name ||
                     null
                 };
+                payload.access_token =
+                  session?.access_token ||
+                  record?.access_token ||
+                  record?.currentAccessToken ||
+                  null;
                 break;
               }
             }
