@@ -110,7 +110,7 @@ export function WorkbenchHeader({
             aria-label="Workbench sections"
             className="hidden flex-wrap items-center justify-center gap-2 px-1 sm:px-4 lg:flex"
           >
-            {VIEW_TABS.map((tab) => {
+            {VIEW_TABS.filter((tab) => tab.id !== 'creator-portal').map((tab) => {
               const isActive = activeView === tab.id;
               return (
                 <Button
@@ -203,7 +203,7 @@ export function WorkbenchHeader({
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">Navigate</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                {VIEW_TABS.map((tab) => {
+                {VIEW_TABS.filter((tab) => tab.id !== 'creator-portal').map((tab) => {
                   const isActive = activeView === tab.id;
                   return (
                     <button
