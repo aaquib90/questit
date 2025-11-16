@@ -751,6 +751,43 @@
     }
   }
 
+  function readSupabaseSessionFromStorage() {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      const keys = Object.keys(window.localStorage).filter(
+        (key) => key.startsWith('sb-') && key.endsWith('-auth-token')
+      );
+      for (const key of keys) {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const record = JSON.parse(raw);
+          const session = record?.currentSession || record?.session || record || null;
+          const user =
+            session?.user ||
+            record?.currentUser ||
+            record?.user ||
+            null;
+          if (user) {
+            return {
+              user,
+              label:
+                user.email ||
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                null
+            };
+          }
+        } catch (error) {
+          // ignore malformed session entries
+        }
+      }
+    } catch (error) {
+      // accessing localStorage can throw in restricted environments
+    }
+    return null;
+  }
+
   function setupAuthBridge(payload = {}) {
     const root = document.querySelector('[data-questit-auth]');
     const label = root?.querySelector('[data-questit-auth-label]');
@@ -836,6 +873,12 @@
     iframe.tabIndex = -1;
 
     let handshakeResolved = false;
+    const localSession = readSupabaseSessionFromStorage();
+    if (localSession) {
+      const userLabel = localSession.label || 'Signed in to Questit';
+      setState('signed-in', { label: 'Signed in as ' + userLabel });
+      handshakeResolved = true;
+    }
 
     const requestAuthState = () => {
       try {
