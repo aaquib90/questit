@@ -8,6 +8,13 @@
   const SHELL_VERSION = 'v1';
   const SESSION_STORAGE_KEY = 'questit-session-id';
 
+  const HEADER_NAV_LINKS = [
+    { label: 'Workbench', href: 'https://questit.cc/#workbench' },
+    { label: 'Templates', href: 'https://questit.cc/#templates' },
+    { label: 'My tools', href: 'https://questit.cc/#my-tools' },
+    { label: 'Docs', href: 'https://questit.cc/docs' }
+  ];
+
   const BASE_THEME_VARS = {
     '--background': '0 0% 100%',
     '--foreground': '222.2 47.4% 11.2%',
@@ -30,7 +37,12 @@
     '--ring': '160 84% 39.4%',
     '--radius': '0.75rem',
     '--font-sans':
-      "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+      "'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    '--surface': '0 0% 100%',
+    '--surface-muted': '210 40% 98%',
+    '--surface-subtle': '210 40% 96%',
+    '--line-soft': '214 31% 91%',
+    '--shadow-soft': '0 28px 64px -28px hsl(222 47% 11% / 0.22)'
   };
 
   const BASE_DARK_THEME_VARS = {
@@ -52,7 +64,14 @@
     '--destructive-foreground': '0 85.7% 97.3%',
     '--border': '217.2 32.6% 17.5%',
     '--input': '217.2 32.6% 17.5%',
-    '--ring': '152 90% 44%'
+    '--ring': '152 90% 44%',
+    '--surface': '222 47% 15%',
+    '--surface-muted': '217 33% 18%',
+    '--surface-subtle': '217 24% 22%',
+    '--line-soft': '222 28% 28%',
+    '--shadow-soft': '0 28px 60px -24px hsl(210 40% 2% / 0.54)',
+    '--font-sans':
+      "'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
   };
 
   const THEME_PRESETS = {
@@ -488,36 +507,44 @@
     const retentionLabel = escapeHtml(formatRetentionLabel(payload.memory_retention));
     const title = escapeHtml(payload.title || 'Questit Tool');
 
+    const headerNavHtml = HEADER_NAV_LINKS.map((link, index) => {
+      const label = escapeHtml(link.label);
+      const href = escapeHtml(link.href);
+      const ariaCurrent = index === 0 ? 'aria-current="page"' : '';
+      return `<a class="questit-share-nav__link" href="${href}" ${ariaCurrent}>${label}</a>`;
+    }).join('');
+
     root.innerHTML = `
-      <div class="questit-surface">
-        <div class="questit-header questit-glass">
-          <div class="questit-header-meta">
-            <span class="questit-header-logo">Questit</span>
-            <span class="questit-header-subtitle">Shared tool</span>
+      <div class="questit-share">
+        <header class="questit-share-card questit-share-header">
+          <div class="questit-share-brand">
+            <span class="questit-share-logo">Questit</span>
+            <p class="questit-share-subtitle">Shared tool</p>
           </div>
-          <div class="questit-header-right">
-            <div class="questit-header-actions">
-              <a class="questit-header-pill questit-header-pill--primary" data-questit-action="remix" href="https://questit.cc">
-                Remix in Workbench
-              </a>
-              <a class="questit-header-pill questit-header-pill--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
-                Open Questit Workspace
-              </a>
-            </div>
-            <div class="questit-header-status" data-questit-auth data-status="signed-out">
-              <span class="questit-header-status__badge" data-questit-auth-label>Viewing as guest</span>
-              <a class="questit-header-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
-                Log in to Questit
-              </a>
-            </div>
+          <nav class="questit-share-nav" aria-label="Questit site navigation">
+            ${headerNavHtml}
+          </nav>
+          <div class="questit-share-actions">
+            <a class="questit-share-btn questit-share-btn--primary" data-questit-action="remix" href="https://questit.cc">
+              Remix in Workbench
+            </a>
+            <a class="questit-share-btn questit-share-btn--ghost" href="https://questit.cc" target="_blank" rel="noopener noreferrer">
+              Open Questit Workspace
+            </a>
           </div>
-        </div>
-      </div>
-      <div class="questit-tool-container">
-        <div class="questit-meta">
-          <span>Generated with Questit</span>
-          <h1 data-questit-title>${title}</h1>
-          <div data-questit-summary>${summaryHtml}</div>
+          <div class="questit-share-status" data-questit-auth data-status="signed-out">
+            <span data-questit-auth-label>Viewing as guest</span>
+            <a class="questit-share-status__action" data-questit-auth-action href="https://questit.cc/?login=1">
+              Log in to Questit
+            </a>
+          </div>
+        </header>
+        <section class="questit-share-card questit-share-body">
+          <div class="questit-meta">
+            <span class="questit-chip">Generated with Questit</span>
+            <h1 data-questit-title>${title}</h1>
+            <div data-questit-summary>${summaryHtml}</div>
+          </div>
           <div class="questit-meta-grid">
             <div class="questit-meta-chip">
               <span>Model</span>
@@ -536,16 +563,22 @@
                 ? `<div class="questit-meta-chip">
               <span>Memory</span>
               <strong>${memoryModeLabel}</strong>
-              <small>${retentionLabel}</small>
+              <p>${retentionLabel}</p>
             </div>`
                 : ''
             }
           </div>
-        </div>
-        <section class="questit-tool" id="${TOOL_ROOT_ID}"></section>
-        <footer class="questit-footer">
-          This tool runs entirely in the browser. Remix it in the Questit workbench to customize and publish your own copy.
-        </footer>
+          <div class="questit-share-tip">
+            <strong>Want to remix it?</strong>
+            <p>Open this tool in the Questit workbench to customize the UI and publish your own link.</p>
+          </div>
+          <div class="questit-tool-frame">
+            <section class="questit-tool" id="${TOOL_ROOT_ID}"></section>
+          </div>
+          <footer class="questit-footer">
+            This tool runs entirely in the browser. Remix it in the Questit workbench to customize and publish your own copy.
+          </footer>
+        </section>
       </div>
     `;
   }
