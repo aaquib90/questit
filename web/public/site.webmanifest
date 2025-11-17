@@ -1,0 +1,17 @@
+{
+  "name": "Questit",
+  "short_name": "Questit",
+  "description": "Questit turns natural language prompts into production-ready micro-tools with shareable viewers, durable memory, and analytics.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#38bdf8",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

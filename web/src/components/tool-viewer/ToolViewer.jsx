@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { DEFAULT_THEME_KEY, buildIframeHTML } from '@/lib/themeManager.js';
 import { useToolMemory } from '@/lib/memoryClient.js';
 import { cn } from '@/lib/utils.js';
+import { useSeoMetadata } from '@/lib/seo.js';
 
 function deriveShareUrl(slug) {
   if (typeof window === 'undefined') return '';
@@ -56,6 +57,57 @@ function formatRetention(retention) {
   if (retention === 'session') return 'Clears when reset';
   if (retention === 'custom') return 'Custom';
   return 'Keeps data across visits';
+}
+
+const DEFAULT_TOOL_SUMMARY = 'Open Questit published tools and try them instantly.';
+
+function buildToolStructuredData(tool, url, image) {
+  if (!tool) return null;
+  const creatorName =
+    tool.owner_name || tool.owner?.name || tool.owner?.display_name || tool.owner?.username || null;
+
+  let resolvedImage = null;
+  if (image) {
+    try {
+      resolvedImage = new URL(image, url).toString();
+    } catch {
+      resolvedImage = image;
+    }
+  }
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: tool.title,
+    description: tool.summary || DEFAULT_TOOL_SUMMARY,
+    applicationCategory: 'WebApplication',
+    operatingSystem: 'Web',
+    url,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD'
+    }
+  };
+
+  if (resolvedImage) {
+    schema.image = resolvedImage;
+  }
+
+  if (creatorName) {
+    schema.publisher = { '@type': 'Person', name: creatorName };
+  }
+  if (tool.updated_at) {
+    schema.dateModified = tool.updated_at;
+  }
+  if (tool.created_at) {
+    schema.dateCreated = tool.created_at;
+  }
+  if (tool.slug) {
+    schema.identifier = tool.slug;
+  }
+
+  return schema;
 }
 
 function StateMessage({ title, description }) {
@@ -96,6 +148,61 @@ export default function ToolViewer({ slug, apiBase }) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const shareUrl = useMemo(() => deriveShareUrl(slug), [slug]);
+  const { status: viewerStatus, data: toolData } = viewerState;
+  const seoPayload = useMemo(() => {
+    const fallbackHref =
+      typeof window !== 'undefined'
+        ? window.location.href
+        : `https://questit.cc/tools/${encodeURIComponent(slug)}`;
+    const href = shareUrl || fallbackHref;
+
+    if (viewerStatus !== 'ready' || !toolData) {
+      return {
+        title: 'Questit Tool Viewer',
+        description: DEFAULT_TOOL_SUMMARY,
+        url: href,
+        canonical: href,
+        image: '/og-default.svg',
+        robots: 'noindex,nofollow'
+      };
+    }
+
+    const tool = toolData;
+    const visibility = tool.visibility || 'public';
+    const isPublic = visibility === 'public';
+    const dynamicOg =
+      tool.slug && typeof tool.slug === 'string'
+        ? `/api/og/tools/${encodeURIComponent(tool.slug)}.svg`
+        : null;
+    const previewImage =
+      tool.og_image_url ||
+      tool.preview_image_url ||
+      tool.cover_image ||
+      dynamicOg ||
+      '/og-default.svg';
+    const icon =
+      tool.favicon_url ||
+      tool.icon ||
+      tool.owner_avatar ||
+      tool.owner?.avatar_url ||
+      '/favicon.svg';
+    const keywords = Array.isArray(tool.tags) ? tool.tags.filter(Boolean).join(', ') : undefined;
+
+    return {
+      title: `${tool.title} · Questit Tool`,
+      description: tool.summary || DEFAULT_TOOL_SUMMARY,
+      url: href,
+      canonical: href,
+      image: previewImage,
+      icon,
+      appleIcon: icon,
+      type: 'article',
+      robots: isPublic ? 'index,follow' : 'noindex,nofollow',
+      keywords,
+      structuredData: isPublic ? buildToolStructuredData(tool, href, previewImage) : null
+    };
+  }, [viewerStatus, toolData, shareUrl, slug]);
+  useSeoMetadata(seoPayload);
 
   // Attempt to fetch a Supabase access token via the auth bridge (best-effort)
   useEffect(() => {
@@ -210,10 +317,6 @@ export default function ToolViewer({ slug, apiBase }) {
           data: payload,
           statusCode: response.status
         });
-
-        if (payload?.title && typeof document !== 'undefined') {
-          document.title = `${payload.title} · Questit`;
-        }
       } catch (error) {
         if (controller.signal.aborted) return;
         setViewerState({

@@ -242,6 +242,282 @@ const THEME_PRESETS = {
   }
 };
 
+const CANONICAL_ORIGIN_FALLBACK = 'https://questit.cc';
+
+const STATIC_SITEMAP_ROUTES = [
+  { path: '/', changefreq: 'daily', priority: '1.0' },
+  { path: '/?view=templates', changefreq: 'weekly', priority: '0.7' },
+  { path: '/?view=my-tools', changefreq: 'weekly', priority: '0.7' },
+  { path: '/?view=creator-portal', changefreq: 'weekly', priority: '0.6' }
+];
+
+const OG_THEME_PALETTES = {
+  default: { background: ['#0f172a', '#0e7490'], accent: '#38bdf8' },
+  emerald: { background: ['#064e3b', '#10b981'], accent: '#34d399' },
+  sky: { background: ['#0c4a6e', '#0ea5e9'], accent: '#38bdf8' },
+  violet: { background: ['#1e1b4b', '#7c3aed'], accent: '#c4b5fd' },
+  amber: { background: ['#78350f', '#f59e0b'], accent: '#fcd34d' },
+  rose: { background: ['#881337', '#f43f5e'], accent: '#f9a8d4' },
+  cyan: { background: ['#164e63', '#06b6d4'], accent: '#67e8f9' },
+  indigo: { background: ['#1e1b4b', '#6366f1'], accent: '#c7d2fe' },
+  lime: { background: ['#365314', '#84cc16'], accent: '#bef264' }
+};
+
+function getCanonicalOrigin(env) {
+  const raw =
+    typeof env.CANONICAL_ORIGIN === 'string' && env.CANONICAL_ORIGIN.trim()
+      ? env.CANONICAL_ORIGIN.trim()
+      : typeof env.PUBLIC_APP_ORIGIN === 'string' && env.PUBLIC_APP_ORIGIN.trim()
+        ? env.PUBLIC_APP_ORIGIN.trim()
+        : null;
+  if (!raw) return CANONICAL_ORIGIN_FALLBACK;
+  try {
+    const parsed = new URL(raw);
+    return parsed.origin;
+  } catch {
+    return CANONICAL_ORIGIN_FALLBACK;
+  }
+}
+
+function buildAbsoluteUrl(env, path = '/') {
+  const origin = getCanonicalOrigin(env);
+  if (!path || path === '/') return `${origin}/`;
+  try {
+    return new URL(path, origin).toString();
+  } catch {
+    return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+}
+
+function xmlEscape(value) {
+  if (value == null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function truncateText(value, maxLength) {
+  if (!value) return '';
+  const str = String(value).trim();
+  if (str.length <= maxLength) return str;
+  return `${str.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+async function fetchPublicPublishedTools(env, { limit = 500 } = {}) {
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseServiceRole = env.SUPABASE_SERVICE_ROLE;
+  if (!supabaseUrl || !supabaseServiceRole) {
+    return { tools: [], error: 'supabase_config_missing' };
+  }
+
+  const params = new URLSearchParams();
+  params.set(
+    'select',
+    'slug,title,summary,updated_at,created_at,visibility,tags,theme,color_mode,owner_id,view_count'
+  );
+  params.set('visibility', 'eq.public');
+  params.set('order', 'updated_at.desc.nullslast');
+  params.set('limit', String(Math.min(Math.max(limit, 1), 2000)));
+
+  const requestUrl = `${supabaseUrl}/rest/v1/published_tools?${params.toString()}`;
+
+  try {
+    const res = await fetch(requestUrl, {
+      headers: buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      return { tools: [], error: `supabase_request_failed:${res.status}:${text?.slice(0, 200) || ''}` };
+    }
+    const data = await res.json();
+    return { tools: Array.isArray(data) ? data : [], error: null };
+  } catch (error) {
+    return { tools: [], error: error?.message || 'supabase_request_exception' };
+  }
+}
+
+function buildSitemapXml(env, tools = []) {
+  const origin = getCanonicalOrigin(env);
+  const staticEntries = STATIC_SITEMAP_ROUTES.map((entry) => ({
+    ...entry,
+    loc: buildAbsoluteUrl(env, entry.path),
+    lastmod: new Date().toISOString()
+  }));
+
+  const toolEntries = [];
+  for (const tool of tools) {
+    const slug = normaliseSlug(tool.slug);
+    if (!slug) continue;
+    const visibility = (tool.visibility || 'public').toLowerCase();
+    if (visibility !== 'public') continue;
+    const loc = `${origin}/tools/${encodeURIComponent(slug)}/`;
+    const lastModified = tool.updated_at || tool.created_at || null;
+    toolEntries.push({
+      loc,
+      changefreq: 'weekly',
+      priority: '0.5',
+      lastmod: lastModified ? new Date(lastModified).toISOString() : null
+    });
+  }
+
+  const entries = [...staticEntries, ...toolEntries];
+  const body = entries
+    .map((entry) => {
+      const parts = [`    <loc>${xmlEscape(entry.loc)}</loc>`];
+      if (entry.lastmod) {
+        parts.push(`    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>`);
+      }
+      if (entry.changefreq) {
+        parts.push(`    <changefreq>${xmlEscape(entry.changefreq)}</changefreq>`);
+      }
+      if (entry.priority) {
+        parts.push(`    <priority>${xmlEscape(entry.priority)}</priority>`);
+      }
+      return `  <url>
+${parts.join('\n')}
+  </url>`;
+    })
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+}
+
+function selectOgPalette(theme, colorMode) {
+  const key = typeof theme === 'string' && theme.trim() ? theme.trim().toLowerCase() : 'default';
+  const palette = OG_THEME_PALETTES[key] || OG_THEME_PALETTES.default;
+  if (colorMode === 'dark') {
+    return palette;
+  }
+  return palette;
+}
+
+function createToolOgSvg(env, tool) {
+  const origin = getCanonicalOrigin(env);
+  const palette = selectOgPalette(tool.theme, tool.color_mode);
+  const [bgFrom, bgTo] = palette.background;
+  const accent = palette.accent;
+  const title = truncateText(tool.title || 'Questit Tool', 68);
+  const summary = truncateText(tool.summary || 'Open Questit published tools and try them instantly.', 180);
+  const slug = normaliseSlug(tool.slug) || 'tool';
+  const subtitle = `${origin.replace(/^https?:\/\//, '')}/tools/${slug}`;
+  const tags = Array.isArray(tool.tags)
+    ? tool.tags
+        .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 3)
+    : [];
+  const tagsText = tags.length ? tags.join(' • ') : 'AI • Micro-tools • Questit';
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${xmlEscape(bgFrom)}" />
+      <stop offset="100%" stop-color="${xmlEscape(bgTo)}" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" rx="48" />
+  <g opacity="0.18" stroke="${xmlEscape(accent)}" stroke-width="18" fill="none">
+    <path d="M120 160h320" stroke-linecap="round" />
+    <path d="M920 470h160" stroke-linecap="round" />
+    <circle cx="980" cy="210" r="72" />
+    <circle cx="240" cy="450" r="54" />
+  </g>
+  <g fill="#ecfeff">
+    <text x="120" y="300" font-family="'Inter', 'Segoe UI', system-ui" font-size="82" font-weight="700" letter-spacing="0.01em">
+      ${xmlEscape(title)}
+    </text>
+    <text x="120" y="380" font-family="'Inter', 'Segoe UI', system-ui" font-size="36" font-weight="400" opacity="0.92" letter-spacing="0.01em">
+      ${xmlEscape(summary)}
+    </text>
+  </g>
+  <g fill="#f8fafc" opacity="0.86">
+    <text x="120" y="450" font-family="'Inter', 'Segoe UI', system-ui" font-size="30" font-weight="500" letter-spacing="0.1em" text-transform="uppercase">
+      ${xmlEscape(tagsText)}
+    </text>
+    <text x="120" y="520" font-family="'Inter', 'Segoe UI', system-ui" font-size="30" font-weight="600" fill="${xmlEscape(accent)}">
+      ${xmlEscape(subtitle)}
+    </text>
+  </g>
+  <g transform="translate(900 320)">
+    <circle cx="120" cy="120" r="120" fill="${xmlEscape(accent)}" opacity="0.12" />
+    <circle cx="120" cy="120" r="92" fill="none" stroke="${xmlEscape(accent)}" stroke-width="8" opacity="0.6" />
+    <text x="120" y="150" text-anchor="middle" font-family="'Inter', 'Segoe UI', system-ui" font-size="48" font-weight="700" fill="#ecfeff">
+      Questit
+    </text>
+  </g>
+</svg>`;
+}
+
+async function buildSitemapResponse(env) {
+  const { tools, error } = await fetchPublicPublishedTools(env);
+  if (error) {
+    await logErrorToSentry(env, new Error('sitemap_fetch_failed'), { extra: { error } });
+  }
+  const xml = buildSitemapXml(env, tools);
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=600'
+    }
+  });
+}
+
+async function buildToolOgImageResponse(env, slug) {
+  if (!slug) {
+    return new Response('Not Found', { status: 404 });
+  }
+
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseServiceRole = env.SUPABASE_SERVICE_ROLE;
+  if (!supabaseUrl || !supabaseServiceRole) {
+    return new Response('Missing configuration', { status: 500 });
+  }
+
+  const normalized = normaliseSlug(slug);
+  if (!normalized) {
+    return new Response('Not Found', { status: 404 });
+  }
+
+  const selectUrl = `${supabaseUrl}/rest/v1/published_tools?slug=eq.${encodeURIComponent(
+    normalized
+  )}&select=slug,title,summary,visibility,tags,theme,color_mode,updated_at,created_at&limit=1`;
+
+  try {
+    const res = await fetch(selectUrl, {
+      headers: buildSupabaseHeaders(supabaseServiceRole, { Accept: 'application/json' })
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      await logErrorToSentry(env, new Error('og_lookup_failed'), {
+        extra: { status: res.status, body: text?.slice(0, 200) || null, slug: normalized }
+      });
+      return new Response('Not Found', { status: res.status === 404 ? 404 : 500 });
+    }
+    const data = await res.json();
+    const record = Array.isArray(data) ? data[0] : data;
+    if (!record || (record.visibility || 'public').toLowerCase() !== 'public') {
+      return new Response('Not Found', { status: 404 });
+    }
+    record.slug = normalized;
+    const svg = createToolOgSvg(env, record);
+    return new Response(svg, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600'
+      }
+    });
+  } catch (error) {
+    await logErrorToSentry(env, error, { extra: { slug: normalized } });
+    return new Response('Not Found', { status: 404 });
+  }
+}
+
 const DEFAULT_THEME_KEY = 'emerald';
 const SHARE_SHELL_VERSION = 'v1';
 
@@ -1806,6 +2082,32 @@ export default {
     }
 
     const pathSegments = url.pathname.split('/').filter(Boolean);
+
+    if (
+      pathSegments[0] === 'api' &&
+      pathSegments[1] === 'site' &&
+      (pathSegments[2] || '').startsWith('sitemap')
+    ) {
+      const sitemapResponse = await buildSitemapResponse(env);
+      if (request.method === 'HEAD') {
+        return withCors(
+          new Response(null, {
+            status: sitemapResponse.status,
+            headers: sitemapResponse.headers
+          }),
+          corsHeaders
+        );
+      }
+      return withCors(sitemapResponse, corsHeaders);
+    }
+
+    if (pathSegments[0] === 'api' && pathSegments[1] === 'og' && pathSegments[2] === 'tools') {
+      const rawSlug = pathSegments[3] || '';
+      const slug = rawSlug.replace(/\.svg$/i, '');
+      const ogResponse = await buildToolOgImageResponse(env, slug);
+      return withCors(ogResponse, corsHeaders);
+    }
+
     const isToolsRoute = pathSegments[0] === 'api' && pathSegments[1] === 'tools';
     const isPublishRoute = isToolsRoute && pathSegments[2] === 'publish';
 

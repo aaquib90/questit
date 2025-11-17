@@ -1,0 +1,6 @@
+# Questit robots configuration
+User-agent: *
+Allow: /
+
+Sitemap: https://questit.cc/api/site/sitemap.xml
+Sitemap: https://questit.cc/sitemap.xml

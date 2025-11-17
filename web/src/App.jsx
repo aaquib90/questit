@@ -39,8 +39,32 @@ import { trackEvent } from '@/lib/utils.js';
 import PrePromptPreview from '@/components/workbench/PrePromptPreview.jsx';
 import GeneratingAnimation from '@/components/workbench/GeneratingAnimation.jsx';
 import { resolveApiBase } from '@/lib/api.js';
+import { useSeoMetadata } from '@/lib/seo.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
+
+const VIEW_SEO_MAP = {
+  workbench: {
+    title: 'Questit Workbench · Build AI micro-tools instantly',
+    description:
+      'Compose prompts, iterate quickly, and preview Questit micro-tools with durable memory and built-in self-tests.'
+  },
+  templates: {
+    title: 'Questit Templates · Kickstart your next tool',
+    description:
+      'Browse curated Questit templates to jumpstart automations, dashboards, and assistive micro-apps in seconds.'
+  },
+  'my-tools': {
+    title: 'My Questit Tools · Manage, review, and publish',
+    description:
+      'Review your saved Questit tools, monitor memory usage, and push updates to published viewers with ease.'
+  },
+  'creator-portal': {
+    title: 'Questit Creator Portal · Publish and track usage',
+    description:
+      'Publish Questit tools, configure visibility, and monitor engagement analytics from a single dashboard.'
+  }
+};
 
 function buildShareUrl(workerName, apiBase) {
   if (!workerName) return '';
@@ -143,6 +167,18 @@ function WorkbenchApp() {
   const [saveDraft, setSaveDraft] = useState({ title: '', summary: '' });
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState('workbench');
+  const seoState = useMemo(() => {
+    const fallback = VIEW_SEO_MAP.workbench;
+    const meta = VIEW_SEO_MAP[activeView] || fallback;
+    const href = typeof window !== 'undefined' ? window.location.href : 'https://questit.cc/';
+    return {
+      ...meta,
+      url: href,
+      canonical: href,
+      image: '/og-default.svg'
+    };
+  }, [activeView]);
+  useSeoMetadata(seoState);
   const [myTools, setMyTools] = useState([]);
   const [isLoadingMyTools, setIsLoadingMyTools] = useState(false);
   const [myToolsError, setMyToolsError] = useState('');
