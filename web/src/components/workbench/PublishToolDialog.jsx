@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Globe2, Lock, KeySquare } from 'lucide-react';
 
 import {
   Dialog,
@@ -17,17 +19,20 @@ const VISIBILITY_OPTIONS = [
   {
     value: 'public',
     label: 'Public',
-    description: 'Anyone with the link can view this tool.'
+    description: 'Anyone with the link can view this tool.',
+    icon: Globe2
   },
   {
     value: 'private',
     label: 'Private',
-    description: 'Only you (while signed in) can open the tool.'
+    description: 'Only you (while signed in) can open the tool.',
+    icon: Lock
   },
   {
     value: 'passphrase',
     label: 'Passphrase',
-    description: 'Viewers must enter a passphrase you set before the tool loads.'
+    description: 'Viewers must enter a passphrase you set before the tool loads.',
+    icon: KeySquare
   }
 ];
 
@@ -41,6 +46,11 @@ function PublishToolDialog({
 }) {
   const [visibility, setVisibility] = useState(initialVisibility);
   const [passphrase, setPassphrase] = useState('');
+
+  const selectedOption = useMemo(
+    () => VISIBILITY_OPTIONS.find((option) => option.value === visibility) || VISIBILITY_OPTIONS[0],
+    [visibility]
+  );
 
   useEffect(() => {
     if (open) {
@@ -82,14 +92,31 @@ function PublishToolDialog({
               <Label htmlFor="publish-visibility">Visibility</Label>
               <Select value={visibility} onValueChange={setVisibility}>
                 <SelectTrigger id="publish-visibility" className="w-full">
-                  <SelectValue placeholder="Select visibility" />
+                  <SelectValue placeholder="Select visibility">
+                    <div className="flex items-center gap-2">
+                      {selectedOption.icon ? (
+                        <selectedOption.icon className="h-4 w-4 text-primary" aria-hidden />
+                      ) : null}
+                      <div className="flex flex-col text-left">
+                        <span className="text-sm font-medium">{selectedOption.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {selectedOption.description}
+                        </span>
+                      </div>
+                    </div>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {VISIBILITY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{option.label}</span>
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
+                      <div className="flex items-start gap-3">
+                        {option.icon ? (
+                          <option.icon className="mt-0.5 h-4 w-4 text-primary" aria-hidden />
+                        ) : null}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground">{option.description}</span>
+                        </div>
                       </div>
                     </SelectItem>
                   ))}
