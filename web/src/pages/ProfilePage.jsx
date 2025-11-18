@@ -1,36 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import SiteHeader from '@/components/layout/SiteHeader.jsx';
+import { Surface } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Surface } from '@/components/layout';
+import CreatorPortal from '@/components/account/CreatorPortal.jsx';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useSeoMetadata } from '@/lib/seo.js';
-import { Badge } from '@/components/ui/badge';
-
-function formatDate(iso) {
-  if (!iso) return 'Recently updated';
-  try {
-    const date = new Date(iso);
-    return `Updated ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
-  } catch {
-    return 'Recently updated';
-  }
-}
 
 export default function ProfilePage() {
   useSeoMetadata({
-    title: 'Questit Profile · Manage your tools',
-    description: 'View saved tools, published links, and personal settings for your Questit account.',
+    title: 'Questit · Profile',
+    description: 'Manage your Questit account, billing preferences, and creator tools.',
     url: typeof window !== 'undefined' ? window.location.href : 'https://questit.cc/profile'
   });
 
   const [user, setUser] = useState(null);
-  const [tools, setTools] = useState([]);
-  const [loadingTools, setLoadingTools] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
+  const [toolsError, setToolsError] = useState('');
 
   useEffect(() => {
     if (!hasSupabaseConfig) return undefined;
@@ -56,39 +43,8 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const loadTools = useCallback(() => {
-    if (!hasSupabaseConfig || !user) return;
-    setLoadingTools(true);
-    setErrorMessage('');
-
-    supabase
-      .from('user_tools')
-      .select('id,title,public_summary,updated_at,created_at')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(24)
-      .then(({ data, error }) => {
-        if (error) {
-          setErrorMessage(error.message || 'Unable to load your tools right now.');
-          setTools([]);
-        } else {
-          setTools(Array.isArray(data) ? data : []);
-        }
-        setLoadingTools(false);
-      })
-      .catch((error) => {
-        setErrorMessage(error.message || 'Unable to load your tools right now.');
-        setTools([]);
-        setLoadingTools(false);
-      });
-  }, [user]);
-
-  useEffect(() => {
-    loadTools();
-  }, [loadTools]);
-
-  const handleSignIn = async (event) => {
-    event.preventDefault();
+  const handleSendMagicLink = async (event) => {
+    event?.preventDefault?.();
     if (!hasSupabaseConfig) {
       setAuthStatus({
         state: 'error',
@@ -110,23 +66,23 @@ export default function ProfilePage() {
     }
   };
 
-  const headerSubtitle = useMemo(() => {
-    if (!hasSupabaseConfig) {
-      return 'Connect Supabase to enable account features.';
-    }
-    if (!user) {
-      return 'Sign in with a magic link to see your saved and published tools.';
-    }
-    return 'Review your Questit tools and keep track of what you have shared.';
+  const userLabel = useMemo(() => {
+    if (!user) return 'Creator';
+    return (
+      user.user_metadata?.full_name ||
+      (user.email ? user.email.split('@')[0] : 'Creator')
+    );
   }, [user]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader ctaLabel="Start Building" ctaHref="/build" />
+      <SiteHeader ctaLabel="Open Workbench" ctaHref="/build" />
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-10 space-y-3">
           <h1 className="text-4xl font-bold tracking-tight">Your Questit Profile</h1>
-          <p className="text-base text-muted-foreground">{headerSubtitle}</p>
+          <p className="text-base text-muted-foreground">
+            Manage subscription details, creator settings, and upcoming integrations.
+          </p>
         </header>
 
         {!hasSupabaseConfig ? (
@@ -138,7 +94,7 @@ export default function ProfilePage() {
         {hasSupabaseConfig && !user ? (
           <Surface className="space-y-4 rounded-2xl border border-border/50 bg-background/80 p-6 shadow-sm">
             <h2 className="text-xl font-semibold">Sign in with a magic link</h2>
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <form onSubmit={handleSendMagicLink} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="profile-email" className="text-sm font-medium text-foreground">
                   Email address
@@ -173,55 +129,14 @@ export default function ProfilePage() {
         ) : null}
 
         {hasSupabaseConfig && user ? (
-          <section className="space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Saved tools</h2>
-                <p className="text-sm text-muted-foreground">
-                  {loadingTools
-                    ? 'Loading…'
-                    : tools.length
-                      ? `You have ${tools.length} saved ${tools.length === 1 ? 'tool' : 'tools'}.`
-                      : 'Save a tool from the workbench to see it here.'}
-                </p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/build">Open the workbench</Link>
-              </Button>
-            </div>
-            {errorMessage ? (
-              <Surface className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                {errorMessage}
-              </Surface>
-            ) : null}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {tools.map((tool) => (
-                <Surface
-                  key={tool.id}
-                  className="flex h-full flex-col justify-between rounded-2xl border border-border/50 bg-background/80 p-5 shadow-sm"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Badge variant="outline">Saved</Badge>
-                      <span>{formatDate(tool.updated_at || tool.created_at)}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground">{tool.title || 'Untitled tool'}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {tool.public_summary || 'No summary yet—open in the workbench to add one.'}
-                    </p>
-                  </div>
-                  <div className="mt-6 flex items-center gap-3">
-                    <Button asChild size="sm">
-                      <Link to={`/build?tool=${encodeURIComponent(tool.id)}`}>Edit</Link>
-                    </Button>
-                    <Button asChild size="sm" variant="secondary">
-                      <Link to={`/tools?highlight=${encodeURIComponent(tool.id)}`}>Publish or share</Link>
-                    </Button>
-                  </div>
-                </Surface>
-              ))}
-            </div>
-          </section>
+          <CreatorPortal
+            user={user}
+            userLabel={userLabel}
+            onLogin={handleSendMagicLink}
+            toolsError={toolsError}
+            hasSupabaseConfig={hasSupabaseConfig}
+            sessionEntries={[]}
+          />
         ) : null}
       </main>
     </div>

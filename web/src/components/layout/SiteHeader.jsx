@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/build', label: 'Build' },
   { to: '/templates', label: 'Templates' },
   { to: '/tools', label: 'Tools' },
+  { to: '/my-tools', label: 'My Tools' },
   { to: '/profile', label: 'Profile' }
 ];
 

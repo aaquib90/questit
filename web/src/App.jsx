@@ -3,8 +3,9 @@ import LandingPage from '@/pages/LandingPage.jsx';
 import BuildPage from '@/pages/BuildPage.jsx';
 import TemplatesPage from '@/pages/TemplatesPage.jsx';
 import ToolsDirectoryPage from '@/pages/ToolsDirectoryPage.jsx';
-import ProfilePage from '@/pages/ProfilePage.jsx';
 import ToolViewerRoute from '@/pages/ToolViewerRoute.jsx';
+import MyToolsPage from '@/pages/MyToolsPage.jsx';
+import ProfilePage from '@/pages/ProfilePage.jsx';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/tools" element={<ToolsDirectoryPage />} />
         <Route path="/tools/:slug" element={<ToolViewerRoute />} />
+        <Route path="/my-tools" element={<MyToolsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
