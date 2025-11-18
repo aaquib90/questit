@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { publishTool as publishSavedTool } from '@questit/core/publish.js';
 import { generateTool } from '../generateTool.js';
-import WorkbenchHeader from '@/components/workbench/WorkbenchHeader.jsx';
+import SiteHeader from '@/components/layout/SiteHeader.jsx';
 import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
 import PublishToolDialog from '@/components/workbench/PublishToolDialog.jsx';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
@@ -1164,23 +1164,7 @@ function BuildPage() {
       ) : (
         <Shell as="main" className="py-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-6 lg:gap-8">
-          <WorkbenchHeader
-            activeView={activeView}
-            onSelectView={setActiveView}
-            user={user}
-            userLabel={userLabel}
-            onLogin={handleRequestLogin}
-            onSignOut={handleSignOut}
-            onNavigateHome={() => {
-              window.location.href = '/';
-            }}
-            selectedTheme={selectedTheme}
-            onThemeChange={setSelectedTheme}
-            themeOptions={THEME_OPTIONS}
-            colorMode={colorMode}
-            onColorModeChange={setColorMode}
-            colorModeOptions={COLOR_MODE_OPTIONS}
-          />
+      <SiteHeader ctaLabel="Open Templates" ctaHref="/templates" />
           <SyncBanner
             state={sessionState}
             message={sessionStatus.message}

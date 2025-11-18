@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Surface } from '@/components/layout';
@@ -7,8 +7,9 @@ import SiteHeader from '@/components/layout/SiteHeader.jsx';
 import TemplateCard from '@/components/templates/TemplateCard.jsx';
 import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog.jsx';
 import { TEMPLATE_COLLECTIONS } from '@/data/templates.js';
+import { useMemo, useState, useEffect } from 'react';
 import { useSeoMetadata } from '@/lib/seo.js';
-import { useMemo, useState } from 'react';
+import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -124,6 +125,7 @@ function selectFeaturedTemplates(limit = 6) {
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   useSeoMetadata({
     title: 'Questit · Tools that remember you',
     description:
@@ -140,6 +142,36 @@ export default function LandingPage() {
     return count;
   }, []);
   const [previewTemplate, setPreviewTemplate] = useState(null);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) return undefined;
+
+    let redirected = false;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data?.session?.user && !redirected) {
+          redirected = true;
+          navigate('/build', { replace: true });
+        }
+      })
+      .catch(() => {
+        // ignore session fetch errors on landing
+      });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user && !redirected) {
+        redirected = true;
+        navigate('/build', { replace: true });
+      }
+    });
+
+    return () => {
+      redirected = true;
+      subscription?.subscription?.unsubscribe();
+    };
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
