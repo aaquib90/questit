@@ -1,0 +1,135 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import SiteHeader from '@/components/layout/SiteHeader.jsx';
+import { Surface } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
+import { useSeoMetadata } from '@/lib/seo.js';
+
+const FALLBACK_TOOLS = [
+  {
+    slug: 'mood-journal-demo',
+    title: 'Mood Journal',
+    summary: 'Track how you feel each day with friendly emoji prompts.',
+    view_count: 1240
+  },
+  {
+    slug: 'recipe-scaler-demo',
+    title: 'Recipe Scaler',
+    summary: 'Resize any recipe for the servings you actually need.',
+    view_count: 980
+  },
+  {
+    slug: 'quick-timer-demo',
+    title: 'Quick Timer',
+    summary: 'One-tap countdown timer with 5, 10, 15, and 30 minute presets.',
+    view_count: 612
+  }
+];
+
+export default function ToolsDirectoryPage() {
+  useSeoMetadata({
+    title: 'Questit Tools · Explore published creations',
+    description: 'Discover community-built Questit tools and launch them instantly.',
+    url: typeof window !== 'undefined' ? window.location.href : 'https://questit.cc/tools'
+  });
+
+  const [tools, setTools] = useState(FALLBACK_TOOLS);
+  const [loading, setLoading] = useState(hasSupabaseConfig);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) return;
+
+    let cancelled = false;
+    setLoading(true);
+
+    supabase
+      .from('published_tools')
+      .select('slug,title,summary,view_count,updated_at,owner_id,tags')
+      .eq('visibility', 'public')
+      .order('view_count', { ascending: false })
+      .limit(30)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !Array.isArray(data) || data.length === 0) {
+          setTools(FALLBACK_TOOLS);
+          setLoading(false);
+          return;
+        }
+        const mapped = data.map((tool) => ({
+          slug: tool.slug,
+          title: tool.title || 'Questit Tool',
+          summary: tool.summary || tool.public_summary || 'Open to explore this Questit tool.',
+          view_count: Number(tool.view_count || 0),
+          updated_at: tool.updated_at,
+          tags: Array.isArray(tool.tags) ? tool.tags.filter(Boolean) : []
+        }));
+        setTools(mapped);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTools(FALLBACK_TOOLS);
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const headline = useMemo(() => {
+    if (loading) return 'Loading public tools…';
+    if (tools.length === 0) return 'No public tools yet';
+    return 'Featured public tools';
+  }, [loading, tools.length]);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+        <header className="mb-12 space-y-4 text-center">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Questit Tools</h1>
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
+            Explore what the community is building with Questit. Open any tool instantly or remix it in the workbench.
+          </p>
+        </header>
+
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-foreground">{headline}</h2>
+            <Button variant="outline" asChild>
+              <Link to="/build">Create your own</Link>
+            </Button>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {tools.map((tool) => (
+              <Surface
+                key={tool.slug}
+                muted
+                className="flex h-full flex-col justify-between rounded-2xl border border-border/40 bg-background/80 p-6 shadow-sm"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{tool.tags?.[0] || 'Questit tool'}</span>
+                    {tool.view_count ? <span>{tool.view_count.toLocaleString()} views</span> : null}
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">{tool.title}</h3>
+                  <p className="text-sm text-muted-foreground">{tool.summary}</p>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <Button asChild variant="secondary" size="sm">
+                    <Link to={`/tools/${encodeURIComponent(tool.slug)}`}>Open</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to={`/build?remix=${encodeURIComponent(tool.slug)}`}>Remix</Link>
+                  </Button>
+                </div>
+              </Surface>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}

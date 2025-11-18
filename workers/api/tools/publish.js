@@ -246,9 +246,10 @@ const CANONICAL_ORIGIN_FALLBACK = 'https://questit.cc';
 
 const STATIC_SITEMAP_ROUTES = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
-  { path: '/?view=templates', changefreq: 'weekly', priority: '0.7' },
-  { path: '/?view=my-tools', changefreq: 'weekly', priority: '0.7' },
-  { path: '/?view=creator-portal', changefreq: 'weekly', priority: '0.6' }
+  { path: '/build', changefreq: 'daily', priority: '0.9' },
+  { path: '/templates', changefreq: 'weekly', priority: '0.7' },
+  { path: '/tools', changefreq: 'weekly', priority: '0.7' },
+  { path: '/profile', changefreq: 'monthly', priority: '0.5' }
 ];
 
 const OG_THEME_PALETTES = {
