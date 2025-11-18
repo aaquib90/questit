@@ -2,10 +2,16 @@ name = "questit-publish"
 main = "publish.js"
 compatibility_date = "2025-01-01"
 
+[[routes]]
+pattern = "questit.cc/api/site/*"
+zone_name = "questit.cc"
+
+[[routes]]
+pattern = "questit.cc/api/og/*"
+zone_name = "questit.cc"
+
 [env.staging]
 name = "questit-publish-staging"
 
 [env.production]
 name = "questit-publish-prod"
-
-

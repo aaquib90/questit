@@ -199,6 +199,29 @@ function WorkbenchApp() {
   const [saveMemorySettings, setSaveMemorySettings] = useState(createDefaultMemorySettings);
   const [activeToolPlayer, setActiveToolPlayer] = useState(null);
   const composerRef = useRef(null);
+  const previewSectionRef = useRef(null);
+  const scrollPreviewIntoView = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const target = previewSectionRef.current;
+    if (!target) return;
+    let isMobileViewport = window.innerWidth <= 1024;
+    if (typeof window.matchMedia === 'function') {
+      try {
+        isMobileViewport = window.matchMedia('(max-width: 1023px)').matches;
+      } catch {
+        // ignore matchMedia failures (older browsers)
+      }
+    }
+    if (!isMobileViewport) return;
+    window.requestAnimationFrame(() => {
+      try {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+      } catch {
+        // ignore scroll errors (Safari quirks, etc.)
+      }
+    });
+  }, [previewSectionRef]);
+
   const { selectedTheme, setSelectedTheme, colorMode, setColorMode, resolvedMode } =
     useThemeManager(DEFAULT_THEME_KEY);
   const { modelId, setModelId, selectedModelOption, options: modelOptions } = useModelManager();
@@ -215,6 +238,11 @@ function WorkbenchApp() {
   useEffect(() => {
     memoryClient.ensureSessionId?.();
   }, [memoryClient]);
+  useEffect(() => {
+    if (isGenerating) {
+      scrollPreviewIntoView();
+    }
+  }, [isGenerating, scrollPreviewIntoView]);
   const publishDialogTool = useMemo(() => {
     if (!publishDialogState.toolId) return null;
     return myTools.find((tool) => tool.id === publishDialogState.toolId) || null;
@@ -1205,16 +1233,18 @@ function WorkbenchApp() {
                   memoryModeOptions={MEMORY_MODE_OPTIONS}
                   memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
                 />
-                {isGenerating ? (
-                  <GeneratingAnimation />
-                ) : (
-                  <PrePromptPreview
-                    onUsePrompt={(promptText) => {
-                      setComposerValue(promptText);
-                      setTimeout(() => composerRef.current?.focus(), 50);
-                    }}
-                  />
-                )}
+                <div ref={previewSectionRef} className="w-full scroll-mt-32">
+                  {isGenerating ? (
+                    <GeneratingAnimation />
+                  ) : (
+                    <PrePromptPreview
+                      onUsePrompt={(promptText) => {
+                        setComposerValue(promptText);
+                        setTimeout(() => composerRef.current?.focus(), 50);
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             ) : (
               <div className="grid gap-6 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-start">
@@ -1234,33 +1264,35 @@ function WorkbenchApp() {
                   memoryModeOptions={MEMORY_MODE_OPTIONS}
                   memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
                 />
-                <WorkbenchInspector
-                  hasGenerated={hasGenerated}
-                  iframeDoc={iframeDoc}
-                  saveStatus={saveStatus}
-                  toolCode={toolCode}
-                  isGenerating={isGenerating}
-                  onReset={handleResetSession}
-                  onSaveTool={handleOpenSaveDialog}
-                  sidebarProps={{
-                    modelId,
-                    setModelId,
-                    modelOptions,
-                    onResetSession: handleResetSession,
-                    canReset: hasHistory || hasGenerated,
-                    sessionStateLabel,
-                    sessionStateClass,
-                    sessionStepCount,
-                    selectedModelLabel: selectedModelOption.label,
-                    scopeDecisionLabel,
-                    scopeDecisionClasses,
-                    scopeReasons,
-                    scopeMetrics
-                  }}
-                  sessionEntries={sessionEntries}
-                  onUsePrompt={handleUsePrompt}
-                  onRetryEntry={handleRetryEntry}
-                />
+                <div ref={previewSectionRef} className="w-full scroll-mt-32">
+                  <WorkbenchInspector
+                    hasGenerated={hasGenerated}
+                    iframeDoc={iframeDoc}
+                    saveStatus={saveStatus}
+                    toolCode={toolCode}
+                    isGenerating={isGenerating}
+                    onReset={handleResetSession}
+                    onSaveTool={handleOpenSaveDialog}
+                    sidebarProps={{
+                      modelId,
+                      setModelId,
+                      modelOptions,
+                      onResetSession: handleResetSession,
+                      canReset: hasHistory || hasGenerated,
+                      sessionStateLabel,
+                      sessionStateClass,
+                      sessionStepCount,
+                      selectedModelLabel: selectedModelOption.label,
+                      scopeDecisionLabel,
+                      scopeDecisionClasses,
+                      scopeReasons,
+                      scopeMetrics
+                    }}
+                    sessionEntries={sessionEntries}
+                    onUsePrompt={handleUsePrompt}
+                    onRetryEntry={handleRetryEntry}
+                  />
+                </div>
               </div>
             )
           ) : null}
