@@ -375,10 +375,10 @@ export default function LandingPage() {
 
         <section>
           <Surface className="rounded-3xl border border-primary/20 bg-primary/10 p-10 text-center shadow-lg">
-            <h2 className="text-2xl font-semibold text-primary-foreground dark:text-primary-foreground/90">
+            <h2 className="text-2xl font-semibold text-foreground dark:text-primary-foreground/90">
               Ready to Create Something?
             </h2>
-            <p className="mt-3 text-base text-primary-foreground/80 dark:text-primary-foreground/70">
+            <p className="mt-3 text-base text-muted-foreground dark:text-primary-foreground/70">
               Join thousands of people bringing their ideas to life. Start building in seconds.
             </p>
             <div className="mt-6 flex justify-center">
