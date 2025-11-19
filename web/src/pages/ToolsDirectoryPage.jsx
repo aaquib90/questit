@@ -96,7 +96,7 @@ export default function ToolsDirectoryPage() {
         <header className="mb-12 space-y-4 text-center">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Questit Tools</h1>
           <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Explore what the community is building with Questit. Open any tool instantly or remix it in the workbench.
+            Explore what the community is building with Questit. Remix any tool in the workbench.
           </p>
         </header>
 
@@ -122,12 +122,9 @@ export default function ToolsDirectoryPage() {
                   <h3 className="text-lg font-semibold text-foreground">{tool.title}</h3>
                   <p className="text-sm text-muted-foreground">{tool.summary}</p>
                 </div>
-                <div className="mt-6 flex items-center justify-between">
-                  <Button asChild variant="secondary" size="sm">
-                    <Link to={`/tools/${encodeURIComponent(tool.slug)}`}>Open</Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="sm">
-                    <Link to={`/build?remix=${encodeURIComponent(tool.slug)}`}>Remix</Link>
+                <div className="mt-6 flex items-center justify-end">
+                  <Button asChild size="sm">
+                    <Link to={`/build?remix=${encodeURIComponent(tool.slug)}`}>Remix in Workbench</Link>
                   </Button>
                 </div>
               </Surface>
