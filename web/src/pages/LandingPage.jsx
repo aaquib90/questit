@@ -242,41 +242,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-2">
-          <Surface className="flex h-full flex-col gap-4 rounded-3xl border border-destructive/20 bg-destructive/5 p-8 shadow-sm">
-            <h2 className="text-2xl font-semibold text-destructive">Why most tools fail you</h2>
-            <p className="text-sm text-muted-foreground">
-              You launch a tool, fill it out, and the next time you open it everything is gone. Sound familiar?
-            </p>
-            <ul className="space-y-3 text-sm text-destructive">
-              {MEMORY_PAIN_POINTS.map((point) => (
-                <li key={point} className="flex items-start gap-2">
-                  <span aria-hidden>✖</span>
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </Surface>
-          <Surface className="flex h-full flex-col gap-4 rounded-3xl border border-primary/20 bg-primary/5 p-8 shadow-sm">
-            <h2 className="text-2xl font-semibold text-primary">How Questit is different</h2>
-            <p className="text-sm text-muted-foreground">
-              Every Questit tool can remember what matters—without you wiring up databases or auth.
-            </p>
-            <ul className="space-y-3 text-sm text-foreground">
-              {MEMORY_SOLUTIONS.map((point) => (
-                <li key={point} className="flex items-start gap-2">
-                  <span aria-hidden>✔</span>
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-            <div>
-              <Button asChild>
-                <Link to="/tools">See published examples</Link>
-              </Button>
-            </div>
-          </Surface>
-        </section>
+        
 
         <section className="space-y-6">
           <div className="text-center">
