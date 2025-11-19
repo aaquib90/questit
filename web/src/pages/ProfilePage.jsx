@@ -70,6 +70,15 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (error) {
+      setAuthStatus({ state: 'error', message: error?.message || 'Unable to sign out.' });
+    }
+  };
+
   const userLabel = useMemo(() => {
     if (!user) return 'Creator';
     return (
@@ -85,6 +94,9 @@ export default function ProfilePage() {
         ctaHref="/build"
         colorMode={colorMode}
         onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+        user={user}
+        onLogin={handleSendMagicLink}
+        onLogout={handleSignOut}
       />
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-10 space-y-3">

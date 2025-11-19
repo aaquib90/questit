@@ -112,6 +112,25 @@ export default function MyToolsPage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setTools([]);
+    } catch (error) {
+      setErrorMessage(error?.message || 'Unable to sign out right now.');
+    }
+  };
+
+  const handleRequestLogin = () => {
+    setAuthStatus({ state: 'idle', message: '' });
+    const emailField = document.getElementById('profile-email');
+    if (emailField) {
+      emailField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      emailField.focus();
+    }
+  };
+
   const headerSubtitle = useMemo(() => {
     if (!hasSupabaseConfig) {
       return 'Connect Supabase to enable account features.';
@@ -129,6 +148,9 @@ export default function MyToolsPage() {
         ctaHref="/build"
         colorMode={colorMode}
         onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+        user={user}
+        onLogin={handleRequestLogin}
+        onLogout={handleSignOut}
       />
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-10 space-y-3">

@@ -18,7 +18,6 @@ import CreatorPortal from '@/components/account/CreatorPortal.jsx';
 import SavedToolPlayer from '@/components/my-tools/SavedToolPlayer.jsx';
 import { buildIframeHTML, DEFAULT_THEME_KEY, useThemeManager } from '@/lib/themeManager.js';
 import { useModelManager } from '@/lib/modelManager.js';
-import { Shell } from '@/components/layout';
 import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
 import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
@@ -35,6 +34,13 @@ import { useSeoMetadata } from '@/lib/seo.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
+
+const VIEW_TABS = [
+  { id: 'workbench', label: 'Workbench' },
+  { id: 'templates', label: 'Templates' },
+  { id: 'my-tools', label: 'My Tools' },
+  { id: 'creator-portal', label: 'Profile' }
+];
 
 
 const VIEW_SEO_MAP = {
@@ -1143,6 +1149,15 @@ function BuildPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SiteHeader
+        ctaLabel="Open Templates"
+        ctaHref="/templates"
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+        user={user}
+        onLogin={handleRequestLogin}
+        onLogout={handleSignOut}
+      />
       {playerTool ? (
         <SavedToolPlayer
           tool={playerTool}
@@ -1158,19 +1173,32 @@ function BuildPage() {
           onClearMemory={() => handleClearToolMemory(playerTool.id)}
         />
       ) : (
-        <Shell as="main" className="py-6 sm:py-8 lg:py-10">
-        <div className="flex flex-col gap-6 lg:gap-8">
-      <SiteHeader
-        ctaLabel="Open Templates"
-        ctaHref="/templates"
-        colorMode={colorMode}
-        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
-      />
-          <SyncBanner
-            state={sessionState}
-            message={sessionStatus.message}
-            className="mx-auto w-full max-w-5xl"
-          />
+        <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Workbench
+            </h1>
+            <p className="text-sm text-muted-foreground sm:text-base">
+              Compose new tools, remix templates, and publish experiences that remember your users.
+            </p>
+          </div>
+
+          <nav className="flex flex-wrap items-center gap-3 border-b border-border/40 pb-4">
+            {VIEW_TABS.map((tab) => (
+              <Button
+                key={tab.id}
+                type="button"
+                variant={activeView === tab.id ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-full px-4"
+                onClick={() => setActiveView(tab.id)}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </nav>
+
+          <SyncBanner state={sessionState} message={sessionStatus.message} className="w-full" />
 
           {activeView === 'templates' ? (
             <TemplatesView
@@ -1526,8 +1554,7 @@ function BuildPage() {
               onOpenDocs={handleOpenDocs}
             />
           ) : null}
-          </div>
-        </Shell>
+        </main>
       )}
       <SaveToolDialog
         open={saveDialogOpen}
