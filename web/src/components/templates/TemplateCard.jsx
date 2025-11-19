@@ -144,7 +144,7 @@ export default function TemplateCard({ template, onPreview, onUse }) {
             See how it looks
           </Button>
           <Button asChild variant="ghost" shape="pill" className="w-full px-5 sm:w-auto">
-            <Link to={`/templates/${encodeURIComponent(template.id)}`}>View details</Link>
+            <Link to={`/templates/${encodeURIComponent(template.id)}`}>Take it for a spin</Link>
           </Button>
         </div>
       </div>
