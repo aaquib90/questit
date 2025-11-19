@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/layout';
+import { Link } from 'react-router-dom';
 
 const TONES = {
 	emerald: {
@@ -86,7 +87,11 @@ export default function TemplateCard({ template, onPreview, onUse }) {
           </Badge>
         </div>
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+          <h3 className="text-xl font-semibold text-foreground">
+            <Link to={`/templates/${encodeURIComponent(template.id)}`} className="hover:underline">
+              {title}
+            </Link>
+          </h3>
           <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -138,6 +143,11 @@ export default function TemplateCard({ template, onPreview, onUse }) {
           >
             See how it looks
           </Button>
+          <Link to={`/templates/${encodeURIComponent(template.id)}`} className="w-full sm:w-auto">
+            <Button variant="ghost" shape="pill" className="w-full px-5">
+              View details
+            </Button>
+          </Link>
         </div>
       </div>
     </Surface>
