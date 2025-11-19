@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandLogo from '@/components/layout/BrandLogo.jsx';
+import { Moon, Sun } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/build', label: 'Build' },
@@ -17,7 +18,15 @@ function navLinkClass({ isActive }) {
   ].join(' ');
 }
 
-export default function SiteHeader({ ctaLabel = 'Start Building', ctaHref = '/build' }) {
+export default function SiteHeader({
+  ctaLabel = 'Start Building',
+  ctaHref = '/build',
+  colorMode,
+  onToggleColorMode
+}) {
+  const showColorToggle = typeof colorMode === 'string' && typeof onToggleColorMode === 'function';
+  const ModeIcon = colorMode === 'dark' ? Sun : Moon;
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/75 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -42,6 +51,16 @@ export default function SiteHeader({ ctaLabel = 'Start Building', ctaHref = '/bu
               </NavLink>
             ))}
           </nav>
+          {showColorToggle ? (
+            <button
+              type="button"
+              onClick={onToggleColorMode}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background text-muted-foreground transition hover:text-foreground"
+              aria-label={colorMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              <ModeIcon className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
           <Button asChild className="hidden md:inline-flex">
             <Link to={ctaHref}>{ctaLabel}</Link>
           </Button>

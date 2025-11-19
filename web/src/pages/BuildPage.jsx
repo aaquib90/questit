@@ -16,13 +16,7 @@ import SaveToolDialog from '@/components/workbench/SaveToolDialog.jsx';
 import PublishToolDialog from '@/components/workbench/PublishToolDialog.jsx';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
 import SavedToolPlayer from '@/components/my-tools/SavedToolPlayer.jsx';
-import {
-  buildIframeHTML,
-  COLOR_MODE_OPTIONS,
-  DEFAULT_THEME_KEY,
-  THEME_OPTIONS,
-  useThemeManager
-} from '@/lib/themeManager.js';
+import { buildIframeHTML, DEFAULT_THEME_KEY, useThemeManager } from '@/lib/themeManager.js';
 import { useModelManager } from '@/lib/modelManager.js';
 import { Shell } from '@/components/layout';
 import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPanel.jsx';
@@ -42,12 +36,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
-const VIEW_TABS = [
-  { id: 'workbench', label: 'Workbench' },
-  { id: 'templates', label: 'Templates' },
-  { id: 'my-tools', label: 'My Tools' },
-  { id: 'creator-portal', label: 'Profile' }
-];
 
 const VIEW_SEO_MAP = {
   workbench: {
@@ -1172,51 +1160,12 @@ function BuildPage() {
       ) : (
         <Shell as="main" className="py-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-6 lg:gap-8">
-      <SiteHeader ctaLabel="Open Templates" ctaHref="/templates" />
-      <div className="border-b border-border/40 bg-background/80">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex flex-wrap items-center gap-2">
-            {VIEW_TABS.map((tab) => (
-              <Button
-                key={tab.id}
-                type="button"
-                variant={activeView === tab.id ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView(tab.id)}
-                className="min-w-[120px] justify-center"
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={colorMode} onValueChange={setColorMode}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Mode" />
-              </SelectTrigger>
-              <SelectContent align="end">
-                {COLOR_MODE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedTheme} onValueChange={setSelectedTheme}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Theme" />
-              </SelectTrigger>
-              <SelectContent align="end">
-                {THEME_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+      <SiteHeader
+        ctaLabel="Open Templates"
+        ctaHref="/templates"
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+      />
           <SyncBanner
             state={sessionState}
             message={sessionStatus.message}

@@ -10,6 +10,7 @@ import { TEMPLATE_COLLECTIONS } from '@/data/templates.js';
 import { useMemo, useState, useEffect } from 'react';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
+import { useThemeManager } from '@/lib/themeManager.js';
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -175,7 +176,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
+      <SiteHeader
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+      />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-20 px-4 py-16 sm:px-6 sm:py-20">
         <section className="text-center">
           <Badge variant="outline" className="mx-auto mb-6 flex w-fit items-center gap-2">

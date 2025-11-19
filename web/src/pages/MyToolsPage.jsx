@@ -7,6 +7,7 @@ import { Surface } from '@/components/layout';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { Badge } from '@/components/ui/badge';
+import { useThemeManager } from '@/lib/themeManager.js';
 
 function formatDate(iso) {
   if (!iso) return 'Recently updated';
@@ -19,6 +20,7 @@ function formatDate(iso) {
 }
 
 export default function MyToolsPage() {
+  const { colorMode, setColorMode } = useThemeManager();
   useSeoMetadata({
     title: 'Questit · My tools',
     description: 'View saved Questit tools, re-open them in the workbench, and get ready to publish.',
@@ -122,7 +124,12 @@ export default function MyToolsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader ctaLabel="Start Building" ctaHref="/build" />
+      <SiteHeader
+        ctaLabel="Start Building"
+        ctaHref="/build"
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+      />
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-10 space-y-3">
           <h1 className="text-4xl font-bold tracking-tight">My Tools</h1>

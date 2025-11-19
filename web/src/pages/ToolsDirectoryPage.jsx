@@ -5,6 +5,7 @@ import { Surface } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useSeoMetadata } from '@/lib/seo.js';
+import { useThemeManager } from '@/lib/themeManager.js';
 
 const FALLBACK_TOOLS = [
   {
@@ -28,6 +29,7 @@ const FALLBACK_TOOLS = [
 ];
 
 export default function ToolsDirectoryPage() {
+  const { colorMode, setColorMode } = useThemeManager();
   useSeoMetadata({
     title: 'Questit Tools · Explore published creations',
     description: 'Discover community-built Questit tools and launch them instantly.',
@@ -86,7 +88,10 @@ export default function ToolsDirectoryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
+      <SiteHeader
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+      />
       <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-12 space-y-4 text-center">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Questit Tools</h1>

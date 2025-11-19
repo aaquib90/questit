@@ -3,9 +3,11 @@ import SiteHeader from '@/components/layout/SiteHeader.jsx';
 import { Surface } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CreatorPortal from '@/components/account/CreatorPortal.jsx';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useSeoMetadata } from '@/lib/seo.js';
+import { getThemeOptions, useThemeManager } from '@/lib/themeManager.js';
 
 export default function ProfilePage() {
   useSeoMetadata({
@@ -18,6 +20,8 @@ export default function ProfilePage() {
   const [authEmail, setAuthEmail] = useState('');
   const [authStatus, setAuthStatus] = useState({ state: 'idle', message: '' });
   const [toolsError, setToolsError] = useState('');
+  const { selectedTheme, setSelectedTheme, colorMode, setColorMode } = useThemeManager();
+  const themeOptions = getThemeOptions();
 
   useEffect(() => {
     if (!hasSupabaseConfig) return undefined;
@@ -76,7 +80,12 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader ctaLabel="Open Workbench" ctaHref="/build" />
+      <SiteHeader
+        ctaLabel="Open Workbench"
+        ctaHref="/build"
+        colorMode={colorMode}
+        onToggleColorMode={() => setColorMode((mode) => (mode === 'dark' ? 'light' : 'dark'))}
+      />
       <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-10 space-y-3">
           <h1 className="text-4xl font-bold tracking-tight">Your Questit Profile</h1>
@@ -125,6 +134,35 @@ export default function ProfilePage() {
                 {authStatus.state === 'loading' ? 'Sending…' : 'Send magic link'}
               </Button>
             </form>
+          </Surface>
+        ) : null}
+
+        {hasSupabaseConfig && user ? (
+          <Surface className="mb-8 space-y-3 rounded-2xl border border-border/50 bg-background/80 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold">Appearance</h2>
+            <p className="text-sm text-muted-foreground">
+              Choose a theme for the Questit workbench and published tools. Changes apply immediately.
+            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <span className="text-sm font-medium text-foreground">Color theme</span>
+                <p className="text-xs text-muted-foreground">
+                  Currently using <strong>{themeOptions.find((option) => option.value === selectedTheme)?.label || selectedTheme}</strong>.
+                </p>
+              </div>
+              <Select value={selectedTheme} onValueChange={setSelectedTheme}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select theme" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {themeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </Surface>
         ) : null}
 
