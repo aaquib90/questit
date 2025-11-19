@@ -143,11 +143,9 @@ export default function TemplateCard({ template, onPreview, onUse }) {
           >
             See how it looks
           </Button>
-          <Link to={`/templates/${encodeURIComponent(template.id)}`} className="w-full sm:w-auto">
-            <Button variant="ghost" shape="pill" className="w-full px-5">
-              View details
-            </Button>
-          </Link>
+          <Button asChild variant="ghost" shape="pill" className="w-full px-5">
+            <Link to={`/templates/${encodeURIComponent(template.id)}`}>View details</Link>
+          </Button>
         </div>
       </div>
     </Surface>
