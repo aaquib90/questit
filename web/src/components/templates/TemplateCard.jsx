@@ -127,7 +127,7 @@ export default function TemplateCard({ template, onPreview, onUse }) {
             </ul>
           </div>
         ) : null}
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             shape="pill"
             className="w-full px-5 sm:w-auto"
@@ -143,7 +143,7 @@ export default function TemplateCard({ template, onPreview, onUse }) {
           >
             See how it looks
           </Button>
-          <Button asChild variant="ghost" shape="pill" className="w-full px-5">
+          <Button asChild variant="ghost" shape="pill" className="w-full px-5 sm:w-auto">
             <Link to={`/templates/${encodeURIComponent(template.id)}`}>View details</Link>
           </Button>
         </div>
