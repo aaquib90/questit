@@ -366,8 +366,13 @@ export default function LandingPage() {
                 <li>• Advanced publish analytics</li>
               </ul>
               <div className="mt-auto text-sm text-muted-foreground">Join the waitlist to lock in founder pricing.</div>
-              <Button variant="secondary" disabled>
-                Waitlist coming soon
+              <Button
+                variant="secondary"
+                data-tally-open="b559Z7"
+                data-tally-emoji-text="👋"
+                data-tally-emoji-animation="wave"
+              >
+                Join Waitlist
               </Button>
             </Surface>
           </div>
