@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { useThemeManager } from '@/lib/themeManager.js';
+import ToolPreviewDialog from '@/components/tool-viewer/ToolPreviewDialog.jsx';
 
 const FALLBACK_TOOLS = [
   {
@@ -38,6 +39,7 @@ export default function ToolsDirectoryPage() {
 
   const [tools, setTools] = useState(FALLBACK_TOOLS);
   const [loading, setLoading] = useState(hasSupabaseConfig);
+  const [preview, setPreview] = useState({ open: false, slug: '', title: '', summary: '' });
 
   useEffect(() => {
     if (!hasSupabaseConfig) return;
@@ -122,7 +124,23 @@ export default function ToolsDirectoryPage() {
                   <h3 className="text-lg font-semibold text-foreground">{tool.title}</h3>
                   <p className="text-sm text-muted-foreground">{tool.summary}</p>
                 </div>
-                <div className="mt-6 flex items-center justify-end">
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    shape="pill"
+                    className="w-full px-5 sm:w-auto"
+                    onClick={() =>
+                      setPreview({
+                        open: true,
+                        slug: tool.slug,
+                        title: tool.title,
+                        summary: tool.summary
+                      })
+                    }
+                  >
+                    See how it looks
+                  </Button>
                   <Button asChild size="sm">
                     <Link to={`/build?remix=${encodeURIComponent(tool.slug)}`}>Remix in Workbench</Link>
                   </Button>
@@ -132,6 +150,13 @@ export default function ToolsDirectoryPage() {
           </div>
         </section>
       </main>
+      <ToolPreviewDialog
+        open={preview.open}
+        onOpenChange={(open) => setPreview((prev) => ({ ...prev, open }))}
+        slug={preview.slug}
+        title={preview.title}
+        summary={preview.summary}
+      />
     </div>
   );
 }
