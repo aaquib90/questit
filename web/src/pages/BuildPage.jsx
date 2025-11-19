@@ -1183,21 +1183,6 @@ function BuildPage() {
             </p>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-3 border-b border-border/40 pb-4">
-            {VIEW_TABS.map((tab) => (
-              <Button
-                key={tab.id}
-                type="button"
-                variant={activeView === tab.id ? 'default' : 'ghost'}
-                size="sm"
-                className="rounded-full px-4"
-                onClick={() => setActiveView(tab.id)}
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </nav>
-
           <SyncBanner state={sessionState} message={sessionStatus.message} className="w-full" />
 
           {activeView === 'templates' ? (
