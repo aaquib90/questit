@@ -127,6 +127,7 @@ function selectFeaturedTemplates(limit = 6) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { colorMode, setColorMode } = useThemeManager();
   useSeoMetadata({
     title: 'Questit · Tools that remember you',
     description:
