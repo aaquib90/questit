@@ -1020,7 +1020,7 @@ function buildUserWorkerScript(tool, assetBaseUrl, authBridgeOrigin) {
     (assetBaseUrl || 'https://questit.cc/share-shell').replace(/\/$/, '');
   const cssHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.css`;
   const jsHref = `${assetBase}/${SHARE_SHELL_VERSION}/share.js`;
-  const faviconHref = 'https://questit.cc/favicon.svg';
+  const faviconHref = 'https://questit.cc/favicon.png';
   const explicitAuthOrigin =
     typeof authBridgeOrigin === 'string' && authBridgeOrigin.trim()
       ? authBridgeOrigin.trim()
@@ -1063,7 +1063,7 @@ function buildUserWorkerScript(tool, assetBaseUrl, authBridgeOrigin) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${shellTitle}</title>
-    <link rel="icon" type="image/svg+xml" href="${faviconHref}">
+    <link rel="icon" type="image/png" href="${faviconHref}">
     <link rel="apple-touch-icon" href="${faviconHref}">
     <link rel="stylesheet" href="${cssHref}">
   </head>
@@ -1099,7 +1099,7 @@ function buildUserWorkerScript(tool, assetBaseUrl, authBridgeOrigin) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Restricted tool · Questit</title>
-    <link rel="icon" type="image/svg+xml" href="${faviconHref}">
+    <link rel="icon" type="image/png" href="${faviconHref}">
     <link rel="apple-touch-icon" href="${faviconHref}">
     <style>
       :root {

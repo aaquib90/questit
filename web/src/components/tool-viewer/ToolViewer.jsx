@@ -185,7 +185,7 @@ export default function ToolViewer({ slug, apiBase }) {
       tool.icon ||
       tool.owner_avatar ||
       tool.owner?.avatar_url ||
-      '/favicon.svg';
+      '/favicon.png';
     const keywords = Array.isArray(tool.tags) ? tool.tags.filter(Boolean).join(', ') : undefined;
 
     return {
