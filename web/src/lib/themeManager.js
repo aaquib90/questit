@@ -305,9 +305,20 @@ body {
 `;
 }
 
+function decodeEscapedWhitespace(value) {
+  if (!value || typeof value !== 'string') return value || '';
+  if (!value.includes('\\')) return value;
+  return value
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\r/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '  ');
+}
+
 export function buildIframeHTML({ html = '', css = '', js = '' }, themeKey, mode = 'light') {
   const themeCss = buildThemeCss(themeKey);
   const htmlClass = mode === 'dark' ? ' class="dark"' : '';
+  const normalizedHtml = decodeEscapedWhitespace(html || '<p>No HTML returned.</p>');
   return `<!doctype html>
 <html${htmlClass}>
 <head>
@@ -316,7 +327,7 @@ export function buildIframeHTML({ html = '', css = '', js = '' }, themeKey, mode
 ${css || ''}</style>
 </head>
 <body>
-${html || '<p>No HTML returned.</p>'}
+${normalizedHtml || '<p>No HTML returned.</p>'}
 <script type="module">
 ${js || ''}
 </script>

@@ -5,6 +5,16 @@ import { QUESTIT_UI_STYLES } from './ui-kit.js';
 
 const RUNTIME_VERSION = '2025.11.09';
 
+function decodeEscapedWhitespace(value) {
+  if (!value || typeof value !== 'string') return value || '';
+  if (!value.includes('\\')) return value;
+  return value
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\r/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '  ');
+}
+
 function createBaseContainer(tool) {
   const container = document.createElement('section');
   container.className = 'questit-tool-container';
@@ -22,7 +32,7 @@ function createBaseContainer(tool) {
 
   const body = document.createElement('div');
   body.className = 'questit-tool-body';
-  body.innerHTML = tool.html;
+  body.innerHTML = decodeEscapedWhitespace(tool.html);
 
   const errorBanner = document.createElement('div');
   errorBanner.className = 'questit-tool-error';
