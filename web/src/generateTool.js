@@ -11,6 +11,50 @@ Always return a STRICT JSON object with exactly these top-level keys: html, css,
 
 const DEFAULT_ENDPOINT = 'https://questit.cc/api/ai/proxy';
 
+function buildMetadataPayload(requestMetadata, promptText) {
+  if (!requestMetadata || typeof requestMetadata !== 'object') {
+    return null;
+  }
+  const payload = {};
+  const {
+    sessionEntryId,
+    promptLength,
+    promptIndex,
+    plan,
+    userId,
+    requestKind,
+    isRetry
+  } = requestMetadata;
+  if (typeof sessionEntryId === 'string' && sessionEntryId.trim()) {
+    payload.sessionEntryId = sessionEntryId.trim();
+  }
+  const resolvedPromptLength =
+    typeof promptLength === 'number'
+      ? promptLength
+      : typeof promptText === 'string'
+        ? promptText.length
+        : null;
+  if (typeof resolvedPromptLength === 'number') {
+    payload.promptLength = resolvedPromptLength;
+  }
+  if (typeof promptIndex === 'number' && Number.isFinite(promptIndex)) {
+    payload.promptIndex = promptIndex;
+  }
+  if (typeof plan === 'string' && plan.trim()) {
+    payload.plan = plan.trim();
+  }
+  if (typeof userId === 'string' && userId.trim()) {
+    payload.userId = userId.trim();
+  }
+  if (typeof requestKind === 'string' && requestKind.trim()) {
+    payload.requestKind = requestKind.trim();
+  }
+  if (typeof isRetry === 'boolean') {
+    payload.isRetry = isRetry;
+  }
+  return Object.keys(payload).length ? payload : null;
+}
+
 function buildMemoryGuidance(memoryConfig) {
   if (!memoryConfig || memoryConfig.mode === 'none') {
     return '';
@@ -59,12 +103,13 @@ export async function generateTool(
   previousCode,
   options = {}
 ) {
-  const { modelConfig = {}, memoryConfig } = options;
+  const { modelConfig = {}, memoryConfig, requestMetadata } = options;
   const provider = (modelConfig.provider || 'openai').toLowerCase();
   const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini';
   const model = modelConfig.model || defaultModel;
   const memoryGuidance = buildMemoryGuidance(memoryConfig);
   const input = buildIterationInput(prompt, previousCode, memoryGuidance);
+  const metadataPayload = buildMetadataPayload(requestMetadata, prompt);
 
   const body = {
     system: SYSTEM_PROMPT,
@@ -77,6 +122,9 @@ export async function generateTool(
       model
     }
   };
+  if (metadataPayload) {
+    body.metadata = metadataPayload;
+  }
 
   const res = await fetch(endpoint, {
     method: 'POST',

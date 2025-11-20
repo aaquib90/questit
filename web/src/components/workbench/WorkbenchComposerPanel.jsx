@@ -21,12 +21,30 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
     memorySettings,
     onChangeMemorySettings,
     memoryModeOptions,
-    memoryRetentionOptions
+    memoryRetentionOptions,
+    maxPromptLength = 500,
+    promptLength = 0,
+    promptLimit = null,
+    promptCount = 0,
+    remainingPromptSlots = null,
+    isPromptLimitReached = false,
+    isOverCharLimit = false
   },
   ref
 ) {
   const [showSettings, setShowSettings] = useState(false);
   const canSaveTool = hasGenerated && typeof onSaveTool === 'function';
+  const remainingCharacters = Math.max(maxPromptLength - promptLength, 0);
+  const promptsRemaining =
+    typeof remainingPromptSlots === 'number'
+      ? remainingPromptSlots
+      : typeof promptLimit === 'number'
+        ? Math.max(promptLimit - promptCount, 0)
+        : null;
+  const promptLimitMessage =
+    typeof promptLimit === 'number'
+      ? `Free plan: ${promptsRemaining} prompt${promptsRemaining === 1 ? '' : 's'} left in this tool.`
+      : null;
 
   const adaptivePlaceholder = useMemo(() => {
     return 'e.g., Create a password generator with options for length and special characters...';
@@ -94,17 +112,28 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
               placeholder={adaptivePlaceholder}
               className="min-h-[140px] resize-y text-sm leading-relaxed"
               disabled={isGenerating}
+              maxLength={maxPromptLength}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span className="mr-1">💡</span> Tip: Be specific about what you want—the more details, the
               better!
-            </p>
+              <span className={isOverCharLimit ? 'text-destructive' : ''}>
+                {remainingCharacters} characters left
+              </span>
+            </div>
+            {typeof promptLimit === 'number' ? (
+              <p className="text-[11px] text-muted-foreground">
+                {promptLimitMessage}
+              </p>
+            ) : null}
           </div>
           <div className="pt-1 flex flex-col gap-3 sm:flex-row">
             <Button
               type="button"
               size="lg"
-              disabled={isGenerating || !composerValue?.trim()}
+              disabled={
+                isGenerating || !composerValue?.trim() || isOverCharLimit || isPromptLimitReached
+              }
               onClick={onSubmit}
               className="w-full gap-2 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-500/90 hover:to-violet-500/90"
             >
@@ -136,6 +165,12 @@ const WorkbenchComposerPanel = forwardRef(function WorkbenchComposerPanel(
               {showSettings ? 'Hide Settings' : 'Show Settings'}
             </Button>
           </div>
+          {isPromptLimitReached ? (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] text-destructive">
+              You reached the free plan limit of {promptLimit} prompts for this tool. Reset to start a
+              fresh session.
+            </div>
+          ) : null}
           {showSettings ? (
             <AdvancedControlsDrawer
               modelOptions={modelOptions}

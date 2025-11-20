@@ -69,7 +69,8 @@ export default {
       input,
       options = {},
       provider: requestedProvider,
-      model: requestedModel
+      model: requestedModel,
+      metadata = null
     } = parsedBody;
     const provider = (requestedProvider || options.provider || 'openai').toLowerCase();
     const model = requestedModel || options.model;
@@ -101,21 +102,30 @@ export default {
 
     switch (provider) {
       case 'openai':
-        return handleOpenAI({ system, input, options, corsHeaders, env, model, expectJson });
+        return handleOpenAI({ system, input, options, corsHeaders, env, model, expectJson, metadata });
       case 'gemini':
       case 'google':
       case 'google-gemini':
-        return handleGemini({ system, input, options, corsHeaders, env, model, expectJson });
+        return handleGemini({ system, input, options, corsHeaders, env, model, expectJson, metadata });
       case 'anthropic':
       case 'claude':
-        return handleAnthropic({ system, input, options, corsHeaders, env, model, expectJson });
+        return handleAnthropic({ system, input, options, corsHeaders, env, model, expectJson, metadata });
       default:
         return errorJson(400, 'unsupported_provider', `Unsupported provider: ${provider}`);
     }
   }
 };
 
-async function handleOpenAI({ system, input, options, corsHeaders, env, model, expectJson }) {
+async function handleOpenAI({
+  system,
+  input,
+  options,
+  corsHeaders,
+  env,
+  model,
+  expectJson,
+  metadata
+}) {
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) {
     return new Response(
@@ -206,6 +216,12 @@ async function handleOpenAI({ system, input, options, corsHeaders, env, model, e
       { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+  await recordUsageEvent(env, {
+    provider: 'openai',
+    model: payload.model,
+    usage: data?.usage,
+    metadata
+  });
 
   if (expectJson) {
     try {
@@ -246,7 +262,16 @@ async function handleOpenAI({ system, input, options, corsHeaders, env, model, e
   });
 }
 
-async function handleGemini({ system, input, options, corsHeaders, env, model, expectJson }) {
+async function handleGemini({
+  system,
+  input,
+  options,
+  corsHeaders,
+  env,
+  model,
+  expectJson,
+  metadata
+}) {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     return new Response(
@@ -356,6 +381,12 @@ async function handleGemini({ system, input, options, corsHeaders, env, model, e
       { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+  await recordUsageEvent(env, {
+    provider: 'gemini',
+    model: selectedModel,
+    usage: data?.usageMetadata,
+    metadata
+  });
 
   if (expectJson) {
     try {
@@ -395,7 +426,16 @@ async function handleGemini({ system, input, options, corsHeaders, env, model, e
   });
 }
 
-async function handleAnthropic({ system, input, options, corsHeaders, env, model, expectJson }) {
+async function handleAnthropic({
+  system,
+  input,
+  options,
+  corsHeaders,
+  env,
+  model,
+  expectJson,
+  metadata
+}) {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return new Response(
@@ -503,6 +543,12 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
   }
 
   const responseBody = aggregatedText || '';
+  await recordUsageEvent(env, {
+    provider: 'anthropic',
+    model: selectedModel,
+    usage: data?.usage,
+    metadata
+  });
 
   if (expectJson) {
     try {
@@ -541,4 +587,100 @@ async function handleAnthropic({ system, input, options, corsHeaders, env, model
   return new Response(JSON.stringify({ content: responseBody || data }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
+}
+
+const numberOrNull = (value) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const stringOrNull = (value) =>
+  typeof value === 'string' && value.trim() ? value.trim() : null;
+
+const sumNumbers = (a, b) => {
+  const first = numberOrNull(a);
+  const second = numberOrNull(b);
+  if (first !== null && second !== null) {
+    return first + second;
+  }
+  if (first !== null) return first;
+  if (second !== null) return second;
+  return null;
+};
+
+function normalizeUsageTokens(provider, usage) {
+  if (!usage || typeof usage !== 'object') {
+    return null;
+  }
+  const lowerProvider = (provider || '').toLowerCase();
+  if (lowerProvider === 'openai') {
+    return {
+      inputTokens: numberOrNull(usage.prompt_tokens),
+      outputTokens: numberOrNull(usage.completion_tokens),
+      totalTokens:
+        numberOrNull(usage.total_tokens) ??
+        sumNumbers(usage.prompt_tokens, usage.completion_tokens)
+    };
+  }
+  if (lowerProvider === 'gemini' || lowerProvider === 'google' || lowerProvider === 'google-gemini') {
+    return {
+      inputTokens: numberOrNull(usage.promptTokenCount),
+      outputTokens: numberOrNull(usage.candidatesTokenCount),
+      totalTokens:
+        numberOrNull(usage.totalTokenCount) ??
+        sumNumbers(usage.promptTokenCount, usage.candidatesTokenCount)
+    };
+  }
+  if (lowerProvider === 'anthropic' || lowerProvider === 'claude') {
+    return {
+      inputTokens: numberOrNull(usage.input_tokens),
+      outputTokens: numberOrNull(usage.output_tokens),
+      totalTokens:
+        numberOrNull(usage.total_tokens) ??
+        sumNumbers(usage.input_tokens, usage.output_tokens)
+    };
+  }
+  return null;
+}
+
+function buildSupabaseHeaders(serviceRole, extra = {}) {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${serviceRole}`,
+    apikey: serviceRole,
+    ...extra
+  };
+}
+
+async function recordUsageEvent(env, details) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE) {
+    return;
+  }
+  const normalized = normalizeUsageTokens(details?.provider, details?.usage);
+  if (!normalized) {
+    return;
+  }
+  const metadata = details?.metadata && typeof details.metadata === 'object' ? details.metadata : {};
+  const payload = {
+    provider: (details?.provider || '').toLowerCase(),
+    model: stringOrNull(details?.model),
+    input_tokens: normalized.inputTokens,
+    output_tokens: normalized.outputTokens,
+    total_tokens:
+      normalized.totalTokens ?? sumNumbers(normalized.inputTokens, normalized.outputTokens),
+    prompt_length: numberOrNull(metadata.promptLength),
+    prompt_index: numberOrNull(metadata.promptIndex),
+    session_entry_id: stringOrNull(metadata.sessionEntryId),
+    user_id: stringOrNull(metadata.userId),
+    user_plan: stringOrNull(metadata.plan),
+    request_kind: stringOrNull(metadata.requestKind),
+    is_retry: typeof metadata.isRetry === 'boolean' ? metadata.isRetry : false
+  };
+  try {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/ai_usage_events`, {
+      method: 'POST',
+      headers: buildSupabaseHeaders(env.SUPABASE_SERVICE_ROLE, { Prefer: 'return=minimal' }),
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    console.warn('Failed to record AI usage event', error);
+  }
 }

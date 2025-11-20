@@ -119,6 +119,10 @@ function formatMemoryRetentionLabel(value) {
   return match ? match.label : MEMORY_RETENTION_OPTIONS[0].label;
 }
 
+const MAX_PROMPT_LENGTH = 500;
+const FREE_PROMPT_LIMIT = 10;
+const PREMIUM_PLANS = new Set(['pro', 'team', 'enterprise']);
+
 function BuildPage() {
   const [composerValue, setComposerValue] = useState(DEFAULT_PROMPT);
   const [sessionEntries, setSessionEntries] = useState([]);
@@ -168,6 +172,10 @@ function BuildPage() {
   const [memorySettings, setMemorySettings] = useState(createDefaultMemorySettings);
   const [saveMemorySettings, setSaveMemorySettings] = useState(createDefaultMemorySettings);
   const [activeToolPlayer, setActiveToolPlayer] = useState(null);
+  useEffect(() => {
+    if ((composerValue || '').length <= MAX_PROMPT_LENGTH) return;
+    setComposerValue((value) => (value || '').slice(0, MAX_PROMPT_LENGTH));
+  }, [composerValue]);
   const composerRef = useRef(null);
   const previewSectionRef = useRef(null);
   const scrollPreviewIntoView = useCallback(() => {
@@ -253,6 +261,20 @@ function BuildPage() {
         : sessionState === 'loading'
           ? 'text-primary'
           : 'text-muted-foreground';
+  const normalizedPlan = (user?.app_metadata?.plan || 'free').toLowerCase();
+  const promptLimit = PREMIUM_PLANS.has(normalizedPlan)
+    ? Number.POSITIVE_INFINITY
+    : FREE_PROMPT_LIMIT;
+  const promptCount = useMemo(
+    () => sessionEntries.filter((entry) => entry.status !== 'draft').length,
+    [sessionEntries]
+  );
+  const isPromptLimitReached = Number.isFinite(promptLimit) ? promptCount >= promptLimit : false;
+  const remainingPromptSlots = Number.isFinite(promptLimit)
+    ? Math.max(promptLimit - promptCount, 0)
+    : null;
+  const composerLength = (composerValue || '').length;
+  const isOverCharLimit = composerLength > MAX_PROMPT_LENGTH;
 
   const scopeGate = useMemo(() => scopeGateRequest(composerValue || ''), [composerValue]);
   const scopeDecision = scopeGate.decision;
@@ -285,10 +307,30 @@ function BuildPage() {
   const executePrompt = async ({ promptText, reuseEntryId = null } = {}) => {
     const trimmed = (promptText || '').trim();
     if (!trimmed || isGenerating) return;
+    if (trimmed.length > MAX_PROMPT_LENGTH) {
+      setSessionStatus({
+        state: 'error',
+        message: `Prompts are limited to ${MAX_PROMPT_LENGTH} characters. Please shorten your request.`
+      });
+      return;
+    }
+    if (!reuseEntryId && Number.isFinite(promptLimit) && promptCount >= promptLimit) {
+      setSessionStatus({
+        state: 'error',
+        message: `Free sessions include ${promptLimit} prompts per tool. Reset the workbench to keep exploring.`
+      });
+      return;
+    }
 
     const entryId = reuseEntryId || createEntryId();
     const timestamp = new Date().toISOString();
     const modelLabel = selectedModelOption.label;
+    const targetEntryIndex = sessionEntries.findIndex((entry) => entry.id === entryId);
+    const promptIndex = reuseEntryId
+      ? targetEntryIndex >= 0
+        ? targetEntryIndex + 1
+        : null
+      : promptCount + 1;
 
     setSessionEntries((previous) => {
       if (reuseEntryId) {
@@ -334,9 +376,19 @@ function BuildPage() {
         model: selectedModelOption.model
       };
       const previousCode = hasGenerated ? toolCode : undefined;
+      const requestMetadata = {
+        sessionEntryId: entryId,
+        promptLength: trimmed.length,
+        promptIndex,
+        plan: normalizedPlan,
+        userId: user?.id || null,
+        requestKind: hasGenerated ? 'iteration' : 'initial',
+        isRetry: Boolean(reuseEntryId)
+      };
       const result = await generateTool(trimmed, endpoint, previousCode, {
         modelConfig,
-        memoryConfig: memorySettings
+        memoryConfig: memorySettings,
+        requestMetadata
       });
 
       setToolCode(result);
@@ -378,6 +430,20 @@ function BuildPage() {
   };
 
   const handlePromptSubmit = () => {
+    if (isPromptLimitReached) {
+      setSessionStatus({
+        state: 'error',
+        message: `Free sessions include ${promptLimit} prompts per tool. Reset the workbench to keep exploring.`
+      });
+      return;
+    }
+    if ((composerValue || '').trim().length > MAX_PROMPT_LENGTH) {
+      setSessionStatus({
+        state: 'error',
+        message: `Prompts are limited to ${MAX_PROMPT_LENGTH} characters. Please shorten your request.`
+      });
+      return;
+    }
     trackEvent('generate_clicked', { hasHistory, model: selectedModelOption.id });
     executePrompt({ promptText: composerValue });
   };
@@ -1212,6 +1278,13 @@ function BuildPage() {
                   onChangeMemorySettings={setMemorySettings}
                   memoryModeOptions={MEMORY_MODE_OPTIONS}
                   memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
+                  maxPromptLength={MAX_PROMPT_LENGTH}
+                  promptLength={composerLength}
+                  promptLimit={Number.isFinite(promptLimit) ? promptLimit : null}
+                  promptCount={promptCount}
+                  remainingPromptSlots={remainingPromptSlots}
+                  isPromptLimitReached={isPromptLimitReached}
+                  isOverCharLimit={isOverCharLimit}
                 />
                 <div ref={previewSectionRef} className="w-full scroll-mt-32">
                   {isGenerating ? (
@@ -1243,6 +1316,13 @@ function BuildPage() {
                   onChangeMemorySettings={setMemorySettings}
                   memoryModeOptions={MEMORY_MODE_OPTIONS}
                   memoryRetentionOptions={MEMORY_RETENTION_OPTIONS}
+                  maxPromptLength={MAX_PROMPT_LENGTH}
+                  promptLength={composerLength}
+                  promptLimit={Number.isFinite(promptLimit) ? promptLimit : null}
+                  promptCount={promptCount}
+                  remainingPromptSlots={remainingPromptSlots}
+                  isPromptLimitReached={isPromptLimitReached}
+                  isOverCharLimit={isOverCharLimit}
                 />
                 <div ref={previewSectionRef} className="w-full scroll-mt-32">
                   <WorkbenchInspector
