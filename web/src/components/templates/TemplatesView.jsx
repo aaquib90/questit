@@ -92,27 +92,32 @@ function filterTemplates(collections, { query, category, phoneOnly, aiFilters })
       const filteredTemplates = collection.templates.filter((template) => {
         if (category !== 'all' && collection.id !== category) return false;
         if (phoneOnly && !(template.audience || []).includes(PHONE_FRIENDLY_FLAG)) return false;
-        const haystack = [
+
+        const haystackFragments = [
           template.title,
           template.summary,
           template.description,
+          template.prompt,
           ...(template.tags || []),
           ...(template.audience || [])
-        ]
-          .join(' ')
-          .toLowerCase();
+        ].filter(Boolean);
+        const haystack = haystackFragments.join(' ').toLowerCase();
         const matchesQuery = normalizedQuery ? haystack.includes(normalizedQuery) : true;
+
         const matchesAiKeywords = aiKeywords.length
-          ? aiKeywords.every((keyword) => haystack.includes(keyword))
+          ? aiKeywords.some((keyword) => haystack.includes(keyword))
           : true;
+
         const templateCategorySlug = slugify(template.category || collection.id);
         const matchesAiCategories = aiCategories.length
           ? aiCategories.some((slug) => slug === templateCategorySlug)
           : true;
+
         const templateTags = (template.tags || []).map((tag) => tag.toLowerCase());
         const matchesAiTags = aiTags.length
-          ? aiTags.every((tag) => templateTags.includes(tag))
+          ? aiTags.some((tag) => templateTags.includes(tag))
           : true;
+
         return matchesQuery && matchesAiKeywords && matchesAiCategories && matchesAiTags;
       });
 
