@@ -4,10 +4,12 @@ import { useSeoMetadata } from '@/lib/seo.js';
 import { useThemeManager } from '@/lib/themeManager.js';
 import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
 import TemplatesView from '@/components/templates/TemplatesView.jsx';
+import { useToast } from '@/components/ui/toast-provider.jsx';
 
 export default function TemplatesPage() {
   const { colorMode, setColorMode } = useThemeManager();
   const { collections, status, error, retry } = useTemplateLibrary({ fetchRemote: true });
+  const { push } = useToast();
   useSeoMetadata({
     title: 'Questit Templates · Jumpstart your next tool',
     description: 'Browse curated Questit templates to remix or publish instantly.',
@@ -16,6 +18,14 @@ export default function TemplatesPage() {
 
   const navigate = useNavigate();
   const isLoading = status === 'loading';
+  const handleApplyTemplate = (template) => {
+    const templateName = template?.title || template?.name || 'Template';
+    push({
+      title: `${templateName} loading…`,
+      description: 'Opening in the workbench.'
+    });
+    navigate(`/build?template=${encodeURIComponent(template.id)}`);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -36,7 +46,7 @@ export default function TemplatesPage() {
         ) : null}
         <TemplatesView
           collections={collections}
-          onApplyTemplate={(template) => navigate(`/build?template=${encodeURIComponent(template.id)}`)}
+          onApplyTemplate={handleApplyTemplate}
           isLoading={isLoading}
           errorMessage={error || ''}
           onRetry={retry}

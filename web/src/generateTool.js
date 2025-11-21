@@ -11,6 +11,12 @@ Always return a STRICT JSON object with exactly these top-level keys: html, css,
 
 const DEFAULT_ENDPOINT = 'https://questit.cc/api/ai/proxy';
 
+const DEFAULT_MODEL_BY_PROVIDER = {
+  gemini: 'gemini-2.5-flash',
+  anthropic: 'claude-3-5-haiku-20241022',
+  openai: 'gpt-4o-mini'
+};
+
 function buildMetadataPayload(requestMetadata, promptText) {
   if (!requestMetadata || typeof requestMetadata !== 'object') {
     return null;
@@ -105,7 +111,7 @@ export async function generateTool(
 ) {
   const { modelConfig = {}, memoryConfig, requestMetadata } = options;
   const provider = (modelConfig.provider || 'openai').toLowerCase();
-  const defaultModel = provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini';
+  const defaultModel = DEFAULT_MODEL_BY_PROVIDER[provider] || DEFAULT_MODEL_BY_PROVIDER.openai;
   const model = modelConfig.model || defaultModel;
   const memoryGuidance = buildMemoryGuidance(memoryConfig);
   const input = buildIterationInput(prompt, previousCode, memoryGuidance);

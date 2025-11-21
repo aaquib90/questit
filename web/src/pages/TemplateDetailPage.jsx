@@ -9,6 +9,7 @@ import { buildIframeHTML, DEFAULT_THEME_KEY, useThemeManager } from '@/lib/theme
 import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient.js';
 import { buildVariantTitle, resolveTemplateDescriptor } from '@/lib/templateUtils.js';
+import { useToast } from '@/components/ui/toast-provider.jsx';
 
 const LOCAL_MEMORY_PREFIX = 'questit.template.memory.';
 
@@ -134,6 +135,7 @@ export default function TemplateDetailPage() {
   const templateToolId = templateSlug ? `template-${templateSlug}` : null;
   const storageKey = templateToolId ? `${LOCAL_MEMORY_PREFIX}${templateToolId}` : null;
   const [memoryEntries, setMemoryEntries] = useState([]);
+  const { push } = useToast();
 
   const shareUrl = useMemo(() => {
     if (typeof window === 'undefined') return `https://questit.cc/templates/${encodeURIComponent(id)}`;
@@ -185,7 +187,10 @@ export default function TemplateDetailPage() {
         )
         .ilike('name', `${nameGuess}%`)
         .limit(1)
-        .maybeSingle();
+        .then(({ data, error }) => ({
+          data: Array.isArray(data) ? data[0] || null : data,
+          error
+        }));
     };
 
     fetchBySlug()
@@ -219,6 +224,13 @@ export default function TemplateDetailPage() {
 
   const descriptor = resolveTemplateDescriptor(resolvedTemplate);
   const variantTitle = resolvedTemplate ? buildVariantTitle(resolvedTemplate) : 'Template';
+  const announceTemplateApply = useCallback(() => {
+    if (!resolvedTemplate) return;
+    push({
+      title: `${variantTitle} loading…`,
+      description: 'Opening in the workbench.'
+    });
+  }, [push, resolvedTemplate, variantTitle]);
 
   const iframeDoc = useMemo(() => {
     if (!resolvedTemplate) return '';
@@ -420,7 +432,7 @@ export default function TemplateDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/build?template=${encodeURIComponent(id)}`}>
+            <Link to={`/build?template=${encodeURIComponent(id)}`} onClick={announceTemplateApply}>
               <Button size="sm" className="gap-2">Open in Workbench</Button>
             </Link>
             <Button variant="outline" size="sm" className="gap-2" onClick={handleCopy}>
@@ -449,7 +461,7 @@ export default function TemplateDetailPage() {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link to={`/build?template=${encodeURIComponent(id)}`}>
+              <Link to={`/build?template=${encodeURIComponent(id)}`} onClick={announceTemplateApply}>
                 <Button size="sm">Use this template</Button>
               </Link>
               <Link to="/templates">

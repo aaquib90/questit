@@ -78,7 +78,7 @@ Key references:
   - Inserts a placeholder `tool_instances` row so self-test reporting has a valid foreign key.
 
 ### Endpoints (public surface)
-- `POST /api/ai/proxy` – AI model proxy (OpenAI/Gemini), server-side keys.
+- `POST /api/ai/proxy` – AI model proxy (OpenAI, Gemini, Anthropic), server-side keys.
 - `GET /api/github/*` – GitHub file proxy.
 - `POST /api/package` – Downloadable single-file HTML package.
 - `POST /api/tools/publish` – Publish a User Worker (WfP).
@@ -91,7 +91,7 @@ Key references:
 
 ### Notable Recent Changes
 - AI integration:
-- `web/src/generateTool.js` adds iteration input construction and strict JSON parsing; defaults to `gpt-4o-mini` or `gemini-2.5-flash` (with legacy Gemini 1.5 available in the UI).
+- `web/src/generateTool.js` adds iteration input construction and strict JSON parsing; defaults per provider (`gpt-4o-mini` or `gemini-2.5-flash`, with legacy Gemini 1.5 available in the UI).
   - `workers/api/ai/proxy.js` implements provider switching with clean pass-through of JSON content and CORS.
   - `src/ai/ai-model.js` remains a thin client wrapper used by core paths.
 - Web workbench:

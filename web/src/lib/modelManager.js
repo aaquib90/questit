@@ -48,4 +48,3 @@ export function useModelManager() {
     options: MODEL_OPTIONS
   };
 }
-

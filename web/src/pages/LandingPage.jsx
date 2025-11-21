@@ -11,6 +11,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useThemeManager } from '@/lib/themeManager.js';
+import { useToast } from '@/components/ui/toast-provider.jsx';
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -127,6 +128,7 @@ function selectFeaturedTemplates(limit = 6) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { push } = useToast();
   const { colorMode, setColorMode } = useThemeManager();
   useSeoMetadata({
     title: 'Questit · Tools that remember you',
@@ -275,7 +277,11 @@ export default function LandingPage() {
                 template={template}
                 onPreview={() => setPreviewTemplate(template)}
                 onUse={() => {
-                  window.location.href = `/build?template=${encodeURIComponent(template.id)}`;
+                  push({
+                    title: `${template.title || 'Template'} loading…`,
+                    description: 'Opening in the workbench.'
+                  });
+                  navigate(`/build?template=${encodeURIComponent(template.id)}`);
                 }}
               />
             ))}

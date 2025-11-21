@@ -37,6 +37,12 @@ const MIN_HTML_LENGTH = 80;
 const MIN_CSS_LENGTH = 40;
 const MIN_JS_LENGTH = 80;
 
+const DEFAULT_MODEL_BY_PROVIDER = {
+  gemini: 'gemini-2.5-flash',
+  anthropic: 'claude-3-5-haiku-20241022',
+  openai: 'gpt-4o-mini'
+};
+
 function normaliseName(row) {
   return row?.Name?.trim() || row?.name?.trim() || 'unknown';
 }
@@ -206,6 +212,7 @@ async function main() {
       const marketingName = meta?.marketing_name?.trim();
       const entryName = marketingName || (descriptor ? `${normaliseName(row)} · ${descriptor}` : normaliseName(row));
 
+      const fallbackModel = DEFAULT_MODEL_BY_PROVIDER[provider] || DEFAULT_MODEL_BY_PROVIDER.openai;
       const entry = {
         sourceKey: key,
         name: entryName || 'Untitled Tool',
@@ -217,7 +224,7 @@ async function main() {
         css: code.css || '',
         js: code.js || '',
         model_provider: provider,
-        model_name: model || (provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini'),
+        model_name: model || fallbackModel,
         generated_at: new Date().toISOString(),
         status: 'success'
       };

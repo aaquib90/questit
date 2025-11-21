@@ -102,7 +102,31 @@ export default {
 
     switch (provider) {
       case 'openai':
-        return handleOpenAI({ system, input, options, corsHeaders, env, model, expectJson, metadata });
+        return handleOpenAI({
+          system,
+          input,
+          options,
+          corsHeaders,
+          env,
+          model,
+          expectJson,
+          metadata,
+          providerName: 'openai'
+        });
+      case 'codex':
+        return handleOpenAI({
+          system,
+          input,
+          options,
+          corsHeaders,
+          env,
+          model,
+          expectJson,
+          metadata,
+          providerName: 'codex',
+          apiKeyOverride: env.CODEX_API_KEY || env.OPENAI_API_KEY,
+          defaultModel: 'gpt-5.1-codex-max'
+        });
       case 'gemini':
       case 'google':
       case 'google-gemini':
@@ -124,20 +148,27 @@ async function handleOpenAI({
   env,
   model,
   expectJson,
-  metadata
+  metadata,
+  providerName = 'openai',
+  apiKeyOverride,
+  defaultModel
 }) {
-  const apiKey = env.OPENAI_API_KEY;
+  const apiKey = apiKeyOverride || env.OPENAI_API_KEY;
   if (!apiKey) {
+    const missingMessage =
+      providerName === 'codex'
+        ? 'CODEX_API_KEY or OPENAI_API_KEY not configured'
+        : 'OPENAI_API_KEY not configured';
     return new Response(
       JSON.stringify({
-        error: { code: 'config_missing', message: 'OPENAI_API_KEY not configured' }
+        error: { code: 'config_missing', message: missingMessage }
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
   const payload = {
-    model: model || options?.model || 'gpt-4o-mini',
+    model: model || options?.model || defaultModel || 'gpt-4o-mini',
     messages: [
       { role: 'system', content: system || '' },
       { role: 'user', content: input || '' }
@@ -166,7 +197,7 @@ async function handleOpenAI({
       details = await res.text().catch(() => null);
     }
     await logErrorToSentry(env, new Error('OpenAI upstream_error'), {
-      extra: { provider: 'openai', status: res.status, details }
+      extra: { provider: providerName, status: res.status, details }
     });
     return new Response(
       JSON.stringify({
@@ -203,7 +234,7 @@ async function handleOpenAI({
   const content = data.choices?.[0]?.message?.content || '';
   if (!content) {
     await logErrorToSentry(env, new Error('OpenAI empty_content'), {
-      extra: { provider: 'openai', data }
+      extra: { provider: providerName, data }
     });
     return new Response(
       JSON.stringify({
@@ -217,7 +248,7 @@ async function handleOpenAI({
     );
   }
   await recordUsageEvent(env, {
-    provider: 'openai',
+    provider: providerName,
     model: payload.model,
     usage: data?.usage,
     metadata
@@ -227,7 +258,7 @@ async function handleOpenAI({
     try {
       const parsed = typeof content === 'string' ? JSON.parse(content) : content;
       await capturePosthogEvent(env, 'ai_proxy_request', {
-        provider: 'openai',
+        provider: providerName,
         model: payload.model || null,
         json_ok: true
       });
@@ -236,7 +267,7 @@ async function handleOpenAI({
       });
     } catch {
       await logErrorToSentry(env, new Error('OpenAI non_json_content'), {
-        extra: { provider: 'openai' }
+        extra: { provider: providerName }
       });
       return new Response(
         JSON.stringify({
@@ -253,7 +284,7 @@ async function handleOpenAI({
 
   // Fallback: return raw content string
   await capturePosthogEvent(env, 'ai_proxy_request', {
-    provider: 'openai',
+    provider: providerName,
     model: payload.model || null,
     json_ok: false
   });
@@ -611,7 +642,7 @@ function normalizeUsageTokens(provider, usage) {
     return null;
   }
   const lowerProvider = (provider || '').toLowerCase();
-  if (lowerProvider === 'openai') {
+  if (lowerProvider === 'openai' || lowerProvider === 'codex') {
     return {
       inputTokens: numberOrNull(usage.prompt_tokens),
       outputTokens: numberOrNull(usage.completion_tokens),
