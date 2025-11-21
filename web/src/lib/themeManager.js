@@ -315,19 +315,23 @@ function decodeEscapedWhitespace(value) {
     .replace(/\\t/g, '  ');
 }
 
-export function buildIframeHTML({ html = '', css = '', js = '' }, themeKey, mode = 'light') {
+export function buildIframeHTML({ html = '', css = '', js = '' }, themeKey, mode = 'light', options = {}) {
   const themeCss = buildThemeCss(themeKey);
   const htmlClass = mode === 'dark' ? ' class="dark"' : '';
   const normalizedHtml = decodeEscapedWhitespace(html || '<p>No HTML returned.</p>');
+  const headScripts = options.headScripts || '';
+  const bodyScripts = options.bodyScripts || '';
   return `<!doctype html>
 <html${htmlClass}>
 <head>
 <meta charset="utf-8"/>
+${headScripts}
 <style>${themeCss}
 ${css || ''}</style>
 </head>
 <body>
 ${normalizedHtml || '<p>No HTML returned.</p>'}
+${bodyScripts}
 <script type="module">
 ${js || ''}
 </script>

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Surface } from '@/components/layout';
 import { flattenTemplates } from '@/data/templates.js';
 import { resolveApiBase } from '@/lib/api.js';
-import { Loader2, Sparkles, X } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
 import TemplateCard from './TemplateCard.jsx';
 import TemplatePreviewDialog from './TemplatePreviewDialog.jsx';
