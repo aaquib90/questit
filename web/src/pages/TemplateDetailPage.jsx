@@ -7,6 +7,7 @@ import { getTemplateById } from '@/data/templates.js';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { buildIframeHTML, DEFAULT_THEME_KEY, useThemeManager } from '@/lib/themeManager.js';
 import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
+import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient.js';
 import { buildVariantTitle, resolveTemplateDescriptor } from '@/lib/templateUtils.js';
 
 const LOCAL_MEMORY_PREFIX = 'questit.template.memory.';
@@ -123,10 +124,13 @@ export default function TemplateDetailPage() {
   const { id = '' } = useParams();
   const { collections, status, error } = useTemplateLibrary({ fetchRemote: true });
   const template = useMemo(() => getTemplateById(id, collections), [id, collections]);
+  const [remoteTemplate, setRemoteTemplate] = useState(null);
+  const [remoteStatus, setRemoteStatus] = useState('idle');
+  const resolvedTemplate = template || remoteTemplate;
   const { selectedTheme, resolvedMode } = useThemeManager(DEFAULT_THEME_KEY);
   const [copyState, setCopyState] = useState('idle');
   const iframeRef = useRef(null);
-  const templateSlug = template?.slug || id;
+  const templateSlug = resolvedTemplate?.slug || id;
   const templateToolId = templateSlug ? `template-${templateSlug}` : null;
   const storageKey = templateToolId ? `${LOCAL_MEMORY_PREFIX}${templateToolId}` : null;
   const [memoryEntries, setMemoryEntries] = useState([]);
@@ -137,15 +141,62 @@ export default function TemplateDetailPage() {
     return `${origin}/templates/${encodeURIComponent(id)}`;
   }, [id]);
 
-  const descriptor = resolveTemplateDescriptor(template);
-  const variantTitle = template ? buildVariantTitle(template) : 'Template';
+  useEffect(() => {
+    if (template || !id || !hasSupabaseConfig) {
+      setRemoteTemplate(null);
+      setRemoteStatus(template ? 'success' : 'idle');
+      return undefined;
+    }
+    let isActive = true;
+    setRemoteStatus('loading');
+    supabase
+      .from('template_library')
+      .select(
+        'id, slug, template_key, name, descriptor, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
+      )
+      .eq('slug', id)
+      .maybeSingle()
+      .then(({ data, error: queryError }) => {
+        if (!isActive) return;
+        if (queryError || !data) {
+          setRemoteTemplate(null);
+          setRemoteStatus('error');
+          return;
+        }
+        const normalised = {
+          ...data,
+          id: data.slug || data.id || data.template_key,
+          preview: {
+            html: data.preview_html || data.html || '',
+            css: data.preview_css || data.css || '',
+            js: data.preview_js || data.js || ''
+          },
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          audience: Array.isArray(data.audience) ? data.audience : [],
+          quickTweaks: Array.isArray(data.quick_tweaks) ? data.quick_tweaks : []
+        };
+        setRemoteTemplate(normalised);
+        setRemoteStatus('success');
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setRemoteTemplate(null);
+        setRemoteStatus('error');
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [id, template]);
+
+  const descriptor = resolveTemplateDescriptor(resolvedTemplate);
+  const variantTitle = resolvedTemplate ? buildVariantTitle(resolvedTemplate) : 'Template';
 
   const iframeDoc = useMemo(() => {
-    if (!template) return '';
+    if (!resolvedTemplate) return '';
     const memoryScript = templateToolId ? buildTemplateMemoryBootstrap(templateToolId) : '';
-    const previewHtml = template.preview?.html || template.html || '';
-    const previewCss = template.preview?.css || template.css || '';
-    const previewJs = template.preview?.js || template.js || '';
+    const previewHtml = resolvedTemplate.preview?.html || resolvedTemplate.html || '';
+    const previewCss = resolvedTemplate.preview?.css || resolvedTemplate.css || '';
+    const previewJs = resolvedTemplate.preview?.js || resolvedTemplate.js || '';
     if (!previewHtml && !previewCss && !previewJs) return '';
     return buildIframeHTML(
       {
@@ -157,18 +208,20 @@ export default function TemplateDetailPage() {
       resolvedMode || 'light',
       { bodyScripts: memoryScript }
     );
-  }, [template, templateToolId, selectedTheme, resolvedMode]);
+  }, [resolvedTemplate, templateToolId, selectedTheme, resolvedMode]);
 
   const structuredData = useMemo(() => {
-    if (!template) return null;
+    if (!resolvedTemplate) return null;
     const url = shareUrl;
-    const keywords = Array.isArray(template.tags) ? template.tags.filter(Boolean).join(', ') : undefined;
+    const keywords = Array.isArray(resolvedTemplate.tags)
+      ? resolvedTemplate.tags.filter(Boolean).join(', ')
+      : undefined;
     return {
       '@context': 'https://schema.org',
       '@type': 'CreativeWork',
-      name: `${template.title} Template`,
-      headline: template.title,
-      description: template.summary,
+      name: `${resolvedTemplate.title} Template`,
+      headline: resolvedTemplate.title,
+      description: resolvedTemplate.summary,
       keywords,
       url,
       isPartOf: {
@@ -177,7 +230,7 @@ export default function TemplateDetailPage() {
         url: (typeof window !== 'undefined' ? `${window.location.origin}` : 'https://questit.cc') + '/templates'
       }
     };
-  }, [template, shareUrl]);
+  }, [resolvedTemplate, shareUrl]);
 
   const syncMemoryEntries = useCallback(() => {
     if (!storageKey) {
@@ -233,16 +286,18 @@ export default function TemplateDetailPage() {
   }, [storageKey, templateToolId]);
 
   useSeoMetadata(
-    template
+    resolvedTemplate
       ? {
-          title: `${template.title} Template · Questit`,
-          description: template.summary,
+          title: `${resolvedTemplate.title} Template · Questit`,
+          description: resolvedTemplate.summary,
           url: shareUrl,
           canonical: shareUrl,
           image: `/og/templates/${encodeURIComponent(id)}.svg`,
           type: 'article',
           robots: 'index,follow',
-          keywords: Array.isArray(template.tags) ? template.tags.filter(Boolean).join(', ') : undefined,
+          keywords: Array.isArray(resolvedTemplate.tags)
+            ? resolvedTemplate.tags.filter(Boolean).join(', ')
+            : undefined,
           structuredData
         }
       : {
@@ -265,7 +320,7 @@ export default function TemplateDetailPage() {
     }
   };
 
-  if (!template && status === 'loading') {
+  if (!resolvedTemplate && (status === 'loading' || remoteStatus === 'loading')) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <main className="py-10">
@@ -280,7 +335,7 @@ export default function TemplateDetailPage() {
     );
   }
 
-  if (!template) {
+  if (!resolvedTemplate) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <main className="py-10">
@@ -307,7 +362,7 @@ export default function TemplateDetailPage() {
     );
   }
 
-  const { summary, audience = [], tags = [] } = template;
+  const { summary, audience = [], tags = [] } = resolvedTemplate;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
