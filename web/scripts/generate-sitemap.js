@@ -11,9 +11,44 @@ const sitemapPath = path.join(publicDir, 'sitemap.xml');
 const ogTemplatesDir = path.join(publicDir, 'og', 'templates');
 
 async function loadTemplates() {
+  const supabaseUrl =
+    process.env.SITEMAP_SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    '';
+  const supabaseAnonKey =
+    process.env.SITEMAP_SUPABASE_ANON_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    '';
+
+  if (supabaseUrl && supabaseAnonKey) {
+    try {
+      const restEndpoint = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/template_library?select=slug,name,summary&status=eq.published`;
+      const response = await fetch(restEndpoint, {
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Supabase fetch failed (${response.status})`);
+      }
+      const rows = await response.json();
+      if (Array.isArray(rows) && rows.length) {
+        return rows.map((row) => ({
+          id: row.slug || row.id || row.template_key,
+          title: row.name || 'Questit Template',
+          summary: row.summary || ''
+        }));
+      }
+    } catch (error) {
+      console.warn('[generate-sitemap] Supabase template fetch failed, falling back to static data.', error);
+    }
+  }
+
   const templatesModulePath = path.join(webRoot, 'src', 'data', 'templates.js');
   const mod = await import(pathToFileUrl(templatesModulePath));
-  // TEMPLATE_COLLECTIONS is the source of truth
   const collections = mod.TEMPLATE_COLLECTIONS || [];
   const all = [];
   for (const collection of collections) {
@@ -159,5 +194,4 @@ main().catch((err) => {
   console.error('[generate-sitemap] Failed:', err);
   process.exit(1);
 });
-
 

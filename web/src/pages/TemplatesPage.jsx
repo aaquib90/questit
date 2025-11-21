@@ -1,12 +1,9 @@
-import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SiteHeader from '@/components/layout/SiteHeader.jsx';
-import TemplateCard from '@/components/templates/TemplateCard.jsx';
-import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog.jsx';
-import { flattenTemplates as flattenTemplateCollections } from '@/data/templates.js';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { useThemeManager } from '@/lib/themeManager.js';
 import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
+import TemplatesView from '@/components/templates/TemplatesView.jsx';
 
 export default function TemplatesPage() {
   const { colorMode, setColorMode } = useThemeManager();
@@ -18,15 +15,6 @@ export default function TemplatesPage() {
   });
 
   const navigate = useNavigate();
-  const templates = useMemo(
-    () =>
-      flattenTemplateCollections(collections).map((template) => ({
-        ...template,
-        collectionTitle: template.collectionTitle || template.category || 'Templates'
-      })),
-    [collections]
-  );
-  const [previewTemplate, setPreviewTemplate] = useState(null);
   const isLoading = status === 'loading';
 
   return (
@@ -46,30 +34,13 @@ export default function TemplatesPage() {
         {error ? (
           <p className="mb-6 text-center text-sm text-destructive">{error}</p>
         ) : null}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              onPreview={() => setPreviewTemplate(template)}
-              onUse={() => navigate(`/build?template=${encodeURIComponent(template.id)}`)}
-            />
-          ))}
-          {!templates.length && isLoading ? (
-            <div className="col-span-full rounded-2xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-              Loading templates…
-            </div>
-          ) : null}
-        </div>
+        <TemplatesView
+          collections={collections}
+          onApplyTemplate={(template) => navigate(`/build?template=${encodeURIComponent(template.id)}`)}
+          isLoading={isLoading}
+          errorMessage={error || ''}
+        />
       </main>
-
-      <TemplatePreviewDialog
-        template={previewTemplate}
-        open={Boolean(previewTemplate)}
-        onOpenChange={(open) => {
-          if (!open) setPreviewTemplate(null);
-        }}
-      />
     </div>
   );
 }
