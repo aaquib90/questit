@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Surface } from '@/components/layout';
 import { Link } from 'react-router-dom';
+import { buildVariantTitle, resolveTemplateDescriptor } from '@/lib/templateUtils.js';
 
 const TONES = {
 	emerald: {
@@ -51,7 +52,6 @@ function pickToneFromId(id = '') {
 
 export default function TemplateCard({ template, onPreview, onUse }) {
   const {
-    title,
     summary,
     audience = [],
     tags = [],
@@ -62,6 +62,9 @@ export default function TemplateCard({ template, onPreview, onUse }) {
 
   const popularityLabel =
     popularity > 1000 ? 'Most popular' : popularity > 800 ? 'Trending' : 'New favourite';
+
+  const variantTitle = buildVariantTitle(template);
+  const descriptor = resolveTemplateDescriptor(template);
 
   const toneKey = pickToneFromId(template?.id || title || 't');
   const tone = TONES[toneKey];
@@ -89,9 +92,14 @@ export default function TemplateCard({ template, onPreview, onUse }) {
         <div className="space-y-2">
           <h3 className="text-xl font-semibold text-foreground">
             <Link to={`/templates/${encodeURIComponent(template.id)}`} className="hover:underline">
-              {title}
+              {variantTitle}
             </Link>
           </h3>
+          {descriptor ? (
+            <p className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              {descriptor}
+            </p>
+          ) : null}
           <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">

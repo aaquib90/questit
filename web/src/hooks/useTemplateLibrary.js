@@ -25,6 +25,7 @@ function normaliseRow(row) {
       id: row.slug || row.id || row.template_key,
       slug: row.slug || row.id || row.template_key,
       title: row.name || 'Untitled Template',
+      descriptor: row.descriptor || null,
       summary: row.summary || row.description || '',
       prompt: row.prompt || '',
       html: row.html || '',
@@ -92,7 +93,7 @@ export function useTemplateLibrary({ fetchRemote = true } = {}) {
     supabase
       .from('template_library')
       .select(
-        'id, slug, template_key, name, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
+        'id, slug, template_key, name, descriptor, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
       )
       .eq('status', 'published')
       .order('popularity', { ascending: false })

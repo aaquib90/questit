@@ -9,6 +9,7 @@ create table if not exists public.template_library (
   tags text[] default '{}',
   audience text[] default '{}',
   quick_tweaks text[] default '{}',
+  descriptor text,
   prompt text,
   html text,
   css text,

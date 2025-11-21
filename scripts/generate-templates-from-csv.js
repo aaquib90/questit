@@ -67,7 +67,12 @@ Create a polished, self-contained browser experience that matches the descriptio
 - Use accessible HTML semantics, keyboard-friendly controls, and inline validation.
 - Avoid external APIs or premium services; rely entirely on client-side logic.
 
-The tool should feel production-ready, responsive, and visually aligned with modern shadcn/Tailwind patterns (cards, grids, subtle gradients).`;
+The tool should feel production-ready, responsive, and visually aligned with modern shadcn/Tailwind patterns (cards, grids, subtle gradients).
+
+After generating the tool, provide a JSON object called meta with:
+- descriptor: a short phrase (≤6 words) that highlights what makes this variant unique (e.g., "Wi-Fi & vCards", "Shopify checkout links").
+- marketing_name: a headline-length title that combines the base tool name with the descriptor (e.g., "QR Code Generator · Wi-Fi & vCards"). Use the descriptor only if it adds clarity; otherwise reuse the original name.
+`;
 }
 
 function hasSufficientContent(text, minChars, pattern) {
@@ -196,11 +201,17 @@ async function main() {
       });
       validateBundleOrThrow(code);
 
+      const meta = typeof code.meta === 'string' ? JSON.parse(code.meta) : code.meta;
+      const descriptor = meta?.descriptor?.trim() || '';
+      const marketingName = meta?.marketing_name?.trim();
+      const entryName = marketingName || (descriptor ? `${normaliseName(row)} · ${descriptor}` : normaliseName(row));
+
       const entry = {
         sourceKey: key,
-        name: normaliseName(row) || 'Untitled Tool',
+        name: entryName || 'Untitled Tool',
         description: normaliseDescription(row) || '',
         category: row.Category?.trim() || 'General',
+        descriptor,
         prompt,
         html: code.html || '',
         css: code.css || '',

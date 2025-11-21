@@ -104,6 +104,7 @@ async function main() {
       category: entry.category || 'General',
       tags: entry.tags || [],
       audience: entry.audience || [],
+      descriptor: entry.descriptor || null,
       prompt: entry.prompt || '',
       html: entry.html || '',
       css: entry.css || '',

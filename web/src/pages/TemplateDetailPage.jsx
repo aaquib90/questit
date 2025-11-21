@@ -7,6 +7,7 @@ import { getTemplateById } from '@/data/templates.js';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { buildIframeHTML, DEFAULT_THEME_KEY, useThemeManager } from '@/lib/themeManager.js';
 import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
+import { buildVariantTitle, resolveTemplateDescriptor } from '@/lib/templateUtils.js';
 
 const LOCAL_MEMORY_PREFIX = 'questit.template.memory.';
 
@@ -135,6 +136,9 @@ export default function TemplateDetailPage() {
     const origin = window.location.origin.replace(/\/$/, '');
     return `${origin}/templates/${encodeURIComponent(id)}`;
   }, [id]);
+
+  const descriptor = resolveTemplateDescriptor(template);
+  const variantTitle = template ? buildVariantTitle(template) : 'Template';
 
   const iframeDoc = useMemo(() => {
     if (!template?.preview) return '';
@@ -299,7 +303,7 @@ export default function TemplateDetailPage() {
     );
   }
 
-  const { title, summary, audience = [], tags = [] } = template;
+  const { summary, audience = [], tags = [] } = template;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -309,7 +313,10 @@ export default function TemplateDetailPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
               Template
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{variantTitle}</h1>
+            {descriptor ? (
+              <p className="text-sm font-medium text-primary">{descriptor}</p>
+            ) : null}
             {summary ? (
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{summary}</p>
             ) : null}
