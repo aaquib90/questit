@@ -449,7 +449,7 @@ export default function TemplateDetailPage() {
               {iframeDoc ? (
                 <iframe
                   ref={iframeRef}
-                  title={`${title} template preview`}
+                  title={`${variantTitle} template preview`}
                   sandbox="allow-scripts allow-same-origin allow-forms"
                   srcDoc={iframeDoc}
                   className="h-[620px] w-full rounded-2xl bg-background"

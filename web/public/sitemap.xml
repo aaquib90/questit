@@ -41,4 +41,29 @@
     <priority>0.5</priority>
   </url>
   <!-- Dynamic tool entries are served via https://questit.cc/api/site/sitemap.xml -->
+  <url>
+    <loc>https://questit.cc/templates/weekly-meal-planner</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://questit.cc/templates/budget-tracker</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://questit.cc/templates/daily-standup</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://questit.cc/templates/client-intake</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://questit.cc/templates/mood-journal</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
