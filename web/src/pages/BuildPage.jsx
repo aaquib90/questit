@@ -176,7 +176,8 @@ function BuildPage() {
   const {
     collections: templateCollections,
     status: templateStatus,
-    error: templateError
+    error: templateError,
+    retry: retryTemplates
   } = useTemplateLibrary();
   useEffect(() => {
     if ((composerValue || '').length <= MAX_PROMPT_LENGTH) return;
@@ -1271,6 +1272,7 @@ function BuildPage() {
               onPreviewChange={setTemplatesPreview}
               isLoading={templateStatus === 'loading'}
               errorMessage={templateError}
+              onRetry={retryTemplates}
             />
           ) : null}
 

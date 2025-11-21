@@ -7,7 +7,7 @@ import TemplatesView from '@/components/templates/TemplatesView.jsx';
 
 export default function TemplatesPage() {
   const { colorMode, setColorMode } = useThemeManager();
-  const { collections, status, error } = useTemplateLibrary({ fetchRemote: true });
+  const { collections, status, error, retry } = useTemplateLibrary({ fetchRemote: true });
   useSeoMetadata({
     title: 'Questit Templates · Jumpstart your next tool',
     description: 'Browse curated Questit templates to remix or publish instantly.',
@@ -39,6 +39,7 @@ export default function TemplatesPage() {
           onApplyTemplate={(template) => navigate(`/build?template=${encodeURIComponent(template.id)}`)}
           isLoading={isLoading}
           errorMessage={error || ''}
+          onRetry={retry}
         />
       </main>
     </div>

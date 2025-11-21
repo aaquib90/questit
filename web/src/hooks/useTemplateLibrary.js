@@ -79,6 +79,7 @@ export function useTemplateLibrary({ fetchRemote = true } = {}) {
   const [collections, setCollections] = useState(FALLBACK_COLLECTIONS);
   const [status, setStatus] = useState(fetchRemote && hasSupabaseConfig ? 'loading' : 'idle');
   const [error, setError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!fetchRemote || !hasSupabaseConfig) {
@@ -121,13 +122,14 @@ export function useTemplateLibrary({ fetchRemote = true } = {}) {
     return () => {
       isMounted = false;
     };
-  }, [fetchRemote]);
+  }, [fetchRemote, retryKey]);
 
   const flattened = useMemo(() => collections ?? FALLBACK_COLLECTIONS, [collections]);
 
   return {
     collections: flattened,
     status,
-    error
+    error,
+    retry: () => setRetryKey((value) => value + 1)
   };
 }

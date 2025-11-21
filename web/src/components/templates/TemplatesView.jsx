@@ -132,7 +132,8 @@ export default function TemplatesView({
   externalPreviewTemplate = null,
   onPreviewChange,
   isLoading = false,
-  errorMessage = ''
+  errorMessage = '',
+  onRetry = null
 }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -284,7 +285,11 @@ export default function TemplatesView({
               Reset filters
             </Button>
             <span className="ml-auto text-xs text-muted-foreground" role="status" aria-live="polite">
-              {isLoading ? 'Loading templates…' : `Showing ${totalFiltered} template${totalFiltered === 1 ? '' : 's'}`}
+              {isLoading
+                ? 'Loading templates…'
+                : totalFiltered === 0
+                  ? 'No templates match yet'
+                  : `Showing ${totalFiltered} template${totalFiltered === 1 ? '' : 's'}`}
             </span>
           </div>
           <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-4">
@@ -352,9 +357,16 @@ export default function TemplatesView({
             ) : null}
           </div>
           {errorMessage ? (
-            <p className="text-xs font-medium text-destructive" role="alert">
-              {errorMessage}
-            </p>
+            <div className="flex items-center gap-3 text-xs">
+              <p className="font-medium text-destructive" role="alert">
+                {errorMessage}
+              </p>
+              {typeof onRetry === 'function' ? (
+                <Button size="sm" variant="outline" onClick={onRetry}>
+                  Try again
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </Surface>
