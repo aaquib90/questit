@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { getTemplateById } from '@/data/templates.js';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { buildIframeHTML, DEFAULT_THEME_KEY, useThemeManager } from '@/lib/themeManager.js';
+import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
 
 export default function TemplateDetailPage() {
   const { id = '' } = useParams();
-  const template = useMemo(() => getTemplateById(id), [id]);
+  const { collections, status, error } = useTemplateLibrary({ fetchRemote: true });
+  const template = useMemo(() => getTemplateById(id, collections), [id, collections]);
   const { selectedTheme, resolvedMode } = useThemeManager(DEFAULT_THEME_KEY);
   const [copyState, setCopyState] = useState('idle');
 
@@ -85,6 +87,21 @@ export default function TemplateDetailPage() {
     }
   };
 
+  if (!template && status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <main className="py-10">
+          <Shell className="flex items-center justify-center">
+            <Surface muted className="w-full max-w-xl space-y-4 p-8 text-center">
+              <h1 className="text-xl font-semibold tracking-tight">Loading template…</h1>
+              <p className="text-sm text-muted-foreground">Fetching the latest template bundle.</p>
+            </Surface>
+          </Shell>
+        </main>
+      </div>
+    );
+  }
+
   if (!template) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -93,7 +110,9 @@ export default function TemplateDetailPage() {
             <Surface muted className="w-full max-w-xl space-y-4 p-8 text-center">
               <h1 className="text-xl font-semibold tracking-tight">Template not found</h1>
               <p className="text-sm text-muted-foreground">
-                We couldn't find a template for “{id}”. It may have been renamed.
+                {error
+                  ? 'We were unable to load this template from Supabase. Showing curated samples instead.'
+                  : `We couldn't find a template for “${id}”. It may have been renamed.`}
               </p>
               <div className="flex items-center justify-center gap-2">
                 <Link to="/templates">
@@ -177,5 +196,4 @@ export default function TemplateDetailPage() {
     </div>
   );
 }
-
 
