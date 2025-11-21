@@ -17,6 +17,7 @@
     "build:web": "npm --prefix web run build",
     "build": "npm run install:web && npm run build:web",
     "generate:templates": "node scripts/generate-templates-from-csv.js",
-    "import:templates": "node scripts/import-templates-to-supabase.js"
+    "import:templates": "node scripts/import-templates-to-supabase.js",
+    "import:legacy-templates": "node scripts/backfill-legacy-templates.js"
   }
 }
