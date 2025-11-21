@@ -52,8 +52,12 @@ export default function TemplatePreviewDialog({ open, onOpenChange, template }) 
     return <Dialog open={open} onOpenChange={onOpenChange} />;
   }
 
-  const { title, summary, audience = [], tags = [], quickTweaks = [], preview = {} } = template;
-  const previewDoc = buildPreviewDocument(preview);
+  const { title, summary, audience = [], tags = [], quickTweaks = [] } = template;
+  const previewDoc = buildPreviewDocument({
+    html: template.preview?.html || template.html || '',
+    css: template.preview?.css || template.css || '',
+    js: template.preview?.js || template.js || ''
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

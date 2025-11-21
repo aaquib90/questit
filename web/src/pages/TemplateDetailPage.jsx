@@ -141,13 +141,17 @@ export default function TemplateDetailPage() {
   const variantTitle = template ? buildVariantTitle(template) : 'Template';
 
   const iframeDoc = useMemo(() => {
-    if (!template?.preview) return '';
+    if (!template) return '';
     const memoryScript = templateToolId ? buildTemplateMemoryBootstrap(templateToolId) : '';
+    const previewHtml = template.preview?.html || template.html || '';
+    const previewCss = template.preview?.css || template.css || '';
+    const previewJs = template.preview?.js || template.js || '';
+    if (!previewHtml && !previewCss && !previewJs) return '';
     return buildIframeHTML(
       {
-        html: template.preview.html || '',
-        css: template.preview.css || '',
-        js: template.preview.js || ''
+        html: previewHtml,
+        css: previewCss,
+        js: previewJs
       },
       selectedTheme || DEFAULT_THEME_KEY,
       resolvedMode || 'light',
