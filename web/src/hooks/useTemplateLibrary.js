@@ -92,7 +92,7 @@ export function useTemplateLibrary({ fetchRemote = true } = {}) {
     supabase
       .from('template_library')
       .select(
-        'id, slug, template_key, name, summary, description, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
+        'id, slug, template_key, name, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
       )
       .eq('status', 'published')
       .order('popularity', { ascending: false })
