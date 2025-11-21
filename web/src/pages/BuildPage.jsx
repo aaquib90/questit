@@ -22,7 +22,7 @@ import WorkbenchComposerPanel from '@/components/workbench/WorkbenchComposerPane
 import WorkbenchInspector from '@/components/workbench/WorkbenchInspector.jsx';
 import { scopeGateRequest } from '@/lib/scopeGatePreview.js';
 import TemplatesView from '@/components/templates/TemplatesView.jsx';
-import { TEMPLATE_COLLECTIONS, getTemplateById } from '@/data/templates.js';
+import { getTemplateById } from '@/data/templates.js';
 import { createMemoryClient } from '@/lib/memoryClient.js';
 import SyncBanner from '@/components/workbench/SyncBanner.jsx';
 // LeftRail removed from workbench two-column layout
@@ -32,6 +32,7 @@ import GeneratingAnimation from '@/components/workbench/GeneratingAnimation.jsx'
 import { resolveApiBase } from '@/lib/api.js';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
 
 const DEFAULT_PROMPT = 'Create a simple calculator';
 
@@ -172,6 +173,11 @@ function BuildPage() {
   const [memorySettings, setMemorySettings] = useState(createDefaultMemorySettings);
   const [saveMemorySettings, setSaveMemorySettings] = useState(createDefaultMemorySettings);
   const [activeToolPlayer, setActiveToolPlayer] = useState(null);
+  const {
+    collections: templateCollections,
+    status: templateStatus,
+    error: templateError
+  } = useTemplateLibrary();
   useEffect(() => {
     if ((composerValue || '').length <= MAX_PROMPT_LENGTH) return;
     setComposerValue((value) => (value || '').slice(0, MAX_PROMPT_LENGTH));
@@ -458,40 +464,43 @@ function BuildPage() {
     composerRef.current?.focus();
   };
 
-  const handleApplyTemplate = (template) => {
-    if (!template) return;
-    trackEvent('template_applied', { id: template.id, title: template.title });
-    const promptText = template.prompt || '';
-    const createdAt = new Date().toISOString();
-    const templateEntry = {
-      id: createEntryId(),
-      prompt: promptText,
-      status: 'draft',
-      createdAt,
-      responseSummary: `Template “${template.title}” loaded. Adjust the prompt or generate when you're ready.`,
-      modelLabel: selectedModelOption.label,
-      templateId: template.id
-    };
+  const handleApplyTemplate = useCallback(
+    (template) => {
+      if (!template) return;
+      trackEvent('template_applied', { id: template.id, title: template.title });
+      const promptText = template.prompt || '';
+      const createdAt = new Date().toISOString();
+      const templateEntry = {
+        id: createEntryId(),
+        prompt: promptText,
+        status: 'draft',
+        createdAt,
+        responseSummary: `Template “${template.title}” loaded. Adjust the prompt or generate when you're ready.`,
+        modelLabel: selectedModelOption.label,
+        templateId: template.id
+      };
 
-    setComposerValue(promptText);
-    setSessionEntries([templateEntry]);
-    setToolCode({
-      html: template.preview?.html || '',
-      css: template.preview?.css || '',
-      js: template.preview?.js || ''
-    });
-    setSessionStatus({
-      state: 'success',
-      message: `Template “${template.title}” is ready in the workbench. Ask Questit for any tweaks.`
-    });
-    setSaveStatus({ state: 'idle', message: '' });
-    setSaveDraft({ title: template.title || '', summary: template.summary || '' });
-    setMemorySettings(createDefaultMemorySettings());
-    setActiveView('workbench');
-    setTimeout(() => {
-      composerRef.current?.focus();
-    }, 80);
-  };
+      setComposerValue(promptText);
+      setSessionEntries([templateEntry]);
+      setToolCode({
+        html: template.html || template.preview?.html || '',
+        css: template.css || template.preview?.css || '',
+        js: template.js || template.preview?.js || ''
+      });
+      setSessionStatus({
+        state: 'success',
+        message: `Template “${template.title}” is ready in the workbench. Ask Questit for any tweaks.`
+      });
+      setSaveStatus({ state: 'idle', message: '' });
+      setSaveDraft({ title: template.title || '', summary: template.summary || '' });
+      setMemorySettings(createDefaultMemorySettings());
+      setActiveView('workbench');
+      setTimeout(() => {
+        composerRef.current?.focus();
+      }, 80);
+    },
+    [composerRef, createEntryId, selectedModelOption.label]
+  );
 
   const handleResetSession = () => {
     setSessionEntries([]);
@@ -508,12 +517,13 @@ function BuildPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
+    if (!templateCollections || templateCollections.length === 0) return undefined;
     // Deep-link: /templates/:slug opens the template detail modal
     const { pathname } = window.location;
     const templateMatch = pathname.match(/^\/templates\/([^/]+)\/?$/i);
     if (templateMatch && templateMatch[1]) {
       const slug = decodeURIComponent(templateMatch[1]);
-      const template = getTemplateById(slug, TEMPLATE_COLLECTIONS);
+      const template = getTemplateById(slug, templateCollections);
       if (template) {
         setActiveView('templates');
         setTemplatesPreview(template);
@@ -523,7 +533,7 @@ function BuildPage() {
     const searchParams = new URLSearchParams(window.location.search);
     const templateId = searchParams.get('template');
     if (templateId) {
-      const template = getTemplateById(templateId, TEMPLATE_COLLECTIONS);
+      const template = getTemplateById(templateId, templateCollections);
       if (template) {
         handleApplyTemplate(template);
         searchParams.delete('template');
@@ -637,6 +647,8 @@ function BuildPage() {
     createEntryId,
     modelOptions,
     selectedModelOption.label,
+    templateCollections,
+    handleApplyTemplate,
     setActiveView,
     setColorMode,
     setComposerValue,
@@ -1253,10 +1265,12 @@ function BuildPage() {
 
           {activeView === 'templates' ? (
             <TemplatesView
-              collections={TEMPLATE_COLLECTIONS}
+              collections={templateCollections}
               onApplyTemplate={handleApplyTemplate}
               externalPreviewTemplate={templatesPreview}
               onPreviewChange={setTemplatesPreview}
+              isLoading={templateStatus === 'loading'}
+              errorMessage={templateError}
             />
           ) : null}
 

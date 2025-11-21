@@ -4,13 +4,19 @@
   "type": "module",
   "description": "Cloudflare-first platform for generating micro-tools from natural language",
   "main": "src/index.js",
+  "keywords": ["cloudflare", "workers", "ai", "micro-tools"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "papaparse": "^5.4.1"
+  },
   "scripts": {
     "test": "node test/e2e-test.js",
     "install:web": "npm --prefix web install",
     "build:web": "npm --prefix web run build",
-    "build": "npm run install:web && npm run build:web"
-  },
-  "keywords": ["cloudflare", "workers", "ai", "micro-tools"],
-  "author": "",
-  "license": "MIT"
+    "build": "npm run install:web && npm run build:web",
+    "generate:templates": "node scripts/generate-templates-from-csv.js",
+    "import:templates": "node scripts/import-templates-to-supabase.js"
+  }
 }

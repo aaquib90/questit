@@ -38,22 +38,30 @@ function filterTemplates(collections, { query, category, phoneOnly }) {
 }
 
 export default function TemplatesView({
-  collections,
+  collections = [],
   onApplyTemplate,
   externalPreviewTemplate = null,
-  onPreviewChange
+  onPreviewChange,
+  isLoading = false,
+  errorMessage = ''
 }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [phoneOnly, setPhoneOnly] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(externalPreviewTemplate);
 
-  const flatTemplates = useMemo(() => flattenTemplates(collections), [collections]);
+  const safeCollections = Array.isArray(collections) ? collections : [];
+
+  const flatTemplates = useMemo(() => flattenTemplates(safeCollections), [safeCollections]);
   const templateOfTheDay = flatTemplates[0];
 
   const filteredCollections = useMemo(
-    () => filterTemplates(collections, { query, category, phoneOnly }),
-    [collections, query, category, phoneOnly]
+    () => filterTemplates(safeCollections, { query, category, phoneOnly }),
+    [safeCollections, query, category, phoneOnly]
+  );
+  const totalFiltered = filteredCollections.reduce(
+    (sum, collection) => sum + collection.templates.length,
+    0
   );
 
   const handleApply = (template) => {
@@ -98,12 +106,12 @@ export default function TemplatesView({
           ) : null}
         </div>
 
-        <div className="grid gap-4 rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner shadow-primary/10 backdrop-blur">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
-            <Input
-              placeholder="Search templates (e.g. budget, meals, stand-up)…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+          <div className="grid gap-4 rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner shadow-primary/10 backdrop-blur">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+              <Input
+                placeholder="Search templates (e.g. budget, meals, stand-up)…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
             />
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
@@ -141,10 +149,14 @@ export default function TemplatesView({
               Reset filters
             </Button>
             <span className="ml-auto text-xs text-muted-foreground" role="status" aria-live="polite">
-              Showing {filteredCollections.reduce((sum, collection) => sum + collection.templates.length, 0)}{' '}
-              {filteredCollections.length === 1 ? 'template' : 'templates'}
+              {isLoading ? 'Loading templates…' : `Showing ${totalFiltered} template${totalFiltered === 1 ? '' : 's'}`}
             </span>
           </div>
+          {errorMessage ? (
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
         </div>
       </Surface>
 
@@ -160,7 +172,9 @@ export default function TemplatesView({
         ))}
         {!filteredCollections.length ? (
           <Surface muted className="border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-            No templates match those filters yet. Try a different keyword or reset the filters.
+            {isLoading
+              ? 'Loading templates…'
+              : 'No templates match those filters yet. Try a different keyword or reset the filters.'}
           </Surface>
         ) : null}
       </div>

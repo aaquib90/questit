@@ -3,20 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import SiteHeader from '@/components/layout/SiteHeader.jsx';
 import TemplateCard from '@/components/templates/TemplateCard.jsx';
 import TemplatePreviewDialog from '@/components/templates/TemplatePreviewDialog.jsx';
-import { TEMPLATE_COLLECTIONS } from '@/data/templates.js';
+import { flattenTemplates as flattenTemplateCollections } from '@/data/templates.js';
 import { useSeoMetadata } from '@/lib/seo.js';
 import { useThemeManager } from '@/lib/themeManager.js';
-
-function flattenTemplates() {
-  const templates = [];
-  for (const collection of TEMPLATE_COLLECTIONS) {
-    templates.push(...collection.templates.map((template) => ({ ...template, collectionTitle: collection.title })));
-  }
-  return templates;
-}
+import { useTemplateLibrary } from '@/hooks/useTemplateLibrary.js';
 
 export default function TemplatesPage() {
   const { colorMode, setColorMode } = useThemeManager();
+  const { collections, status, error } = useTemplateLibrary({ fetchRemote: true });
   useSeoMetadata({
     title: 'Questit Templates · Jumpstart your next tool',
     description: 'Browse curated Questit templates to remix or publish instantly.',
@@ -24,8 +18,16 @@ export default function TemplatesPage() {
   });
 
   const navigate = useNavigate();
-  const templates = useMemo(() => flattenTemplates(), []);
+  const templates = useMemo(
+    () =>
+      flattenTemplateCollections(collections).map((template) => ({
+        ...template,
+        collectionTitle: template.collectionTitle || template.category || 'Templates'
+      })),
+    [collections]
+  );
   const [previewTemplate, setPreviewTemplate] = useState(null);
+  const isLoading = status === 'loading';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -41,6 +43,9 @@ export default function TemplatesPage() {
           </p>
         </header>
 
+        {error ? (
+          <p className="mb-6 text-center text-sm text-destructive">{error}</p>
+        ) : null}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => (
             <TemplateCard
@@ -50,6 +55,11 @@ export default function TemplatesPage() {
               onUse={() => navigate(`/build?template=${encodeURIComponent(template.id)}`)}
             />
           ))}
+          {!templates.length && isLoading ? (
+            <div className="col-span-full rounded-2xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+              Loading templates…
+            </div>
+          ) : null}
         </div>
       </main>
 
