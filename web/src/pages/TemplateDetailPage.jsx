@@ -147,42 +147,71 @@ export default function TemplateDetailPage() {
       setRemoteStatus(template ? 'success' : 'idle');
       return undefined;
     }
+
     let isActive = true;
     setRemoteStatus('loading');
-    supabase
-      .from('template_library')
-      .select(
-        'id, slug, template_key, name, descriptor, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
-      )
-      .eq('slug', id)
-      .maybeSingle()
-      .then(({ data, error: queryError }) => {
+
+    const mapRow = (data) => ({
+      ...data,
+      id: data.slug || data.id || data.template_key,
+      preview: {
+        html: data.preview_html || data.html || '',
+        css: data.preview_css || data.css || '',
+        js: data.preview_js || data.js || ''
+      },
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      audience: Array.isArray(data.audience) ? data.audience : [],
+      quickTweaks: Array.isArray(data.quick_tweaks) ? data.quick_tweaks : []
+    });
+
+    const fetchBySlug = () =>
+      supabase
+        .from('template_library')
+        .select(
+          'id, slug, template_key, name, descriptor, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
+        )
+        .eq('slug', id)
+        .maybeSingle();
+
+    const fetchByName = () => {
+      const nameGuess = id.replace(/-[a-z0-9]{4,}$/i, ' ').replace(/[-_/]/g, ' ').trim();
+      if (!nameGuess) {
+        return Promise.resolve({ data: null, error: null });
+      }
+      return supabase
+        .from('template_library')
+        .select(
+          'id, slug, template_key, name, descriptor, summary, category, category_description, tags, audience, prompt, html, css, js, preview_html, preview_css, preview_js, popularity, hero_image, quick_tweaks, model_provider, model_name, status'
+        )
+        .ilike('name', `${nameGuess}%`)
+        .limit(1)
+        .maybeSingle();
+    };
+
+    fetchBySlug()
+      .then(async ({ data, error: queryError }) => {
         if (!isActive) return;
-        if (queryError || !data) {
-          setRemoteTemplate(null);
-          setRemoteStatus('error');
+        if (!queryError && data) {
+          setRemoteTemplate(mapRow(data));
+          setRemoteStatus('success');
           return;
         }
-        const normalised = {
-          ...data,
-          id: data.slug || data.id || data.template_key,
-          preview: {
-            html: data.preview_html || data.html || '',
-            css: data.preview_css || data.css || '',
-            js: data.preview_js || data.js || ''
-          },
-          tags: Array.isArray(data.tags) ? data.tags : [],
-          audience: Array.isArray(data.audience) ? data.audience : [],
-          quickTweaks: Array.isArray(data.quick_tweaks) ? data.quick_tweaks : []
-        };
-        setRemoteTemplate(normalised);
-        setRemoteStatus('success');
+        const fallback = await fetchByName();
+        if (!isActive) return;
+        if (fallback.data) {
+          setRemoteTemplate(mapRow(fallback.data));
+          setRemoteStatus('success');
+        } else {
+          setRemoteTemplate(null);
+          setRemoteStatus('error');
+        }
       })
       .catch(() => {
         if (!isActive) return;
         setRemoteTemplate(null);
         setRemoteStatus('error');
       });
+
     return () => {
       isActive = false;
     };
