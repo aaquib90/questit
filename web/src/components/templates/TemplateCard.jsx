@@ -72,8 +72,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
     audience = [],
     tags = [],
     popularity,
-    collectionTitle,
-    quickTweaks = []
+    collectionTitle
   } = template;
 
   const popularityLabel =
@@ -97,12 +96,13 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
       'group flex h-full flex-col justify-between gap-3 rounded-3xl p-4 transition-all',
       'hover:-translate-y-0.5 hover:bg-background/90',
       'border border-border/50 shadow-sm focus-within:ring-2 focus-within:ring-primary/40',
+      'items-start text-left',
       tone.border,
       tone.shadow
     ].join(' ')}
     >
-      <div className="space-y-4">
-        <div className="flex gap-4">
+      <div className="space-y-3">
+        <div className="flex gap-3">
           <div
             className={[
               'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-semibold',
@@ -155,20 +155,8 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
           ))}
         </div>
       </div>
-      <div className="space-y-3">
-        {quickTweaks.length ? (
-          <div className="rounded-xl border border-border/50 bg-background/60 p-3 max-h-24 overflow-hidden">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-              Quick tweaks
-            </p>
-            <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground max-h-16 overflow-hidden">
-              {quickTweaks.slice(0, 3).map((tweak) => (
-                <li key={tweak}>• {tweak}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             shape="pill"
             className="w-full px-5 sm:w-auto"
