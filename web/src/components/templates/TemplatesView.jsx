@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 
+import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -172,6 +173,56 @@ export default function TemplatesView({
     (sum, collection) => sum + collection.templates.length,
     0
   );
+  const hasActiveFilters =
+    Boolean(query.trim()) ||
+    category !== 'all' ||
+    phoneOnly ||
+    Boolean(descriptionQuery.trim()) ||
+    Boolean(aiFilters.keywords.length || aiFilters.categories.length || aiFilters.tags.length);
+
+  const curatedSections = useMemo(() => {
+    if (!flatTemplates.length) return [];
+    const usedIds = new Set();
+    const byPopularity = [...flatTemplates].sort(
+      (a, b) => (b.popularity || b.popularityScore || 0) - (a.popularity || a.popularityScore || 0)
+    );
+    const pick = (source, count) => {
+      const results = [];
+      for (const template of source) {
+        if (results.length >= count) break;
+        if (usedIds.has(template.id)) continue;
+        usedIds.add(template.id);
+        results.push(template);
+      }
+      return results;
+    };
+    const favorites = pick(byPopularity, 6);
+    const trending = pick(byPopularity.filter((template) => !usedIds.has(template.id)), 6);
+    const fresh = pick([...flatTemplates].reverse(), 6);
+    return [
+      {
+        id: 'favorites',
+        title: 'Community Favorites',
+        subtitle: 'Most loved by Questit builders this week.',
+        badge: 'Most loved',
+        templates: favorites
+      },
+      {
+        id: 'trending',
+        title: 'Trending Now',
+        subtitle: 'Hot templates people are remixing right now.',
+        badge: 'Trending',
+        templates: trending
+      },
+      {
+        id: 'fresh',
+        title: 'Fresh Drops',
+        subtitle: 'New additions to the Questit library.',
+        badge: 'Just added',
+        templates: fresh
+      }
+    ].filter((section) => section.templates.length >= 3);
+  }, [flatTemplates]);
 
   const handleApply = (template) => {
     onApplyTemplate?.(template);
@@ -217,35 +268,42 @@ export default function TemplatesView({
 
   return (
     <div className="space-y-12">
-      <Surface muted className="space-y-6 rounded-3xl border border-primary/30 bg-primary/5 p-8 shadow-xl shadow-primary/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
+      <Surface muted className="space-y-6 rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent p-8 shadow-xl shadow-primary/20">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.4em] text-primary">
-              Templates
+              Browse Templates ✨
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Pick a starting point and make it yours
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Start with a proven template and remix it in seconds
             </h1>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              These templates are built for busy people who prefer to tweak rather than start from a blank page. Load any one into the workbench and adjust it using everyday language.
+              Describe what you need or pick a community favorite. Questit templates already include UI, logic, and memory helpers so you can focus on tweaks instead of blank canvases.
             </p>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>🔁 Remix-friendly</span>
+              <span>🧠 Memory-ready</span>
+              <span>⚡ Instant preview</span>
+            </div>
           </div>
           {templateOfTheDay ? (
-            <Button
-              size="lg"
-              shape="pill"
-              className="shrink-0 px-6"
-              onClick={() => handleApply(templateOfTheDay)}
-            >
-              Template of the day
-            </Button>
+            <Surface className="rounded-2xl border border-white/30 bg-white/70 p-4 text-sm text-foreground shadow-lg backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
+                Template of the day
+              </p>
+              <p className="mt-2 text-lg font-semibold">{templateOfTheDay.title}</p>
+              <p className="text-xs text-muted-foreground">{templateOfTheDay.summary}</p>
+              <Button size="sm" className="mt-4 w-full" onClick={() => handleApply(templateOfTheDay)}>
+                Load into workbench
+              </Button>
+            </Surface>
           ) : null}
         </div>
 
-        <div className="grid gap-4 rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner shadow-primary/10 backdrop-blur">
+        <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/70 p-4 shadow-inner shadow-primary/10 backdrop-blur">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
             <Input
-              placeholder="Search templates (e.g. budget, meals, stand-up)…"
+              placeholder="Search templates (e.g. budget, stand-up, subscriber hub)…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -292,7 +350,7 @@ export default function TemplatesView({
                   : `Showing ${totalFiltered} template${totalFiltered === 1 ? '' : 's'}`}
             </span>
           </div>
-          <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-4">
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-background/80 p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
                 Describe what you need
@@ -304,7 +362,7 @@ export default function TemplatesView({
               ) : null}
             </div>
             <Textarea
-              placeholder="e.g., A client intake form with progress tracker and auto reminders"
+              placeholder="e.g., A recipe planner that balances macros and tracks leftovers"
               value={descriptionQuery}
               onChange={(event) => setDescriptionQuery(event.target.value)}
               rows={3}
@@ -371,6 +429,74 @@ export default function TemplatesView({
         </div>
       </Surface>
 
+      <div className="sticky top-20 z-20 bg-background/80 py-2 backdrop-blur">
+        <div className="flex gap-2 overflow-x-auto pb-1 text-sm">
+          {[
+            { id: 'all', title: 'All Tools', emoji: '✨' },
+            ...availableCategories.slice(0, 8).map((cat) => ({
+              id: cat.id,
+              title: cat.title,
+              emoji: '🧩'
+            }))
+          ].map((pill) => (
+            <Button
+              key={pill.id}
+              size="sm"
+              variant={category === pill.id ? 'default' : 'outline'}
+              className="rounded-full px-3"
+              onClick={() => setCategory(pill.id)}
+            >
+              <span className="mr-2">{pill.emoji}</span>
+              {pill.title}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {!hasActiveFilters && curatedSections.length
+        ? curatedSections.map((section) => (
+            <section key={section.id} className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                    {section.badge}
+                  </p>
+                  <h2 className="text-2xl font-semibold text-foreground">{section.title}</h2>
+                  <p className="text-sm text-muted-foreground">{section.subtitle}</p>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {section.templates.map((template) => (
+                  <TemplateCard
+                    key={template.id}
+                    template={{ ...template, collectionTitle: template.collectionTitle || section.title }}
+                    highlightBadge={section.badge}
+                    onPreview={handlePreview}
+                    onUse={handleApply}
+                  />
+                ))}
+              </div>
+            </section>
+          ))
+        : null}
+
+      <Surface muted className="rounded-3xl border border-border/60 bg-muted/40 p-6">
+        <div className="grid gap-4 md:grid-cols-4">
+          {[
+            { title: 'Pick', description: 'Browse templates or search by vibe.', emoji: '🧠' },
+            { title: 'Remix', description: 'Load into the workbench and tweak the prompt.', emoji: '⚡' },
+            { title: 'Preview', description: 'See it running instantly with local memory.', emoji: '👀' },
+            { title: 'Ship', description: 'Publish a share link or embed in your flow.', emoji: '🚀' }
+          ].map((step) => (
+            <Surface key={step.title} className="space-y-1 rounded-2xl border border-border/50 bg-background/70 p-4 text-sm">
+              <p className="text-xl">{step.emoji}</p>
+              <p className="text-base font-semibold">{step.title}</p>
+              <p className="text-muted-foreground">{step.description}</p>
+            </Surface>
+          ))}
+        </div>
+      </Surface>
+
       <div className="space-y-10">
         {filteredCollections.map((collection) => (
           <section key={collection.id} className="space-y-4">
@@ -389,6 +515,22 @@ export default function TemplatesView({
           </Surface>
         ) : null}
       </div>
+
+      <Surface muted className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8 text-center shadow-lg">
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-primary">Let’s make something sick 🚀</p>
+        <h2 className="mt-3 text-3xl font-semibold text-foreground">Thousands of people are already building with Questit</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
+          Remix a template, wire it into your workflow, and publish a share link in minutes. No engineering sprint required.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Button size="lg" className="px-8" asChild>
+            <Link to="/build">Open the workbench</Link>
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link to="/templates">Browse more templates</Link>
+          </Button>
+        </div>
+      </Surface>
 
       <TemplatePreviewDialog
         open={Boolean(previewTemplate)}
