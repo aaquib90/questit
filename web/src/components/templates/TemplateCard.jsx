@@ -93,13 +93,13 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
   return (
     <Surface
       muted
-      className={[
-        'group flex h-full flex-col justify-between gap-4 rounded-3xl p-5 transition-all',
-        'hover:-translate-y-0.5 hover:bg-background/90',
-        'border border-border/50 shadow-sm focus-within:ring-2 focus-within:ring-primary/40',
-        tone.border,
-        tone.shadow
-      ].join(' ')}
+    className={[
+      'group flex h-full flex-col justify-between gap-3 rounded-3xl p-4 transition-all',
+      'hover:-translate-y-0.5 hover:bg-background/90',
+      'border border-border/50 shadow-sm focus-within:ring-2 focus-within:ring-primary/40',
+      tone.border,
+      tone.shadow
+    ].join(' ')}
     >
       <div className="space-y-4">
         <div className="flex gap-4">
@@ -132,7 +132,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
                 {descriptor}
               </p>
             ) : null}
-            <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">{summary}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -157,11 +157,11 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
       </div>
       <div className="space-y-3">
         {quickTweaks.length ? (
-          <div className="rounded-xl border border-border/50 bg-background/60 p-3">
+          <div className="rounded-xl border border-border/50 bg-background/60 p-3 max-h-24 overflow-hidden">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
               Quick tweaks
             </p>
-            <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+            <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground max-h-16 overflow-hidden">
               {quickTweaks.slice(0, 3).map((tweak) => (
                 <li key={tweak}>• {tweak}</li>
               ))}
