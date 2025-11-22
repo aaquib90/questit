@@ -155,6 +155,26 @@ export default function TemplatesView({
     [safeCollections]
   );
 
+  const categoryIconMap = useMemo(() => {
+    const iconPalette = ['🧩', '💡', '⚡', '🎯', '💼', '🧠', '📚', '🌿', '✨', '🔥'];
+    const overrides = {
+      all: '✨',
+      productivity: '⚡',
+      creativity: '🎨',
+      wellness: '🌿',
+      utilities: '🧰',
+      finance: '💰',
+      organization: '🗂️',
+      onboarding: '🚀',
+      analytics: '📊'
+    };
+
+    return availableCategories.reduce((map, category, index) => {
+      map[category.id] = overrides[category.id] ?? iconPalette[index % iconPalette.length];
+      return map;
+    }, { all: overrides.all });
+  }, [availableCategories]);
+
   const availableTags = useMemo(() => {
     const tagSet = new Set();
     safeCollections.forEach((collection) => {
@@ -432,11 +452,11 @@ export default function TemplatesView({
       <div className="sticky top-16 z-20 bg-background/80 py-2 backdrop-blur">
         <div className="flex gap-2 overflow-x-auto pb-1 text-sm">
           {[
-            { id: 'all', title: 'All Tools', emoji: '✨' },
-            ...availableCategories.slice(0, 8).map((cat) => ({
+            { id: 'all', title: 'All Tools', emoji: categoryIconMap.all },
+            ...availableCategories.slice(0, 8).map((cat, index) => ({
               id: cat.id,
               title: cat.title,
-              emoji: '🧩'
+              emoji: categoryIconMap[cat.id] ?? categoryIconMap.all
             }))
           ].map((pill) => (
             <Button
