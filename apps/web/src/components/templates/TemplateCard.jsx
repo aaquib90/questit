@@ -125,11 +125,11 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
               </Link>
             </h3>
             {descriptor ? (
-              <p className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <p className="inline-flex items-center self-start rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                 {descriptor}
               </p>
             ) : null}
-            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">{summary}</p>
+            <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">{summary}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
