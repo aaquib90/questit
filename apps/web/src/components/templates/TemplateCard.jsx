@@ -10,42 +10,60 @@ const TONES = {
     shadow: 'hover:shadow-emerald-200/60',
     chip: 'group-hover:bg-emerald-50 group-hover:text-emerald-700',
     button: 'group-hover:border-emerald-300 group-hover:text-emerald-700',
-    iconBg: 'bg-emerald-100 text-emerald-900'
+    iconGradient:
+      'bg-gradient-to-br from-emerald-100 via-emerald-50 to-white dark:from-emerald-900/40 dark:to-emerald-700/20 text-emerald-900',
+    iconRing: 'ring-1 ring-emerald-200/60 group-hover:ring-2 group-hover:ring-emerald-300/60',
+    iconShadow: 'shadow-[0_8px_20px_-6px_rgba(16,185,129,0.35)]'
   },
   sky: {
     border: 'hover:border-sky-300',
     shadow: 'hover:shadow-sky-200/60',
     chip: 'group-hover:bg-sky-50 group-hover:text-sky-700',
     button: 'group-hover:border-sky-300 group-hover:text-sky-700',
-    iconBg: 'bg-sky-100 text-sky-900'
+    iconGradient:
+      'bg-gradient-to-br from-sky-100 via-sky-50 to-white dark:from-sky-900/40 dark:to-sky-700/20 text-sky-900',
+    iconRing: 'ring-1 ring-sky-200/60 group-hover:ring-2 group-hover:ring-sky-300/60',
+    iconShadow: 'shadow-[0_8px_20px_-6px_rgba(56,189,248,0.35)]'
   },
   violet: {
     border: 'hover:border-violet-300',
     shadow: 'hover:shadow-violet-200/60',
     chip: 'group-hover:bg-violet-50 group-hover:text-violet-700',
     button: 'group-hover:border-violet-300 group-hover:text-violet-700',
-    iconBg: 'bg-violet-100 text-violet-900'
+    iconGradient:
+      'bg-gradient-to-br from-violet-100 via-violet-50 to-white dark:from-violet-900/40 dark:to-violet-700/20 text-violet-900',
+    iconRing: 'ring-1 ring-violet-200/60 group-hover:ring-2 group-hover:ring-violet-300/60',
+    iconShadow: 'shadow-[0_8px_20px_-6px_rgba(139,92,246,0.35)]'
   },
   amber: {
     border: 'hover:border-amber-300',
     shadow: 'hover:shadow-amber-200/60',
     chip: 'group-hover:bg-amber-50 group-hover:text-amber-700',
     button: 'group-hover:border-amber-300 group-hover:text-amber-700',
-    iconBg: 'bg-amber-100 text-amber-900'
+    iconGradient:
+      'bg-gradient-to-br from-amber-100 via-amber-50 to-white dark:from-amber-900/30 dark:to-amber-700/20 text-amber-900',
+    iconRing: 'ring-1 ring-amber-200/60 group-hover:ring-2 group-hover:ring-amber-300/60',
+    iconShadow: 'shadow-[0_8px_20px_-6px_rgba(245,158,11,0.35)]'
   },
   rose: {
     border: 'hover:border-rose-300',
     shadow: 'hover:shadow-rose-200/60',
     chip: 'group-hover:bg-rose-50 group-hover:text-rose-700',
     button: 'group-hover:border-rose-300 group-hover:text-rose-700',
-    iconBg: 'bg-rose-100 text-rose-900'
+    iconGradient:
+      'bg-gradient-to-br from-rose-100 via-rose-50 to-white dark:from-rose-900/40 dark:to-rose-700/20 text-rose-900',
+    iconRing: 'ring-1 ring-rose-200/60 group-hover:ring-2 group-hover:ring-rose-300/60',
+    iconShadow: 'shadow-[0_8px_20px_-6px_rgba(244,63,94,0.35)]'
   },
   indigo: {
     border: 'hover:border-indigo-300',
     shadow: 'hover:shadow-indigo-200/60',
     chip: 'group-hover:bg-indigo-50 group-hover:text-indigo-700',
     button: 'group-hover:border-indigo-300 group-hover:text-indigo-700',
-    iconBg: 'bg-indigo-100 text-indigo-900'
+    iconGradient:
+      'bg-gradient-to-br from-indigo-100 via-indigo-50 to-white dark:from-indigo-900/40 dark:to-indigo-700/20 text-indigo-900',
+    iconRing: 'ring-1 ring-indigo-200/60 group-hover:ring-2 group-hover:ring-indigo-300/60',
+    iconShadow: 'shadow-[0_8px_20px_-6px_rgba(99,102,241,0.35)]'
   }
 };
 
@@ -103,7 +121,12 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
           <div
             className={[
               'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-semibold',
-              tone.iconBg
+              'transition-transform duration-200 group-hover:-translate-y-0.5',
+              'ring-offset-2 ring-offset-background',
+              'shadow-sm',
+              tone.iconGradient,
+              tone.iconRing,
+              tone.iconShadow
             ].join(' ')}
           >
             {glyph}
