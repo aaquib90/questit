@@ -147,21 +147,9 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
                 {variantTitle}
               </Link>
             </h3>
-            {descriptor ? (
-              <p className="inline-flex items-center self-start rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {descriptor}
-              </p>
-            ) : null}
             <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
               {summary}
             </p>
-            {template?.prompt ? (
-              <div className="mt-2 rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-                <span className="opacity-60">“</span>
-                {template.prompt}
-                <span className="opacity-60">”</span>
-              </div>
-            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -177,11 +165,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
               {label}
             </Badge>
           ))}
-          {tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="rounded-full bg-muted px-3 py-1 text-xs text-foreground/80">
-              #{tag}
-            </span>
-          ))}
+          {/* Tags intentionally hidden for a cleaner card layout */}
         </div>
       </div>
       <div className="space-y-2">
