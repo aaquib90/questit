@@ -149,11 +149,11 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
                 ))}
               </div>
             </div>
-            <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
-              {summary}
-            </p>
           </div>
         </div>
+        <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
+          {summary}
+        </p>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {audience.slice(0, 2).map((label) => (
             <Badge
