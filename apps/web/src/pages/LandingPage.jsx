@@ -12,6 +12,7 @@ import { useSeoMetadata } from '@/lib/seo.js';
 import { hasSupabaseConfig, supabase } from '@/lib/supabaseClient';
 import { useThemeManager } from '@/lib/themeManager.js';
 import { useToast } from '@/hooks/useToast.js';
+import { ArcadeEmbed } from '@/components/help/ArcadeEmbed.jsx';
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -254,12 +255,12 @@ export default function LandingPage() {
             </p>
           </div>
           <Surface className="relative overflow-hidden rounded-3xl border border-border/40 bg-background/80 shadow-lg">
-            <div className="aspect-video w-full bg-muted">
-              <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-                <span className="text-base font-medium text-foreground">Memory demo coming soon</span>
-                <span className="text-xs">We’re recording a walkthrough to showcase tool persistence.</span>
-              </div>
+            <div className="aspect-video w-full bg-muted" />
+            <div className="flex w-full flex-col gap-3 p-4 text-sm text-muted-foreground">
+              <span className="text-base font-medium text-foreground">Memory demo coming soon</span>
+              <span className="text-xs">We’re recording a walkthrough to showcase tool persistence.</span>
             </div>
+            <ArcadeEmbed />
           </Surface>
         </section>
 
