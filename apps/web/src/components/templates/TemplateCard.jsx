@@ -94,6 +94,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
   } = template;
 
   const variantTitle = buildVariantTitle(template);
+  const mainTitle = template?.title || template?.name || variantTitle;
   const descriptor = resolveTemplateDescriptor(template);
 
   const toneKey = pickToneFromId(template?.id || template?.title || 't');
@@ -136,7 +137,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
               to={`/templates/${encodeURIComponent(template.id)}`}
               className="text-xl font-semibold leading-snug text-foreground hover:underline"
             >
-              {variantTitle}
+              {mainTitle}
             </Link>
           </div>
           <div className="flex-1 space-y-1.5">
