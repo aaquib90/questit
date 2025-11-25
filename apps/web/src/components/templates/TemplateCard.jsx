@@ -171,10 +171,10 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
         </div>
       </div>
       <div className="space-y-2">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-center">
           <Button
             shape="pill"
-            className="w-full px-5 sm:w-auto"
+            className="px-5"
             onClick={() => onUse?.(template)}
           >
             Try This Idea
@@ -182,12 +182,12 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
           <Button
             variant="outline"
             shape="pill"
-            className={['w-full px-5 sm:w-auto transition-colors', tone.button].join(' ')}
+            className={['px-5 transition-colors', tone.button].join(' ')}
             onClick={() => onPreview?.(template)}
           >
             See how it looks
           </Button>
-          <Button asChild variant="ghost" shape="pill" className="w-full px-5 sm:w-auto">
+          <Button asChild variant="ghost" shape="pill" className="px-5">
             <Link to={`/templates/${encodeURIComponent(template.id)}`}>Take it for a spin</Link>
           </Button>
         </div>
