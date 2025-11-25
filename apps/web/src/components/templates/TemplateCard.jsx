@@ -134,7 +134,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
             </div>
             <Link
               to={`/templates/${encodeURIComponent(template.id)}`}
-              className="text-sm font-semibold text-foreground hover:underline"
+              className="text-xl font-semibold leading-snug text-foreground hover:underline"
             >
               {variantTitle}
             </Link>
