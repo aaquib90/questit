@@ -37,7 +37,9 @@ Key references:
    - If Supabase is configured and the user is signed in (email + password), the bundle is saved to `public.user_tools`.
    - `apps/web/src/lib/supabaseClient.js` degrades gracefully if env vars are missing, preventing hard failures.
 5. **My Tools**
-   - Users can view, reload into workbench, and publish saved tools from the “My Tools” section in `apps/web/src/App.jsx`.
+   - Users can view, reload into workbench, run privately (`/my-tools/:id/play`), and publish saved tools from the “My Tools” section in `apps/web/src/App.jsx`.
+   - Publishing UI is enabled when `VITE_PUBLISH_API_BASE` is present in the environment (Pages/Preview/Dev).
+   - The UI reads `share_slug` and `visibility` from `public.user_tools` to show the “Open public link” action. Add these columns if missing.
 6. **Publish**
    - Publishing posts the saved bundle to the `publish` worker, which emits a User Worker script (WfP) with a Questit-branded shell honoring the selected theme and color mode.
 

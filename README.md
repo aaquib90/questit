@@ -151,7 +151,42 @@ With dependencies installed you can start the Vite workbench via `pnpm dev:web` 
    # apps/web/.env (Vite)
    VITE_SUPABASE_URL=your-supabase-url
    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   # optional: enables the Publish button and dialog
+   VITE_PUBLISH_API_BASE=https://questit.cc/api
    ```
+
+### Deploying the Web App on Cloudflare Pages
+
+For the monorepo (`apps/web`), set these in Pages → Settings → Build & Deploy:
+
+- Install command: `pnpm install --frozen-lockfile`
+- Build command: `pnpm --filter web build`
+- Output directory: `apps/web/dist`
+
+Environment variables (Production and Preview):
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_PUBLISH_API_BASE` (optional, enables publish dialog + link copy)
+
+Trigger a redeploy after saving settings.
+
+### My Tools: Private Run vs Publish
+
+- Private Run: `GET /my-tools/:id/play` renders your saved tool while signed in (no public link).
+- Publish: open `/build?tool=<id>&publish=1` to choose visibility and generate a public viewer at `/tools/<slug>`.
+
+Supabase schema additions used by the UI:
+
+```sql
+alter table public.user_tools
+  add column if not exists share_slug text,
+  add column if not exists visibility text default 'draft';
+
+create unique index if not exists user_tools_share_slug_idx
+  on public.user_tools (share_slug)
+  where share_slug is not null;
+```
 
 ### Mobile (Expo) Preview
 
