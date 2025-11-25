@@ -7,7 +7,7 @@ to migrate older shares and keep the shared assets up to date.
 
 ## 1. Deploy the new shell
 
-1. Build and deploy the frontend so `web/public/share-shell/v1` is available on
+1. Build and deploy the frontend so `apps/web/public/share-shell/v1` is available on
    `questit.cc`.
 2. Deploy the publish worker (staging first, then production) so newly published
    tools emit the external shell markup.
@@ -44,7 +44,7 @@ to migrate older shares and keep the shared assets up to date.
 ## 3. Version management going forward
 
 - When updating the shared design, create a new directory
-  `public/share-shell/v<next>/` and bump `SHARE_SHELL_VERSION` in
+  `apps/web/public/share-shell/v<next>/` and bump `SHARE_SHELL_VERSION` in
   `workers/api/tools/publish.js`.
 - Re-run the backfill script so existing shares adopt the latest version.
 - Monitor the `/metadata` endpoint for a few published tools — it now reports

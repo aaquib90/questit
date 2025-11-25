@@ -1,10 +1,6 @@
 #!/usr/bin/env node
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { TEMPLATE_COLLECTIONS } from '@questit/toolkit/templates';
 
 function ensureEnv(name) {
   const value = process.env[name];
@@ -23,10 +19,8 @@ function chunk(items, size) {
   return result;
 }
 
-async function loadLegacyTemplates() {
-  const modulePath = path.join(__dirname, '..', 'web', 'src', 'data', 'templates.js');
-  const mod = await import(pathToFileURL(modulePath));
-  const collections = mod.TEMPLATE_COLLECTIONS || [];
+function loadLegacyTemplates() {
+  const collections = TEMPLATE_COLLECTIONS || [];
   const rows = [];
   collections.forEach((collection) => {
     (collection.templates || []).forEach((template) => {
@@ -85,7 +79,7 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
   });
 
-  const legacyTemplates = await loadLegacyTemplates();
+  const legacyTemplates = loadLegacyTemplates();
   const payload = legacyTemplates.map(normaliseTemplate);
   const batches = chunk(payload, 50);
   console.log(`Uploading ${payload.length} legacy templates in ${batches.length} batches…`);

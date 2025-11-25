@@ -4,7 +4,7 @@ import path from 'node:path';
 import Papa from 'papaparse';
 import { fileURLToPath } from 'node:url';
 
-import { generateTool } from '../web/src/generateTool.js';
+import { generateTool } from '../packages/toolkit/src/generateTool.js';
 import { staticScan } from '../src/core/static-scan.js';
 
 const __filename = fileURLToPath(import.meta.url);

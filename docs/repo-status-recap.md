@@ -7,7 +7,7 @@ Questit generates lightweight, browser-executable micro-tools from natural langu
 - **Runtime**: Cloudflare Workers for Platforms (WfP)
   - `workers/dispatch/worker.js` routes subdomains to User Workers (dynamic dispatch).
   - Separate API workers provide proxying, packaging, publishing, and reporting.
-- **Web Workbench**: `web/` (Vite + React + shadcn/ui + Tailwind)
+- **Web Workbench**: `apps/web/` (Vite + React + shadcn/ui + Tailwind)
   - Prompts go directly to `https://questit.cc/api/ai/proxy`.
   - Preview runs inside an iframe; follow-ups send prior code back for contextual updates.
   - Optional Supabase auth/persistence; “My Tools” management and publish.
@@ -17,7 +17,7 @@ Questit generates lightweight, browser-executable micro-tools from natural langu
 
 Key references:
 - Root overview and limits: `README.md`, `docs/*.md`
-- Workbench UI: `web/src/App.jsx`, `web/src/generateTool.js`, `web/src/lib/supabaseClient.js`
+- Workbench UI: `apps/web/src/App.jsx`, `apps/web/src/generateTool.js`, `apps/web/src/lib/supabaseClient.js`
 - AI Proxy: `workers/api/ai/proxy.js`
 - GitHub Proxy: `workers/api/github/proxy.js`
 - Package: `workers/api/package/worker.js`
@@ -28,16 +28,16 @@ Key references:
 ### Current Capabilities and UI Flow
 1. **Prompt → Generate**
    - The UI calls the AI proxy with a strict system prompt to return only `{ html, css, js }`.
-   - File: `web/src/generateTool.js` enforces JSON output, sets provider/model, and passes `response_format: json_object`.
+   - File: `apps/web/src/generateTool.js` enforces JSON output, sets provider/model, and passes `response_format: json_object`.
 2. **Iterate**
    - Follow-up prompts include the previous `{ html, css, js }` to update the tool while preserving structure.
 3. **Preview**
    - The bundle is embedded in a sandboxed iframe styled to match shadcn themes and color modes.
 4. **Save (optional)**
-   - If Supabase is configured and the user is signed in (magic link), the bundle is saved to `public.user_tools`.
-   - `web/src/lib/supabaseClient.js` degrades gracefully if env vars are missing, preventing hard failures.
+   - If Supabase is configured and the user is signed in (email + password), the bundle is saved to `public.user_tools`.
+   - `apps/web/src/lib/supabaseClient.js` degrades gracefully if env vars are missing, preventing hard failures.
 5. **My Tools**
-   - Users can view, reload into workbench, and publish saved tools from the “My Tools” section in `web/src/App.jsx`.
+   - Users can view, reload into workbench, and publish saved tools from the “My Tools” section in `apps/web/src/App.jsx`.
 6. **Publish**
    - Publishing posts the saved bundle to the `publish` worker, which emits a User Worker script (WfP) with a Questit-branded shell honoring the selected theme and color mode.
 
@@ -91,12 +91,12 @@ Key references:
 
 ### Notable Recent Changes
 - AI integration:
-- `web/src/generateTool.js` adds iteration input construction and strict JSON parsing; defaults per provider (`gpt-4o-mini` or `gemini-2.5-flash`, with legacy Gemini 1.5 available in the UI).
+- `apps/web/src/generateTool.js` adds iteration input construction and strict JSON parsing; defaults per provider (`gpt-4o-mini` or `gemini-2.5-flash`, with legacy Gemini 1.5 available in the UI).
   - `workers/api/ai/proxy.js` implements provider switching with clean pass-through of JSON content and CORS.
   - `src/ai/ai-model.js` remains a thin client wrapper used by core paths.
 - Web workbench:
-  - `web/src/App.jsx` integrates shadcn UI, theme/color mode pickers, iteration, Supabase auth (magic link), Saved Tools, and publish UI.
-  - `web/src/lib/supabaseClient.js` graceful degradation if missing Vite env vars.
+  - `apps/web/src/App.jsx` integrates shadcn UI, theme/color mode pickers, iteration, Supabase auth (email/password), Saved Tools, and publish UI.
+  - `apps/web/src/lib/supabaseClient.js` graceful degradation if missing Vite env vars.
 - Supabase:
   - New `public.user_tools` table with RLS by user; core tables enabled for RLS with placeholder policies.
   - Latest migration adds `public_summary`, `model_provider`, and `model_name` columns so published/remixed experiences can show safe metadata while keeping prompts private.
@@ -114,4 +114,4 @@ Key references:
 - **Observability**: ensure consistent Sentry/PostHog wiring across all API workers, including publish/package.
 - **Docs**: keep `README.md` and `docs/` in lockstep with feature flags (what’s enabled vs. staged).
 
-This recap reflects the current code in `web/`, `workers/`, and `supabase/`, aligned with the project’s README and docs. It captures the browser-first generation, iteration, save, and publish flow while outlining security and platform steps to harden for broader use.
+This recap reflects the current code in `apps/web/`, `workers/`, and `supabase/`, aligned with the project’s README and docs. It captures the browser-first generation, iteration, save, and publish flow while outlining security and platform steps to harden for broader use.

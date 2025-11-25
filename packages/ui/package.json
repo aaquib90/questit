@@ -1,0 +1,22 @@
+{
+  "name": "@questit/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./native": "./src/native/index.ts"
+  },
+  "scripts": {
+    "build": "echo \"@questit/ui build (placeholder)\"",
+    "dev": "pnpm run build",
+    "lint": "echo \"@questit/ui lint (placeholder)\"",
+    "test": "echo \"@questit/ui test (placeholder)\"",
+    "typecheck": "echo \"@questit/ui typecheck (placeholder)\""
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

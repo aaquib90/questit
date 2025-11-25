@@ -1,7 +1,7 @@
 @import url('https://fonts.cdnfonts.com/css/zalando-sans');
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
-/* Design tokens for Questit (reference set for import into web/) */
+/* Design tokens for Questit (reference set for import into apps/web/) */
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 47.4% 11.2%;
@@ -129,5 +129,4 @@
   padding-top: var(--section-gap-tight);
   padding-bottom: var(--section-gap-tight);
 }
-
 

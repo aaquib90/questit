@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../packages/config/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-native",
+    "types": ["react", "react-native", "node"],
+    "paths": {
+      "@questit/ui": ["../../packages/ui/src"],
+      "@questit/ui/*": ["../../packages/ui/src/*"],
+      "@questit/toolkit": ["../../packages/toolkit/src"],
+      "@questit/toolkit/*": ["../../packages/toolkit/src/*"]
+    }
+  },
+  "include": ["./App.js", "./index.js", "./src/**/*"]
+}

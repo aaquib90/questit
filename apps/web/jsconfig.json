@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@questit/*": ["../../src/*"],
+      "@questit/ui": ["../../packages/ui/src"],
+      "@questit/toolkit": ["../../packages/toolkit/src"]
+    }
+  }
+}

@@ -30,10 +30,9 @@ Goal: restore repository-based code adaptation and interpreter-backed repair whi
 - Server-side kill-switch via env flag.
 
 ## Implementation Tasks
-- Add feature flag plumbing to `web/src/generateTool.js` and `workers/api/ai/proxy.js`
+- Add feature flag plumbing to `apps/web/src/generateTool.js` and `workers/api/ai/proxy.js`
 - Re-enable `src/ai/repo-finder.js`, `src/core/repo-fetcher.js`, `src/core/code-analyzer.js`, `src/ai/code-adapter.js`
 - Add static scan on adapted output (reuse publish scan set)
 - Add repair loop with bounded iterations and cost
 - Expand E2E to cover repo-based generation with size overflow and fallback
-
 
