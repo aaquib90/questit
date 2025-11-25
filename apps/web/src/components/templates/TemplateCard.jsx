@@ -140,8 +140,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
             </Link>
           </div>
           <div className="flex-1 space-y-1.5">
-            <div className="flex items-center justify-between pb-1 text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-              <span>{collectionTitle || 'Questit Template'}</span>
+            <div className="flex items-center justify-end pb-1 text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
               <div className="flex flex-wrap gap-1">
                 {badgeStack.map((badge) => (
                   <Badge key={badge} variant="outline" className="rounded-full px-2 py-0.5 text-[10px]">
