@@ -118,18 +118,26 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
     >
       <div className="space-y-3">
         <div className="flex gap-3">
-          <div
-            className={[
-              'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-semibold',
-              'transition-transform duration-200 group-hover:-translate-y-0.5',
-              'ring-offset-2 ring-offset-background',
-              'shadow-sm',
-              tone.iconGradient,
-              tone.iconRing,
-              tone.iconShadow
-            ].join(' ')}
-          >
-            {glyph}
+          <div className="flex flex-col items-start gap-2">
+            <div
+              className={[
+                'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-semibold',
+                'transition-transform duration-200 group-hover:-translate-y-0.5',
+                'ring-offset-2 ring-offset-background',
+                'shadow-sm',
+                tone.iconGradient,
+                tone.iconRing,
+                tone.iconShadow
+              ].join(' ')}
+            >
+              {glyph}
+            </div>
+            <Link
+              to={`/templates/${encodeURIComponent(template.id)}`}
+              className="text-sm font-semibold text-foreground hover:underline"
+            >
+              {variantTitle}
+            </Link>
           </div>
           <div className="flex-1 space-y-1.5">
             <div className="flex items-center justify-between pb-1 text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -142,11 +150,6 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
                 ))}
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-foreground">
-              <Link to={`/templates/${encodeURIComponent(template.id)}`} className="hover:underline">
-                {variantTitle}
-              </Link>
-            </h3>
             <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
               {summary}
             </p>
