@@ -129,7 +129,16 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
                 {descriptor}
               </p>
             ) : null}
-            <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">{summary}</p>
+            <p className="text-left text-sm leading-relaxed text-muted-foreground line-clamp-3">
+              {summary}
+            </p>
+            {template?.prompt ? (
+              <div className="mt-2 rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                <span className="opacity-60">“</span>
+                {template.prompt}
+                <span className="opacity-60">”</span>
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -159,7 +168,7 @@ export default function TemplateCard({ template, onPreview, onUse, highlightBadg
             className="w-full px-5 sm:w-auto"
             onClick={() => onUse?.(template)}
           >
-            Use this template
+            Try This Idea
           </Button>
           <Button
             variant="outline"
