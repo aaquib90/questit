@@ -26,11 +26,24 @@ function buildEndpoint(base, path) {
   return `${trimmed}${fullPath}`;
 }
 
-export async function publishTool(tool, apiBase = 'https://questit.cc/api') {
+export async function publishTool(tool, apiBase = 'https://questit.cc/api', options = {}) {
   const url = buildEndpoint(apiBase, '/tools/publish');
+  const { authToken, getAuthToken } = options;
+  let resolvedAuthToken = authToken || null;
+  if (!resolvedAuthToken && typeof getAuthToken === 'function') {
+    try {
+      resolvedAuthToken = await getAuthToken();
+    } catch {
+      resolvedAuthToken = null;
+    }
+  }
+  const headers = { 'Content-Type': 'application/json' };
+  if (resolvedAuthToken) {
+    headers.Authorization = `Bearer ${resolvedAuthToken}`;
+  }
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(tool)
   });
   if (!res.ok) {

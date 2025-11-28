@@ -134,6 +134,7 @@ function BuildPage() {
   const [toolCode, setToolCode] = useState({ html: '', css: '', js: '' });
   const [isGenerating, setIsGenerating] = useState(false);
   const [user, setUser] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState({ state: 'idle', message: '' });
   const [saveDraft, setSaveDraft] = useState({ title: '', summary: '' });
@@ -373,6 +374,17 @@ function BuildPage() {
       setComposerValue('');
     }
 
+    if (!accessToken) {
+      setSessionStatus({
+        state: 'error',
+        message: 'Sign in to generate tools.'
+      });
+      if (!user) {
+        handleRequestLogin();
+      }
+      return;
+    }
+
     setIsGenerating(true);
     setSessionStatus({ state: 'loading', message: '' });
 
@@ -394,7 +406,8 @@ function BuildPage() {
       const result = await generateTool(trimmed, endpoint, previousCode, {
         modelConfig,
         memoryConfig: memorySettings,
-        requestMetadata
+        requestMetadata,
+        authToken: accessToken
       });
 
       setToolCode(result);
@@ -1021,7 +1034,16 @@ function BuildPage() {
         publishPayload.passphrase = trimmedPassphrase;
       }
 
-      const result = await publishSavedTool(publishPayload, apiBase);
+      if (!accessToken) {
+        updateToolActionStatus(toolId, {
+          publishing: false,
+          error: 'Sign in to publish this tool.'
+        });
+        handleRequestLogin();
+        return { ok: false, error: 'Authentication required.' };
+      }
+
+      const result = await publishSavedTool(publishPayload, apiBase, { authToken: accessToken });
       const shareUrl = buildShareUrl(result?.name, apiBase);
 
       updateToolActionStatus(toolId, {
@@ -1132,6 +1154,7 @@ function BuildPage() {
       .then(({ data }) => {
         if (isMounted) {
           setUser(data.session?.user ?? null);
+          setAccessToken(data.session?.access_token || null);
         }
       })
       .catch((error) => {
@@ -1140,6 +1163,7 @@ function BuildPage() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAccessToken(session?.access_token || null);
     });
 
     return () => {

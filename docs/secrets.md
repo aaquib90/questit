@@ -15,6 +15,7 @@ Set via `wrangler secret put` (staging/prod as needed):
 - `POSTHOG_HOST` (e.g. https://app.posthog.com)
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE`
+- `SUPABASE_JWT_SECRET` (used to verify Supabase user JWTs in Workers)
 
 KV namespaces/bindings:
 - Create KV for rate limit; set `RATELIMIT_KV_ID` in wrangler vars.
@@ -26,6 +27,7 @@ KV namespaces/bindings:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE`
 - `SUPABASE_DB_URL` (for migrations via psql)
+- `SUPABASE_JWT_SECRET` (kept in CI for smoke tests hitting authenticated APIs)
 
 ## Supabase
 - Apply migrations under `supabase/migrations/`.

@@ -8,6 +8,7 @@ import ToolViewerRoute from '@/pages/ToolViewerRoute.jsx';
 import MyToolsPage from '@/pages/MyToolsPage.jsx';
 import ProfilePage from '@/pages/ProfilePage.jsx';
 import ToolPlayerRoute from '@/pages/ToolPlayerRoute.jsx';
+import ResetPasswordPage from '@/pages/ResetPasswordPage.jsx';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/my-tools" element={<MyToolsPage />} />
         <Route path="/my-tools/:id/play" element={<ToolPlayerRoute />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/auth/reset" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

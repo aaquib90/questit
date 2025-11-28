@@ -162,7 +162,17 @@ async function main() {
   const delayMs = Math.max(0, parseInteger(getArg('delay'), 1500));
   const provider = (getArg('provider') || 'openai').toLowerCase();
   const model = getArg('model') || undefined;
-  const endpoint = getArg('endpoint', process.env.TEMPLATE_GENERATOR_ENDPOINT || 'https://questit.cc/api/ai/proxy');
+  const endpoint = getArg(
+    'endpoint',
+    process.env.TEMPLATE_GENERATOR_ENDPOINT || 'https://questit.cc/api/ai/proxy'
+  );
+  const authToken = getArg('authToken', process.env.SUPABASE_ACCESS_TOKEN || '').trim();
+  if (!authToken) {
+    console.error(
+      'Missing Supabase access token. Provide --authToken="<token>" or set SUPABASE_ACCESS_TOKEN.'
+    );
+    process.exit(1);
+  }
 
   console.log('Template generation config:');
   console.log(' CSV:', csvPath);
@@ -203,7 +213,8 @@ async function main() {
     try {
       const code = await generateTool(prompt, endpoint, undefined, {
         modelConfig: { provider, model },
-        requestMetadata: { templateKey: key, category: row.Category || null }
+        requestMetadata: { templateKey: key, category: row.Category || null },
+        authToken
       });
       validateBundleOrThrow(code);
 

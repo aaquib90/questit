@@ -8,6 +8,8 @@ export interface GenerateToolOptions {
     retention?: 'session' | 'persistent' | string;
   };
   requestMetadata?: Record<string, unknown>;
+  authToken?: string | null;
+  getAuthToken?: () => Promise<string | null> | string | null;
 }
 
 export interface GeneratedToolBundle {

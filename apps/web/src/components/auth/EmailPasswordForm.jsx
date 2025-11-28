@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,7 @@ export default function EmailPasswordForm({
   description = 'Use your email and password to access saved tools and creator settings.',
   defaultMode = MODES.SIGN_IN,
   redirectTo,
+  resetRedirectTo,
   className,
   onAuthSuccess,
   idPrefix = 'auth'
@@ -25,9 +26,16 @@ export default function EmailPasswordForm({
   const [showPassword, setShowPassword] = useState(false);
   const { status, resetStatus, signInWithPassword, signUpWithPassword, sendPasswordReset, hasSupabaseConfig } =
     usePasswordAuth();
+  const [resetCooldown, setResetCooldown] = useState(0);
 
   const disabled = status.state === 'loading';
   const submitLabel = mode === MODES.SIGN_IN ? 'Sign in' : 'Create account';
+
+  const resolvedResetRedirect = useMemo(() => {
+    if (resetRedirectTo) return resetRedirectTo;
+    if (typeof window === 'undefined') return undefined;
+    return `${window.location.origin}/auth/reset`;
+  }, [resetRedirectTo]);
 
   const helperText = useMemo(() => {
     if (!hasSupabaseConfig) {
@@ -47,6 +55,14 @@ export default function EmailPasswordForm({
     [mode, resetStatus]
   );
 
+  useEffect(() => {
+    if (resetCooldown <= 0) return undefined;
+    const timer = window.setTimeout(() => {
+      setResetCooldown((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [resetCooldown]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!hasSupabaseConfig) {
@@ -63,8 +79,12 @@ export default function EmailPasswordForm({
   };
 
   const handlePasswordReset = async () => {
-    if (!hasSupabaseConfig) return;
-    await sendPasswordReset({ email, redirectTo });
+    if (!hasSupabaseConfig || !email || resetCooldown > 0) return;
+    const result = await sendPasswordReset({ email, redirectTo: resolvedResetRedirect || redirectTo });
+    if (!result?.error) {
+      setResetCooldown(60);
+      setPassword('');
+    }
   };
 
   const emailInputId = `${idPrefix}-email`;
@@ -158,11 +178,11 @@ export default function EmailPasswordForm({
           </Button>
           <button
             type="button"
-            className="text-sm font-semibold text-primary hover:underline"
+            className="text-sm font-semibold text-primary hover:underline disabled:text-muted-foreground"
             onClick={handlePasswordReset}
-            disabled={disabled || !email}
+            disabled={disabled || !email || resetCooldown > 0}
           >
-            Forgot password?
+            {resetCooldown > 0 ? `Retry in ${resetCooldown}s` : 'Forgot password?'}
           </button>
         </div>
       </form>

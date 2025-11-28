@@ -19,6 +19,22 @@
       border-radius: 8px;
       margin-bottom: 12px;
     }
+    .token-field {
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+    .token-field input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .helper-text {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 6px;
+    }
     button {
       background: #3b82f6;
       color: white;
@@ -71,6 +87,13 @@
   </select>
 
   <input type="text" id="prompt" placeholder="e.g., Create a simple calculator" value="Create a simple calculator">
+  <div class="token-field">
+    <label for="auth-token" style="display:block;font-weight:600;margin-bottom:6px;">Supabase access token</label>
+    <input type="password" id="auth-token" placeholder="Paste your Supabase access token" autocomplete="off">
+    <p class="helper-text">
+      Sign in via the workbench, copy your Supabase access token from local storage, and paste it here so the proxy can authenticate your requests.
+    </p>
+  </div>
   <br>
   <button id="generate">Generate Tool</button>
   <button id="publish" disabled>Publish Tool</button>
@@ -119,6 +142,11 @@
     const urlParams = new URLSearchParams(window.location.search);
     const apiEndpoint = urlParams.get('endpoint') || 'https://questit.cc/api/ai/proxy';
     const apiBase = urlParams.get('apiBase') || 'https://questit.cc/api';
+    const authTokenInput = document.getElementById('auth-token');
+    const initialToken = urlParams.get('authToken');
+    if (initialToken) {
+      authTokenInput.value = initialToken;
+    }
     const modelMap = {
       'gemini:2.5-flash': { provider: 'gemini', model: 'gemini-2.5-flash' },
       'openai:gpt-4o-mini': { provider: 'openai', model: 'gpt-4o-mini' },
@@ -136,10 +164,13 @@
     }
 
     let currentModelConfig = resolveModelConfig(modelSelect.value);
+    const resolveAuthToken = () => authTokenInput.value.trim() || null;
+
     let questit = new Questit({
       endpoint: apiEndpoint,
       provider: currentModelConfig.provider,
-      model: currentModelConfig.model
+      model: currentModelConfig.model,
+      getAuthToken: resolveAuthToken
     });
 
     const promptInput = document.getElementById('prompt');
@@ -155,7 +186,8 @@
       questit = new Questit({
         endpoint: apiEndpoint,
         provider: currentModelConfig.provider,
-        model: currentModelConfig.model
+        model: currentModelConfig.model,
+        getAuthToken: resolveAuthToken
       });
       currentTool = null;
       publishBtn.disabled = true;
@@ -224,7 +256,7 @@
       errorDiv.innerHTML = '<p>Publishing tool...</p>';
 
       try {
-        const result = await publishTool(currentTool, apiBase);
+        const result = await publishTool(currentTool, apiBase, { authToken: resolveAuthToken() });
         const subdomain = result.name;
         const url = `https://${subdomain}.questit.cc/`;
         errorDiv.innerHTML = `<div style="background: #d1fae5; padding: 12px; border-radius: 8px; margin-top: 12px;">

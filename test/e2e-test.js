@@ -7,8 +7,15 @@ import Questit from '../src/index.js';
 import { publishTool } from '../src/core/publish.js';
 import { scopeGateRequest } from '../src/ai/scope-gate.js';
 
+const AUTH_TOKEN =
+  process.env.AI_PROXY_AUTH_TOKEN ||
+  process.env.SUPABASE_ACCESS_TOKEN ||
+  process.env.SUPABASE_ANON_JWT ||
+  '';
+
 const API_CONFIG = {
-  endpoint: 'https://questit.cc/api/ai/proxy'
+  endpoint: 'https://questit.cc/api/ai/proxy',
+  getAuthToken: () => AUTH_TOKEN
 };
 
 async function testScopeGate() {
@@ -77,6 +84,9 @@ async function testAPIs() {
         headers: { 'Content-Type': 'application/json' }
       };
       if (test.body) options.body = test.body;
+      if (AUTH_TOKEN) {
+        options.headers.Authorization = `Bearer ${AUTH_TOKEN}`;
+      }
       
       const res = await fetch(test.url, options);
       const status = res.status;
@@ -96,7 +106,10 @@ async function testSupabaseConnection() {
   try {
     const res = await fetch('https://questit.cc/api/selftest/report', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {})
+      },
       body: JSON.stringify({
         instance_id: '00000000-0000-0000-0000-000000000000',
         pass: true,

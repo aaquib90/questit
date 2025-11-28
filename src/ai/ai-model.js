@@ -25,9 +25,23 @@ export async function queryAIModel(systemPrompt, userContent, options = {}, apiC
     body.model = selectedModel;
   }
 
+  let resolvedAuthToken = apiConfig.authToken || null;
+  if (!resolvedAuthToken && typeof apiConfig.getAuthToken === 'function') {
+    try {
+      resolvedAuthToken = await apiConfig.getAuthToken();
+    } catch {
+      resolvedAuthToken = null;
+    }
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (resolvedAuthToken) {
+    headers.Authorization = `Bearer ${resolvedAuthToken}`;
+  }
+
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body)
   });
 

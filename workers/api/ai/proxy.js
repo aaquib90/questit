@@ -1,5 +1,6 @@
 import { rateLimit } from '../../lib/ratelimit.js';
 import { logErrorToSentry, capturePosthogEvent } from '../../lib/telemetry.js';
+import { requireSupabaseUser } from '../../lib/auth.js';
 
 function getCorsHeaders(origin) {
   // Allow localhost and questit.cc origins
@@ -16,7 +17,7 @@ function getCorsHeaders(origin) {
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400'
   };
 }
@@ -57,6 +58,18 @@ export default {
       return errorJson(405, 'method_not_allowed', 'Method Not Allowed');
     }
     
+    let authUser;
+    try {
+      authUser = await requireSupabaseUser(request, env);
+    } catch (authError) {
+      const status = authError?.status === 500 ? 500 : 401;
+      const message =
+        status === 500
+          ? 'Authentication configuration is missing. Contact support.'
+          : authError?.message || 'Authentication required.';
+      return errorJson(status, 'unauthorized', message);
+    }
+
     let parsedBody;
     try {
       parsedBody = await request.json();
@@ -72,6 +85,7 @@ export default {
       model: requestedModel,
       metadata = null
     } = parsedBody;
+    const safeMetadata = normalizeRequestMetadata(metadata, authUser.userId);
     const provider = (requestedProvider || options.provider || 'openai').toLowerCase();
     const model = requestedModel || options.model;
     const expectJson =
@@ -82,7 +96,8 @@ export default {
     try {
       const { allowed, remaining, reset } = await rateLimit(request, env, {
         limit: 60,
-        windowSec: 60
+        windowSec: 60,
+        identifier: `user:${authUser.userId}:${new URL(request.url).pathname}`
       });
       if (!allowed) {
         return jsonResponse(
@@ -110,7 +125,7 @@ export default {
           env,
           model,
           expectJson,
-          metadata,
+          metadata: safeMetadata,
           providerName: 'openai'
         });
       case 'codex':
@@ -122,7 +137,7 @@ export default {
           env,
           model,
           expectJson,
-          metadata,
+          metadata: safeMetadata,
           providerName: 'codex',
           apiKeyOverride: env.CODEX_API_KEY || env.OPENAI_API_KEY,
           defaultModel: 'gpt-5.1-codex-max'
@@ -130,10 +145,28 @@ export default {
       case 'gemini':
       case 'google':
       case 'google-gemini':
-        return handleGemini({ system, input, options, corsHeaders, env, model, expectJson, metadata });
+        return handleGemini({
+          system,
+          input,
+          options,
+          corsHeaders,
+          env,
+          model,
+          expectJson,
+          metadata: safeMetadata
+        });
       case 'anthropic':
       case 'claude':
-        return handleAnthropic({ system, input, options, corsHeaders, env, model, expectJson, metadata });
+        return handleAnthropic({
+          system,
+          input,
+          options,
+          corsHeaders,
+          env,
+          model,
+          expectJson,
+          metadata: safeMetadata
+        });
       default:
         return errorJson(400, 'unsupported_provider', `Unsupported provider: ${provider}`);
     }
@@ -260,7 +293,8 @@ async function handleOpenAI({
       await capturePosthogEvent(env, 'ai_proxy_request', {
         provider: providerName,
         model: payload.model || null,
-        json_ok: true
+        json_ok: true,
+        user_id: metadata?.userId || null
       });
       return new Response(JSON.stringify(parsed), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -286,7 +320,8 @@ async function handleOpenAI({
   await capturePosthogEvent(env, 'ai_proxy_request', {
     provider: providerName,
     model: payload.model || null,
-    json_ok: false
+    json_ok: false,
+    user_id: metadata?.userId || null
   });
   return new Response(JSON.stringify({ content }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -425,7 +460,8 @@ async function handleGemini({
       await capturePosthogEvent(env, 'ai_proxy_request', {
         provider: 'gemini',
         model: selectedModel || null,
-        json_ok: true
+        json_ok: true,
+        user_id: metadata?.userId || null
       });
       return new Response(JSON.stringify(parsed), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -450,7 +486,8 @@ async function handleGemini({
   await capturePosthogEvent(env, 'ai_proxy_request', {
     provider: 'gemini',
     model: selectedModel || null,
-    json_ok: false
+    json_ok: false,
+    user_id: metadata?.userId || null
   });
   return new Response(JSON.stringify({ content }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -587,7 +624,8 @@ async function handleAnthropic({
       await capturePosthogEvent(env, 'ai_proxy_request', {
         provider: 'anthropic',
         model: selectedModel || null,
-        json_ok: true
+        json_ok: true,
+        user_id: metadata?.userId || null
       });
       return new Response(JSON.stringify(parsed), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -613,7 +651,8 @@ async function handleAnthropic({
   await capturePosthogEvent(env, 'ai_proxy_request', {
     provider: 'anthropic',
     model: selectedModel || null,
-    json_ok: false
+    json_ok: false,
+    user_id: metadata?.userId || null
   });
   return new Response(JSON.stringify({ content: responseBody || data }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -679,6 +718,17 @@ function buildSupabaseHeaders(serviceRole, extra = {}) {
     apikey: serviceRole,
     ...extra
   };
+}
+
+function normalizeRequestMetadata(metadata, userId) {
+  const base =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? { ...metadata }
+      : {};
+  if (userId) {
+    base.userId = userId;
+  }
+  return base;
 }
 
 async function recordUsageEvent(env, details) {

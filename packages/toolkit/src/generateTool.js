@@ -109,7 +109,7 @@ export async function generateTool(
   previousCode,
   options = {}
 ) {
-  const { modelConfig = {}, memoryConfig, requestMetadata } = options;
+  const { modelConfig = {}, memoryConfig, requestMetadata, authToken, getAuthToken } = options;
   const provider = (modelConfig.provider || 'openai').toLowerCase();
   const defaultModel = DEFAULT_MODEL_BY_PROVIDER[provider] || DEFAULT_MODEL_BY_PROVIDER.openai;
   const model = modelConfig.model || defaultModel;
@@ -132,9 +132,23 @@ export async function generateTool(
     body.metadata = metadataPayload;
   }
 
+  let resolvedAuthToken = authToken || null;
+  if (!resolvedAuthToken && typeof getAuthToken === 'function') {
+    try {
+      resolvedAuthToken = await getAuthToken();
+    } catch {
+      resolvedAuthToken = null;
+    }
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (resolvedAuthToken) {
+    headers.Authorization = `Bearer ${resolvedAuthToken}`;
+  }
+
   const res = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body)
   });
 

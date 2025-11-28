@@ -2,6 +2,7 @@
 // Requires env: CLOUDFLARE_ACCOUNT_ID, WFP_NAMESPACE_ID, CLOUDFLARE_API_TOKEN
 
 import { logErrorToSentry, capturePosthogEvent } from '../../lib/telemetry.js';
+import { getOptionalSupabaseUser, requireSupabaseUser } from '../../lib/auth.js';
 
 const BASE_THEME_VARS = {
   '--background': '0 0% 100%',
@@ -1476,30 +1477,8 @@ function parseCookies(cookieHeader) {
 }
 
 async function resolveAuthContext(request, env) {
+  const auth = await getOptionalSupabaseUser(request, env);
   const headers = request.headers;
-  const authHeader = headers.get('authorization') || headers.get('Authorization');
-  let userId = null;
-
-  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
-    const token = authHeader.slice(7).trim();
-    if (token) {
-      try {
-        const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            apikey: env.SUPABASE_SERVICE_ROLE
-          }
-        });
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          userId = userData?.id || null;
-        }
-      } catch {
-        // ignore auth lookup errors; we'll fall back to session scope
-      }
-    }
-  }
-
   const sessionHeader = headers.get('x-questit-session-id') || headers.get('X-Questit-Session-Id');
   let sessionId = sanitizeNullableString(sessionHeader, 128);
   if (!sessionId) {
@@ -1508,7 +1487,7 @@ async function resolveAuthContext(request, env) {
     sessionId = sanitizeNullableString(cookies['questit_session_id'], 128);
   }
 
-  return { userId, sessionId };
+  return { userId: auth?.userId || null, sessionId };
 }
 
 async function selectExistingMemory(env, toolId, key, context) {
@@ -1909,10 +1888,9 @@ async function handleGetPublishedTool(request, env, corsHeaders, slug) {
     return lookup.error;
   }
   const { record, supabaseUrl, supabaseServiceRole } = lookup;
-  const viewerIdHeader = request.headers.get('x-questit-user-id');
-  const viewerId = viewerIdHeader ? viewerIdHeader.trim() : null;
   const authContext = await resolveAuthContext(request, env);
-  const ownerBypass = authContext.userId && authContext.userId === record.owner_id;
+  const viewerId = authContext.userId || null;
+  const ownerBypass = viewerId && viewerId === record.owner_id;
 
   if (record.visibility === 'private' && !ownerBypass && (!viewerId || viewerId !== record.owner_id)) {
     return new Response(
@@ -1998,7 +1976,7 @@ async function handleGetPublishedTool(request, env, corsHeaders, slug) {
 
   if (record.id) {
     try {
-      const sessionId = sanitizeNullableString(request.headers.get('x-questit-session-id'), 128);
+      const sessionId = authContext.sessionId;
       const userAgent = sanitizeNullableString(request.headers.get('user-agent'), 255);
       await fetch(`${supabaseUrl}/rest/v1/tool_views`, {
         method: 'POST',
@@ -2125,12 +2103,23 @@ export default {
       if (!slug) {
         return new Response('Invalid slug', { status: 400, headers: corsHeaders });
       }
-      const auth = await resolveAuthContext(request, env);
-      if (!auth.userId) {
-        return new Response(JSON.stringify({ error: 'Authentication required.' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+      let auth;
+      try {
+        auth = await requireSupabaseUser(request, env);
+      } catch (authError) {
+        const status = authError?.status === 500 ? 500 : 401;
+        return new Response(
+          JSON.stringify({
+            error:
+              status === 500
+                ? 'Authentication system is misconfigured. Contact support.'
+                : 'Authentication required.'
+          }),
+          {
+            status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
       // Load record and verify ownership
       const lookup = await fetchPublishedToolRecord(env, slug, corsHeaders);
@@ -2367,10 +2356,29 @@ export default {
     }
 
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { 
+      return new Response('Method Not Allowed', {
         status: 405,
         headers: corsHeaders
       });
+    }
+
+    let authUser;
+    try {
+      authUser = await requireSupabaseUser(request, env);
+    } catch (authError) {
+      const status = authError?.status === 500 ? 500 : 401;
+      return new Response(
+        JSON.stringify({
+          error:
+            status === 500
+              ? 'Authentication system is not configured. Contact support.'
+              : 'Authentication required.'
+        }),
+        {
+          status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
     
     const tool = await request.json();
@@ -2384,19 +2392,7 @@ export default {
       });
     }
 
-    const ownerId =
-      tool.owner_id ||
-      tool.user_id ||
-      tool.ownerId ||
-      (tool.owner && (tool.owner.id || tool.owner.user_id)) ||
-      null;
-
-    if (!ownerId) {
-      return new Response('owner_id is required to publish a tool', {
-        status: 400,
-        headers: corsHeaders
-      });
-    }
+    const ownerId = authUser.userId;
 
     const toolId = tool.tool_id || tool.id;
     if (!toolId) {
