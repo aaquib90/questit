@@ -105,7 +105,17 @@ export default function ProfilePage() {
         ) : null}
 
         {hasSupabaseConfig && user ? (
-          <Surface className="mb-8 space-y-3 rounded-2xl border border-border/50 bg-background/80 p-6 shadow-sm">
+          <CreatorPortal
+            user={user}
+            userLabel={userLabel}
+            toolsError={toolsError}
+            hasSupabaseConfig={hasSupabaseConfig}
+            sessionEntries={[]}
+          />
+        ) : null}
+
+        {hasSupabaseConfig && user ? (
+          <Surface className="mt-8 space-y-3 rounded-2xl border border-border/50 bg-background/80 p-6 shadow-sm">
             <h2 className="text-lg font-semibold">Appearance</h2>
             <p className="text-sm text-muted-foreground">
               Choose a theme for the Questit workbench and published tools. Changes apply immediately.
@@ -131,16 +141,6 @@ export default function ProfilePage() {
               </Select>
             </div>
           </Surface>
-        ) : null}
-
-        {hasSupabaseConfig && user ? (
-          <CreatorPortal
-            user={user}
-            userLabel={userLabel}
-            toolsError={toolsError}
-            hasSupabaseConfig={hasSupabaseConfig}
-            sessionEntries={[]}
-          />
         ) : null}
       </main>
     </div>

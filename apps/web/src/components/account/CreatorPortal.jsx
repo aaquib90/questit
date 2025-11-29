@@ -98,14 +98,6 @@ function CreatorPortal({ user, userLabel, toolsError, hasSupabaseConfig, session
                 <span className="text-muted-foreground">Workspace label</span>
                 <p className="font-medium text-foreground">{userLabel}</p>
               </div>
-              <div className="space-y-1">
-                <span className="text-muted-foreground">Supabase linkage</span>
-                <p className="font-medium text-foreground">
-                  {hasSupabaseConfig
-                    ? 'Ready — email + password sign-ins and saved tools are available.'
-                    : 'Connect Supabase environment variables to enable saving tools and portal insights.'}
-                </p>
-              </div>
             </CardContent>
           </Card>
 

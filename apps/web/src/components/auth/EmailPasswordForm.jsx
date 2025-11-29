@@ -46,6 +46,19 @@ export default function EmailPasswordForm({
 
   const helperVariant = !hasSupabaseConfig ? 'error' : status.state;
 
+  const resetHelperText = useMemo(() => {
+    if (!hasSupabaseConfig) {
+      return '';
+    }
+    if (!email) {
+      return 'Enter your email address to receive a reset link.';
+    }
+    if (resetCooldown > 0) {
+      return `You can request another reset email in ${resetCooldown}s.`;
+    }
+    return '';
+  }, [email, resetCooldown, hasSupabaseConfig]);
+
   const handleModeToggle = useCallback(
     (nextMode) => {
       if (mode === nextMode) return;
@@ -185,6 +198,9 @@ export default function EmailPasswordForm({
             {resetCooldown > 0 ? `Retry in ${resetCooldown}s` : 'Forgot password?'}
           </button>
         </div>
+        {resetHelperText ? (
+          <p className="text-xs text-muted-foreground">{resetHelperText}</p>
+        ) : null}
       </form>
     </div>
   );
